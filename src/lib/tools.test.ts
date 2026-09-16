@@ -9,6 +9,10 @@ import { compareText } from './diff'
 import { parsePreferences } from '../storage/preferences'
 
 describe('Base64 and JWT', () => {
+  it('preserves a leading Unicode BOM character when round-tripping text', () => {
+    const text = '\uFEFFMerhaba 👋 世界'
+    expect(decodeBase64(encodeBase64(text))).toBe(text)
+  })
   it.each(['Hello world', 'Merhaba 👋 İstanbul 世界', '', 'a'.repeat(100000)])(
     'round-trips UTF-8 (%#. test)',
     (text) => expect(decodeBase64(encodeBase64(text))).toBe(text),

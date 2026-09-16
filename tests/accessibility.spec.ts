@@ -1,6 +1,30 @@
 import AxeBuilder from '@axe-core/playwright'
 import { test, expect } from '@playwright/test'
 
+test('stacked dialogs restore scrolling after command and history navigation', async ({ page }) => {
+  for (const navigation of ['command', 'history']) {
+    await page.goto('/tools/json')
+    await page.getByRole('button', { name: 'Format JSON' }).waitFor()
+    await page.getByRole('link', { name: 'Settings', exact: true }).click()
+    await page.getByRole('button', { name: 'Reset all preferences' }).click()
+    await page.keyboard.press('Control+k')
+    await expect(page.locator('dialog[open]')).toHaveCount(2)
+    if (navigation === 'command') {
+      await page.getByRole('combobox').fill('json')
+      await page.keyboard.press('Enter')
+    } else {
+      await page.goBack()
+      await expect(page).toHaveURL('/tools/json')
+      await expect(page.locator('dialog[open]')).toHaveCount(1)
+      await expect(page.locator('body')).toHaveCSS('overflow', 'hidden')
+      await page.keyboard.press('Escape')
+    }
+    await expect(page).toHaveURL('/tools/json')
+    await expect(page.locator('dialog[open]')).toHaveCount(0)
+    await expect(page.locator('body')).not.toHaveCSS('overflow', 'hidden')
+  }
+})
+
 for (const theme of ['light', 'dark'] as const) {
   test(`accessible pages in ${theme} theme`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })

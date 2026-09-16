@@ -60,10 +60,12 @@ export function CopyButton({
   text,
   label = 'Copy',
   disabled = false,
+  iconOnly = false,
 }: {
   text: string
   label?: string
   disabled?: boolean
+  iconOnly?: boolean
 }) {
   const toast = useToast()
   return (
@@ -77,19 +79,25 @@ export function CopyButton({
       }}
     >
       <Copy size={15} />
-      {label}
+      {!iconOnly && label}
     </Button>
   )
 }
-export function DownloadButton({ text, filename }: { text: string; filename: string }) {
+export function DownloadButton({
+  text,
+  filename,
+  mimeType = 'application/json;charset=utf-8',
+}: {
+  text: string
+  filename: string
+  mimeType?: string
+}) {
   const toast = useToast()
   return (
     <Button
       disabled={!text}
       onClick={() => {
-        const url = URL.createObjectURL(
-          new Blob([text], { type: 'application/json;charset=utf-8' }),
-        )
+        const url = URL.createObjectURL(new Blob([text], { type: mimeType }))
         const anchor = document.createElement('a')
         anchor.href = url
         anchor.download = filename
@@ -161,6 +169,9 @@ export function Editor({
     </section>
   )
 }
+let modalScrollLocks = 0
+let overflowBeforeModals = ''
+
 export function Modal({
   open,
   onClose,
@@ -180,10 +191,13 @@ export function Modal({
     if (open && dialog && !dialog.open) dialog.showModal()
     if (!open && dialog?.open) dialog.close()
     if (!open) return
-    const previous = document.body.style.overflow
+    // Overlapping dialogs may close or unmount in either order during navigation.
+    if (modalScrollLocks === 0) overflowBeforeModals = document.body.style.overflow
+    modalScrollLocks++
     document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = previous
+      modalScrollLocks--
+      if (modalScrollLocks === 0) document.body.style.overflow = overflowBeforeModals
     }
   }, [open])
   return (

@@ -11,7 +11,8 @@ export function decodeBase64(value: string): string {
     throw new Error('Invalid Base64. Use letters, numbers, + and / with valid padding.')
   try {
     const bytes = Uint8Array.from(atob(clean), (char) => char.charCodeAt(0))
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
+    // Preserve a leading U+FEFF as text instead of consuming it as a byte-order mark.
+    return new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes)
   } catch {
     throw new Error('This value is not valid Base64-encoded UTF-8 text.')
   }

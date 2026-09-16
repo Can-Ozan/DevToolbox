@@ -1,8 +1,8 @@
-# DevToolbox
+# DevToolbox v2.0
 
 **Essential developer tools. Fast, private, and local.**
 
-A focused collection of 12 everyday developer utilities, built with React and TypeScript. Everything runs in the browser. No account, database, backend, analytics, or external API is required.
+A focused collection of 20 everyday developer utilities, built with React and TypeScript. Everything runs in the browser. No account, database, backend, analytics, or external API is required.
 
 ## Features
 
@@ -33,6 +33,19 @@ A focused collection of 12 everyday developer utilities, built with React and Ty
 | Lorem Ipsum Generator    | Exact paragraph, sentence, or word quantities, copy, clear                                  |
 | Text Diff Checker        | Line-level additions and removals, side-by-side and unified views, whitespace differences   |
 
+### New in v2.0
+
+| Tool                    | Capabilities                                                                                         |
+| ----------------------- | ---------------------------------------------------------------------------------------------------- |
+| JSON ↔ YAML Converter   | Two-way conversion, validation, formatted JSON, copy, swap direction, JSON/YAML downloads            |
+| Markdown Previewer      | Live split-pane GitHub-style Markdown, tables, task lists, embedded images, copy, Markdown download  |
+| Cron Expression Builder | Five-field visual builder, intervals, lists/ranges, seven presets, descriptions, copy, reset         |
+| QR Code Generator       | Local text/URL QR codes, size and correction controls, PNG download                                  |
+| Case Converter          | Ten simultaneous case formats, Unicode-aware word splitting, individual/batch copying                |
+| Number Base Converter   | Exact BigInt binary, octal, decimal, hexadecimal conversion, signed integers, validation             |
+| Color Contrast Checker  | sRGB contrast ratio, previews, WCAG AA/AAA checks for normal and large text                          |
+| URL Parser              | Native URL components, duplicate query parameters, credential redaction, individual and JSON copying |
+
 JWT decoding **does not verify the signature or authenticity**. Password strength is a general interface estimate, not a security guarantee.
 
 ## Technology and dependencies
@@ -43,6 +56,10 @@ JWT decoding **does not verify the signature or authenticity**. Password strengt
 - **React Router** — client-side routes and navigation
 - **Lucide React** — tree-shaken interface icons
 - **diff** — a small, established line-diff implementation, loaded only with the diff tool
+- **yaml** — YAML 1.2 parsing and serialization with bounded alias expansion
+- **react-markdown + remark-gfm** — React-based Markdown rendering and GitHub-style tables/task lists, with raw HTML disabled
+- **qrcode** — local QR encoding and PNG generation; **@types/qrcode** supplies development-only types
+- These new libraries load only when opening their tool routes.
 - **React `useSyncExternalStore`** — lightweight preference subscriptions; no extra state library needed
 - **Vitest, Playwright, axe-core, ESLint, Prettier** — development-only testing, accessibility checks, linting, and formatting
 
@@ -54,7 +71,7 @@ Your data stays on your device. DevToolbox processes supported inputs locally in
 
 Only theme, sidebar state, favorite tool IDs, and recently used tool IDs are saved under the versioned `devtoolbox.preferences.v1` localStorage key. Tool inputs, decoded tokens, generated passwords, and outputs are held in memory and discarded when leaving a tool or refreshing. Clipboard and downloaded files persist independently according to your operating system and browser.
 
-There are no remote fonts, telemetry scripts, external requests, authentication, databases, or API credentials. The host serves the application files and may log ordinary page requests according to its own configuration; tool input is never part of those requests. The application itself does not report usage.
+There are no remote fonts, telemetry scripts, automatic external requests, authentication, databases, or API credentials. Markdown blocks remote images; embedded raster data URLs are supported. Preview links open only when clicked. The host serves the application files and may log ordinary page requests according to its own configuration; tool input is never part of those requests. The application itself does not report usage.
 
 Malformed or unsupported stored preferences fall back to safe defaults. If writing localStorage fails, the app keeps working in memory and shows a notice. Changes are synchronized between tabs through browser storage events.
 
@@ -90,6 +107,8 @@ npx playwright install chromium
 ```
 
 On Linux CI, use `npx playwright install --with-deps chromium`.
+
+Browser tests start their own preview server. If port 4173 is occupied, set `DEVTOOLBOX_TEST_PORT` to another available port before running `npm run test:e2e`.
 
 Browser tests cover every tool, invalid input, clipboard/download behavior, worker timeout recovery, search keys, local preferences, reset dialogs, route loading, external-request absence, and horizontal overflow at 320, 375, 768, 1024, 1440, and 1920 pixels. Accessibility checks exercise light and dark pages, the command palette, and the mobile drawer.
 
@@ -140,18 +159,22 @@ Catalog cards, category counts, route rendering, favorites, recent tools, and gl
 - Diffs are line-based, limited to 200,000 total characters and 4,000 total lines, with a bounded edit search. Changed lines appear as paired additions and removals.
 - Colors use opaque sRGB, three/six-digit HEX, comma-separated RGB, and comma-separated HSL. RGB channels are rounded to integers.
 - Date input uses the device’s time zone and browser daylight-saving rules.
+- YAML conversion supports JSON-compatible values, with 200,000 input characters, 20,000 converted nodes, and 80 nesting levels. Non-string keys, circular aliases, non-finite numbers, unsafe integers, and custom tags are rejected rather than silently changed. Comments and formatting are not preserved.
+- Markdown preview is limited to 100,000 characters. Raw HTML is ignored; remote images and embedded SVG are blocked. Embedded PNG, JPEG, GIF, and WebP images work.
+- QR capacity depends on UTF-8 byte length and correction level; excessive input reports an error. Generated images include the standard quiet zone.
+- Number-base conversion supports signed integers with up to 4,096 input digits, without floating-point precision loss.
+- Contrast calculations use the [WCAG relative luminance and contrast definitions](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html). Pass/fail uses unrounded ratios. Transparency is not supported.
+- Cron builds five-field expressions; it does not run a scheduler or predict future executions. Platform/time-zone behavior varies. Day of week uses 0 (Sunday) through 6 (Saturday).
+- URL parsing hides credential passwords and redacts common secret query keys. Arbitrary paths, fragments, and unrecognized query names should be reviewed before sharing. Native URL normalization applies.
 - Browser tests currently target Chromium. Cross-engine Firefox/Safari verification remains useful before a wider release.
 
-## V2 roadmap
+## Future roadmap
 
 These are planned extensions, not current functionality:
 
-- JSON ↔ YAML and JSON ↔ CSV converters
+- JSON ↔ CSV converter
 - XML, SQL, HTML, CSS, and JavaScript formatters
-- Markdown previewer
-- Cron expression builder
-- QR code generator
-- Case, number base, and slug converters
+- Slug converter
 - CSS gradient and box shadow generators
 - HTTP status code reference and MIME type lookup
 - Fake data generator and text statistics
