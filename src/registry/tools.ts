@@ -1,6 +1,7 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
 import {
   Braces,
+  CodeXml,
   Binary,
   Fingerprint,
   KeyRound,
@@ -20,6 +21,19 @@ import {
   Calculator,
   Contrast,
   ScanLine,
+  Image,
+  FileStack,
+  Scaling,
+  RotateCw,
+  FileSearch,
+  Minimize2,
+  Scissors,
+  ListOrdered,
+  ArrowLeftRight,
+  WandSparkles,
+  Wrench,
+  Globe,
+  BookOpen,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -29,8 +43,25 @@ export const categories = [
   'Developer',
   'Converters',
   'Utilities',
+  'Image',
+  'PDF',
+  'Text',
+  'Web',
+  'Resources',
 ] as const
 export type ToolCategory = (typeof categories)[number]
+export const categoryIcons: Record<ToolCategory, LucideIcon> = {
+  Encoders: Braces,
+  Generators: WandSparkles,
+  Developer: CodeXml,
+  Converters: ArrowLeftRight,
+  Utilities: Wrench,
+  Image,
+  PDF: FileStack,
+  Text: AlignLeft,
+  Web: Globe,
+  Resources: BookOpen,
+}
 export interface ToolDefinition {
   id: string
   name: string
@@ -41,6 +72,10 @@ export interface ToolDefinition {
   keywords: string[]
   color: string
   component: LazyExoticComponent<ComponentType>
+  acceptsFileTypes?: readonly string[]
+  producesFileTypes?: readonly string[]
+  workspaceCompatible?: boolean
+  experimental?: boolean
 }
 
 const definitions = [
@@ -243,6 +278,140 @@ const definitions = [
     keywords: ['uri', 'host', 'port', 'query', 'fragment', 'origin'],
     color: 'blue',
     component: lazy(() => import('../tools/url-parser/UrlParserTool')),
+  },
+  {
+    id: 'image-converter',
+    name: 'Image Format Converter',
+    description: 'Convert PNG, JPEG and WebP locally with transparency controls.',
+    category: 'Image',
+    icon: Image,
+    color: 'purple',
+    keywords: ['jpg', 'png', 'webp', 'convert', 'file'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    producesFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    component: lazy(() =>
+      import('../tools/image/ImageTool').then((module) => ({ default: module.ImageConverter })),
+    ),
+  },
+  {
+    id: 'image-compressor',
+    name: 'Image Compressor',
+    description: 'Reduce image size with JPEG or WebP quality controls.',
+    category: 'Image',
+    icon: Minimize2,
+    color: 'green',
+    keywords: ['jpg', 'png', 'webp', 'compress', 'quality'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    producesFileTypes: ['image/jpeg', 'image/webp'],
+    component: lazy(() =>
+      import('../tools/image/ImageTool').then((module) => ({ default: module.ImageCompressor })),
+    ),
+  },
+  {
+    id: 'image-resizer',
+    name: 'Image Resizer',
+    description: 'Resize images by dimensions, percentage or common presets.',
+    category: 'Image',
+    icon: Scaling,
+    color: 'blue',
+    keywords: ['width', 'height', 'scale', 'aspect ratio'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    producesFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    component: lazy(() =>
+      import('../tools/image/ImageTool').then((module) => ({ default: module.ImageResizer })),
+    ),
+  },
+  {
+    id: 'image-rotate',
+    name: 'Image Rotate / Flip',
+    description: 'Rotate images by quarter turns and flip either axis.',
+    category: 'Image',
+    icon: RotateCw,
+    color: 'teal',
+    keywords: ['mirror', 'orientation', '90', '180', '270'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    producesFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    component: lazy(() =>
+      import('../tools/image/ImageTool').then((module) => ({ default: module.ImageRotate })),
+    ),
+  },
+  {
+    id: 'image-metadata',
+    name: 'Image Metadata Viewer',
+    description: 'Inspect image dimensions, format, file size and aspect ratio.',
+    category: 'Image',
+    icon: FileSearch,
+    color: 'amber',
+    keywords: ['mime', 'width', 'height', 'file info'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    component: lazy(() =>
+      import('../tools/image/ImageTool').then((module) => ({ default: module.ImageMetadata })),
+    ),
+  },
+  {
+    id: 'pdf-merger',
+    name: 'PDF Merger',
+    description: 'Combine PDFs in your chosen order, entirely in your browser.',
+    category: 'PDF',
+    icon: FileStack,
+    color: 'rose',
+    keywords: ['combine', 'join', 'pages'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/pdf'],
+    producesFileTypes: ['application/pdf'],
+    component: lazy(() =>
+      import('../tools/pdf/PdfTool').then((module) => ({ default: module.PdfMerger })),
+    ),
+  },
+  {
+    id: 'pdf-splitter',
+    name: 'PDF Splitter',
+    description: 'Extract selected pages or ranges into a new PDF.',
+    category: 'PDF',
+    icon: Scissors,
+    color: 'amber',
+    keywords: ['extract', 'range', 'pages'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/pdf'],
+    producesFileTypes: ['application/pdf'],
+    component: lazy(() =>
+      import('../tools/pdf/PdfTool').then((module) => ({ default: module.PdfSplitter })),
+    ),
+  },
+  {
+    id: 'pdf-reorder',
+    name: 'PDF Page Reorder',
+    description: 'Reorder or remove PDF pages with a numeric page list.',
+    category: 'PDF',
+    icon: ListOrdered,
+    color: 'blue',
+    keywords: ['move', 'sort', 'remove', 'pages'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/pdf'],
+    producesFileTypes: ['application/pdf'],
+    component: lazy(() =>
+      import('../tools/pdf/PdfTool').then((module) => ({ default: module.PdfReorder })),
+    ),
+  },
+  {
+    id: 'images-to-pdf',
+    name: 'Images → PDF',
+    description: 'Turn ordered images into a PDF with page fit and margin controls.',
+    category: 'PDF',
+    icon: FileText,
+    color: 'teal',
+    keywords: ['png', 'jpeg', 'webp', 'document', 'images'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['image/png', 'image/jpeg', 'image/webp'],
+    producesFileTypes: ['application/pdf'],
+    component: lazy(() =>
+      import('../tools/pdf/PdfTool').then((module) => ({ default: module.ImagesToPdf })),
+    ),
   },
 ] satisfies Omit<ToolDefinition, 'path'>[]
 export const tools: ToolDefinition[] = definitions.map((tool) => ({

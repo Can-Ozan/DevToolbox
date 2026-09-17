@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
-  ArrowLeftRight,
-  Braces,
   ChevronLeft,
   CodeXml,
   Command,
@@ -18,28 +16,30 @@ import {
   Sparkles,
   Star,
   Sun,
-  WandSparkles,
-  Wrench,
+  FolderOpen,
   X,
 } from 'lucide-react'
-import { categories, tools } from '../registry/tools'
+import { categories, categoryIcons, tools } from '../registry/tools'
 import { preferences, usePreferences, useStorageAvailable } from '../storage/preferences'
 import { Button, Message, Modal } from './ui'
 import CommandPalette from '../features/CommandPalette'
 
-const categoryIcons = [Braces, WandSparkles, CodeXml, ArrowLeftRight, Wrench]
 function Navigation({ close }: { close?: () => void }) {
   const { favorites, collapsed } = usePreferences()
   return (
     <>
+      <div className="navigation-header">
       <NavLink to="/" className="brand" onClick={close}>
         <span className="brand-icon">
           <CodeXml size={24} />
         </span>
         <span className="sidebar-label">
-          DevToolbox<span className="version-pill">v2.0</span>
+          DevToolbox<span className="version-pill">v3.0</span>
         </span>
       </NavLink>
+      {close && <Button variant="ghost" className="drawer-close" aria-label="Close navigation" onClick={close}><X size={20} /></Button>}
+      </div>
+      <div className="navigation-content">
       <div className="sidebar-scroll">
         <div className="nav-section-label sidebar-label">WORKSPACE</div>
         <nav aria-label="Workspace">
@@ -51,6 +51,10 @@ function Navigation({ close }: { close?: () => void }) {
             <Grid2X2 size={18} />
             <span className="sidebar-label">All Tools</span>
             <span className="nav-count sidebar-label">{tools.length}</span>
+          </NavLink>
+          <NavLink to="/workspace" title="Workspace" onClick={close}>
+            <FolderOpen size={18} />
+            <span className="sidebar-label">Workspace</span>
           </NavLink>
           <NavLink to="/favorites" title="Favorites" onClick={close}>
             <Star size={18} />
@@ -66,23 +70,25 @@ function Navigation({ close }: { close?: () => void }) {
         </nav>
         <div className="nav-section-label sidebar-label">TOOL CATEGORIES</div>
         <nav aria-label="Tool categories">
-          {categories.map((category, index) => {
-            const Icon = categoryIcons[index]
-            return (
-              <NavLink
-                key={category}
-                to={`/category/${category.toLowerCase()}`}
-                title={category}
-                onClick={close}
-              >
-                <Icon size={18} />
-                <span className="sidebar-label">{category}</span>
-                <span className="category-count sidebar-label">
-                  {tools.filter((tool) => tool.category === category).length}
-                </span>
-              </NavLink>
-            )
-          })}
+          {categories
+            .filter((category) => tools.some((tool) => tool.category === category))
+            .map((category) => {
+              const Icon = categoryIcons[category]
+              return (
+                <NavLink
+                  key={category}
+                  to={`/category/${category.toLowerCase()}`}
+                  title={category}
+                  onClick={close}
+                >
+                  <Icon size={18} />
+                  <span className="sidebar-label">{category}</span>
+                  <span className="category-count sidebar-label">
+                    {tools.filter((tool) => tool.category === category).length}
+                  </span>
+                </NavLink>
+              )
+            })}
         </nav>
       </div>
       <div className="sidebar-bottom">
@@ -118,6 +124,7 @@ function Navigation({ close }: { close?: () => void }) {
           <ChevronLeft size={15} className="sidebar-label ml-auto" />
         </button>
       </div>
+      </div>
     </>
   )
 }
@@ -131,6 +138,7 @@ export default function Layout() {
   const names: Record<string, string> = {
     '/': 'Dashboard',
     '/tools': 'All Tools',
+    '/workspace': 'Workspace',
     '/favorites': 'Favorites',
     '/recent': 'Recent Tools',
     '/settings': 'Settings',
@@ -239,13 +247,6 @@ export default function Layout() {
         title="Navigation"
         className="mobile-drawer"
       >
-        <button
-          className="drawer-close"
-          aria-label="Close navigation"
-          onClick={() => setMobileOpen(false)}
-        >
-          <X size={20} />
-        </button>
         <Navigation close={() => setMobileOpen(false)} />
       </Modal>
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />

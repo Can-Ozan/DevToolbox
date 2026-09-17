@@ -1,0 +1,191 @@
+.file-picker {
+  padding: 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  margin: 20px 0;
+}
+.file-picker .actions {
+  margin-top: 0;
+}
+.workspace-toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin: 22px 0;
+}
+.workspace-toolbar > .field {
+  flex: 1;
+  min-width: min(220px, 100%);
+}
+.workspace-toolbar input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 12px;
+  width: 100%;
+  color: var(--text);
+}
+.workspace-files {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+.workspace-file .helper-text,
+.file-picker .helper-text,
+.file-output .helper-text {
+  overflow-wrap: anywhere;
+}
+.file-name {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.workspace-file .actions,
+.file-output .actions {
+  gap: 8px;
+}
+.workspace-file .button,
+.workspace-picker-row .button,
+.file-output .button,
+.workspace-page .modal .button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  text-align: left;
+}
+.file-preview {
+  display: block;
+  max-width: 100%;
+  max-height: 340px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 18px auto;
+  border-radius: 6px;
+  background: repeating-conic-gradient(#dedce3 0% 25%, #f4f3f6 0% 50%) 0 / 20px 20px;
+}
+.file-metadata {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 10px 18px;
+  font-size: 13px;
+  margin-top: 20px;
+}
+.file-metadata dt {
+  color: var(--muted);
+}
+.file-metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.file-text-preview {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 300px;
+  overflow: auto;
+  background: var(--code);
+  padding: 12px;
+  font-size: 12px;
+}
+.workspace-picker-list {
+  max-height: 42vh;
+  overflow-y: auto;
+  margin: 16px 0;
+}
+.workspace-picker-row {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.workspace-picker-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+  min-height: 44px;
+}
+.workspace-picker-row small {
+  color: var(--muted);
+}
+.file-options {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 22px 0;
+}
+.file-options legend {
+  color: var(--muted);
+  font-size: 12px;
+  padding: 0 8px;
+}
+.file-options > .field {
+  margin-top: 12px;
+}
+.file-options .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  min-height: 40px;
+}
+.file-options input[type='color'] {
+  height: 38px;
+  width: 60px;
+}
+.file-order-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+}
+.file-order-list li {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 15px;
+  min-width: 0;
+}
+.file-order-list li > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.file-order-list .actions {
+  margin: 0;
+}
+.file-output {
+  margin-top: 24px;
+}
+.file-output .message a {
+  text-decoration: underline;
+}
+@media (max-width: 600px) {
+  .file-picker,
+  .file-options {
+    padding: 14px;
+  }
+  .workspace-page .button,
+  .file-picker .button,
+  .file-options .button,
+  .file-order-list .button,
+  .file-output .button {
+    min-height: 44px;
+  }
+  .file-picker .actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .file-metadata {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  .file-metadata dd {
+    margin-bottom: 8px;
+  }
+}

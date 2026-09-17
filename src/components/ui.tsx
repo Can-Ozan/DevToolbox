@@ -59,11 +59,13 @@ export async function copyText(text: string) {
 export function CopyButton({
   text,
   label = 'Copy',
+  visibleLabel,
   disabled = false,
   iconOnly = false,
 }: {
   text: string
   label?: string
+  visibleLabel?: string
   disabled?: boolean
   iconOnly?: boolean
 }) {
@@ -79,7 +81,7 @@ export function CopyButton({
       }}
     >
       <Copy size={15} />
-      {!iconOnly && label}
+      {!iconOnly && (visibleLabel ?? label)}
     </Button>
   )
 }
