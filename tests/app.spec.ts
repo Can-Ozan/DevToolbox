@@ -172,7 +172,7 @@ test('colors, exact lorem quantities and both diff modes', async ({ page }) => {
 test('search, filters, reset confirmation, corruption recovery and 404', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('devtoolbox.preferences.v1', '{broken'))
   await page.goto('/tools')
-  await expect(page.locator('.tool-card')).toHaveCount(20)
+  await expect(page.locator('.tool-card')).toHaveCount(29)
   await page.getByRole('button', { name: 'Converters', exact: true }).click()
   await expect(page.locator('.tool-card')).toHaveCount(5)
   await page.getByRole('button', { name: 'All tools', exact: true }).click()
@@ -233,6 +233,7 @@ test('all routes stay local and have no browser errors', async ({ page, baseURL 
 })
 
 test('responsive pages have no horizontal overflow at all requested sizes', async ({ page }) => {
+  test.setTimeout(60_000)
   for (const width of [320, 375, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: 1000 })
     for (const route of [

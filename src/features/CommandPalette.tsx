@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CornerDownLeft, Search, Star } from 'lucide-react'
+import { CornerDownLeft, FolderOpen, Search, Star } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { searchTools } from '../registry/tools'
 import { usePreferences } from '../storage/preferences'
@@ -11,7 +11,21 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { favorites } = usePreferences()
-  const results = searchTools(query)
+  const results = [
+    ...searchTools(query),
+    ...('workspace files local vault'.includes(query.trim().toLowerCase())
+      ? [
+          {
+            id: 'workspace',
+            name: 'Workspace',
+            category: 'Navigation',
+            path: '/workspace',
+            icon: FolderOpen,
+            color: 'purple',
+          },
+        ]
+      : []),
+  ]
   useEffect(() => {
     if (open) {
       setQuery('')

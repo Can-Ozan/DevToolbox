@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { useParams } from 'react-router-dom'
-import { categories, searchTools } from '../registry/tools'
+import { categories, searchTools, tools } from '../registry/tools'
 import { ToolGrid } from '../components/ToolCard'
 import NotFound from './NotFound'
 
@@ -46,16 +46,18 @@ export default function AllTools() {
           >
             All tools
           </button>
-          {categories.map((item) => (
-            <button
-              key={item}
-              className={filter === item ? 'active' : ''}
-              aria-pressed={filter === item}
-              onClick={() => setFilter(item)}
-            >
-              {item}
-            </button>
-          ))}
+          {categories
+            .filter((item) => tools.some((tool) => tool.category === item))
+            .map((item) => (
+              <button
+                key={item}
+                className={filter === item ? 'active' : ''}
+                aria-pressed={filter === item}
+                onClick={() => setFilter(item)}
+              >
+                {item}
+              </button>
+            ))}
         </div>
       )}
       <ToolGrid items={results} />

@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { Component, lazy, Suspense, type ErrorInfo, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout'
 import { ToastProvider } from './components/ui'
@@ -8,6 +8,7 @@ import Collections from './pages/Collections'
 import Settings from './pages/Settings'
 import ToolPage from './pages/ToolPage'
 import NotFound from './pages/NotFound'
+const WorkspacePage = lazy(() => import('./workspace/WorkspacePage'))
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -39,6 +40,14 @@ export default function App() {
           <Route element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="tools" element={<AllTools />} />
+            <Route
+              path="workspace"
+              element={
+                <Suspense fallback={<p role="status">Loading Workspace…</p>}>
+                  <WorkspacePage />
+                </Suspense>
+              }
+            />
             <Route path="category/:category" element={<AllTools />} />
             <Route path="tools/:id" element={<ToolPage />} />
             <Route path="favorites" element={<Collections kind="favorites" />} />

@@ -51,7 +51,8 @@ export default function Settings() {
       <section className="settings-section">
         <h2>Local data</h2>
         <p>
-          Preferences are saved in this browser. Tool inputs and generated values are never stored.
+          Preferences are saved in this browser. Files are stored only when you import or save them
+          to Workspace.
         </p>
         <div className="setting-row">
           <div>
@@ -76,7 +77,9 @@ export default function Settings() {
         <div className="setting-row">
           <div>
             <strong>Reset preferences</strong>
-            <p>Reset your theme, sidebar, favorites, and history.</p>
+            <p>
+              Reset your theme, sidebar, favorites, and history. Manage saved files in Workspace.
+            </p>
           </div>
           <Button variant="danger" onClick={() => setConfirm('all')}>
             Reset all preferences
@@ -90,7 +93,8 @@ export default function Settings() {
           <p>
             Your data stays on your device. DevToolbox processes supported inputs locally in your
             browser. No accounts, analytics, or external APIs. Clearing your browser’s site data
-            will also clear your preferences.
+            will also clear your preferences and Workspace files. Download important files to keep a
+            copy.
           </p>
         </div>
       </div>
