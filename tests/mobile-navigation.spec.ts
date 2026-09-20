@@ -9,6 +9,12 @@ for (const theme of ['light', 'dark'] as const) {
       if (message.type() === 'error') errors.push(message.text())
     })
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+    await page.addInitScript(() =>
+      localStorage.setItem(
+        'devtoolbox.preferences.v1',
+        JSON.stringify({ version: 1, favorites: ['json', 'image-converter', 'pdf-merger', 'qr'] }),
+      ),
+    )
 
     for (const [width, height] of [
       [320, 568],
@@ -83,7 +89,7 @@ for (const theme of ['light', 'dark'] as const) {
           ).toBe(true)
         }
         const privacy = drawer.locator('.local-card')
-        await privacy.scrollIntoViewIfNeeded()
+        await privacy.evaluate((element) => element.scrollIntoView({ block: 'center' }))
         await expect(privacy).toBeInViewport({ ratio: 1 })
         if (height <= 800) {
           expect(

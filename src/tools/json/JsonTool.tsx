@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { Braces, CheckCheck, Eraser, Minimize2 } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { errorMessage } from '../../lib/encoding'
+import { usePreferences } from '../../storage/preferences'
 
 export default function JsonTool() {
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
   const [error, setError] = useState('')
   const [valid, setValid] = useState(false)
-  const [indent, setIndent] = useState('2')
+  const { jsonIndent } = usePreferences()
+  const [indent, setIndent] = useState<string>(jsonIndent)
   function run(mode: 'format' | 'minify' | 'validate') {
     try {
       if (!input.trim()) throw new Error('Paste some JSON to get started.')

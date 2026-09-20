@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Button, CopyButton, Message, Modal } from '../components/ui'
+import { Link, useSearchParams } from 'react-router-dom'
+import { Button, copyText, Message, Modal, useToast } from '../components/ui'
 import { tools } from '../registry/tools'
+import { preferences, usePreferences } from '../storage/preferences'
+import OverflowMenu from '../components/OverflowMenu'
+import FileThumbnail from './FileThumbnail'
+import StorageMeter from './StorageMeter'
+import ClearWorkspaceButton from './ClearWorkspaceButton'
 import { imageDimensions } from '../lib/imageFiles'
 import { compatibleTools, useObjectURL, WorkspaceFilePicker } from './FileControls'
 import { refreshWorkspace, useWorkspace, workspace } from './workspaceStore'
@@ -85,8 +90,47 @@ export default function WorkspacePage() {
   const [preview, setPreview] = useState<WorkspaceFile>()
   const previewTrigger = useRef<HTMLButtonElement | null>(null)
   const [useFile, setUseFile] = useState<WorkspaceFileInfo>()
-  const [clearOpen, setClearOpen] = useState(false)
   const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState('All')
+  const { workspaceView } = usePreferences()
+  const [params] = useSearchParams()
+  const focusedFile = params.get('file')
+  const focusedRequest = useRef<string | null>(null)
+  const toast = useToast()
+  const fileType = (file: WorkspaceFileInfo) =>
+    file.mimeType.startsWith('image/')
+      ? 'Images'
+      : file.mimeType === 'application/pdf'
+        ? 'PDFs'
+        : file.mimeType.startsWith('text/') ||
+            ['application/json', 'application/yaml'].includes(file.mimeType)
+          ? 'Text'
+          : 'Other'
+  const filters = ['All', 'Images', 'PDFs', 'Text', 'Other'].filter(
+    (type) => type === 'All' || snapshot.files.some((file) => fileType(file) === type),
+  )
+  const activeFilter = filters.includes(filter) ? filter : 'All'
+  const matching = snapshot.files.filter(
+    (file) =>
+      (activeFilter === 'All' || fileType(file) === activeFilter) &&
+      (file.name + ' ' + file.mimeType).toLowerCase().includes(query.toLowerCase()),
+  )
+  useEffect(() => {
+    if (!focusedFile) {
+      focusedRequest.current = null
+      return
+    }
+    if (snapshot.loading || focusedRequest.current === focusedFile) return
+    setQuery('')
+    setFilter('All')
+    const frame = requestAnimationFrame(() => {
+      const card = document.getElementById('workspace-file-' + focusedFile)
+      focusedRequest.current = focusedFile
+      card?.scrollIntoView({ block: 'center' })
+      card?.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [focusedFile, snapshot.loading])
   async function act(operation: () => Promise<void>) {
     setBusy(true)
     setError('')
@@ -141,105 +185,134 @@ export default function WorkspacePage() {
           >
             Refresh files
           </Button>
-          <Button
-            variant="danger"
-            disabled={busy || (!snapshot.files.length && !snapshot.warning)}
-            onClick={() => setClearOpen(true)}
-          >
-            Clear Workspace
-          </Button>
+          <ClearWorkspaceButton disabled={busy} />
         </div>
       </div>
-      <p className="helper-text">
-        {snapshot.files.length} files ·{' '}
-        {formatBytes(snapshot.files.reduce((sum, file) => sum + file.size, 0))} in Workspace ·
-        Pinned first, then most recent.
-        {snapshot.estimate?.quota !== undefined &&
-          ` Browser origin storage: approximately ${formatBytes(snapshot.estimate.usage ?? 0)} of ${formatBytes(snapshot.estimate.quota)}.`}
-      </p>
+      <StorageMeter />
+      <div className="workspace-view-controls">
+        <div className="filter-tabs" aria-label="Filter files by type">
+          {filters.map((type) => (
+            <button
+              key={type}
+              aria-pressed={activeFilter === type}
+              className={activeFilter === type ? 'active' : ''}
+              onClick={() => setFilter(type)}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+        <div className="view-toggle" role="group" aria-label="Workspace view">
+          {(['grid', 'list'] as const).map((view) => (
+            <Button
+              key={view}
+              aria-pressed={workspaceView === view}
+              onClick={() => preferences.setOptions({ workspaceView: view })}
+            >
+              {view === 'grid' ? 'Grid' : 'List'}
+            </Button>
+          ))}
+        </div>
+      </div>
       {snapshot.loading && <p role="status">Loading Workspace…</p>}
       {!snapshot.loading && !snapshot.error && !snapshot.files.length && (
-        <section className="empty-state">
-          <h2>Your local file workspace</h2>
-          <p>Import a file or save a tool’s output to start a workflow.</p>
+        <section className="empty-state workspace-empty">
+          <h2>Your Workspace is empty.</h2>
+          <p>Save outputs from DevToolbox or import files to reuse them across tools.</p>
+          <Link className="button button-secondary" to="/category/image">
+            Explore file tools
+          </Link>
+          <p className="helper-text">Image → Convert → Compress · Images → PDF → Split</p>
         </section>
       )}
-      <div className="workspace-files">
-        {snapshot.files
-          .filter((file) =>
-            `${file.name} ${file.mimeType}`.toLowerCase().includes(query.toLowerCase()),
-          )
-          .map((file) => (
-            <article className="panel workspace-file" key={file.id}>
+      {!!snapshot.files.length && !matching.length && (
+        <p role="status">No matching files. Try another filter or filename.</p>
+      )}
+      {focusedFile &&
+        !snapshot.loading &&
+        !snapshot.files.some((file) => file.id === focusedFile) && (
+          <Message kind="warning">This file is no longer in Workspace.</Message>
+        )}
+      <div
+        className={'workspace-files workspace-' + workspaceView}
+        id="workspace-results"
+        tabIndex={-1}
+      >
+        {matching.map((file) => (
+          <article
+            className="panel workspace-file"
+            key={file.id}
+            id={'workspace-file-' + file.id}
+            tabIndex={-1}
+          >
+            {workspaceView === 'grid' && <FileThumbnail file={file} />}
+            <div className="workspace-file-heading">
               <h2 className="file-name">
-                {file.pinned ? '★ ' : ''}
+                {file.pinned && <span aria-label="Pinned">★ </span>}
                 {file.name}
               </h2>
-              <p className="helper-text">
-                {file.mimeType} · {formatBytes(file.size)} ·{' '}
-                {new Date(file.createdAt).toLocaleString()}
-              </p>
-              <p className="helper-text">
-                Source:{' '}
-                {tools.find((tool) => tool.id === file.sourceTool)?.name ??
-                  file.sourceTool ??
-                  'Imported from device'}
-              </p>
-              <div className="actions">
-                <Button
-                  aria-label={`Preview ${file.name}`}
-                  disabled={busy}
-                  onClick={(event) => {
-                    previewTrigger.current = event.currentTarget
-                    void act(async () => {
-                      setPreview(await workspace.get(file.id))
-                    })
-                  }}
-                >
-                  Preview
-                </Button>
-                <Button
-                  aria-label={`Download ${file.name}`}
-                  disabled={busy}
-                  onClick={() => {
-                    void act(async () => downloadFile(await workspace.get(file.id)))
-                  }}
-                >
-                  Download
-                </Button>
-                <Button
-                  disabled={busy || !compatibleTools(file.mimeType).length}
-                  onClick={() => setUseFile(file)}
-                >
-                  Use in another tool
-                </Button>
-                <CopyButton
-                  text={file.name}
-                  label={`Copy filename ${file.name}`}
-                  visibleLabel="Copy filename"
-                />
-                <Button
-                  aria-label={`${file.pinned ? 'Unpin' : 'Pin'} ${file.name}`}
-                  disabled={busy}
-                  onClick={() => {
-                    void act(() => workspace.pin(file.id, !file.pinned))
-                  }}
-                >
-                  {file.pinned ? 'Unpin' : 'Pin'}
-                </Button>
-                <Button
-                  aria-label={`Delete ${file.name}`}
-                  variant="danger"
-                  disabled={busy}
-                  onClick={() => {
-                    void act(() => workspace.delete(file.id))
-                  }}
-                >
-                  Delete
-                </Button>
-              </div>
-            </article>
-          ))}
+              <OverflowMenu
+                label={'More actions for ' + file.name}
+                disabled={busy}
+                items={[
+                  {
+                    label: 'Download',
+                    name: 'Download ' + file.name,
+                    action: () => act(async () => downloadFile(await workspace.get(file.id))),
+                  },
+                  {
+                    label: file.pinned ? 'Unpin' : 'Pin',
+                    name: (file.pinned ? 'Unpin ' : 'Pin ') + file.name,
+                    action: () => act(() => workspace.pin(file.id, !file.pinned)),
+                  },
+                  {
+                    label: 'Copy filename',
+                    name: 'Copy filename ' + file.name,
+                    action: () =>
+                      act(async () => {
+                        await copyText(file.name)
+                        toast('Copied to clipboard')
+                      }),
+                  },
+                  {
+                    label: 'Delete',
+                    name: 'Delete ' + file.name,
+                    danger: true,
+                    action: () => act(() => workspace.delete(file.id)),
+                  },
+                ]}
+              />
+            </div>
+            <p className="helper-text">
+              {file.mimeType} · {formatBytes(file.size)} ·{' '}
+              {new Date(file.createdAt).toLocaleString()}
+            </p>
+            <p className="helper-text">
+              Source:{' '}
+              {tools.find((tool) => tool.id === file.sourceTool)?.name ??
+                file.sourceTool ??
+                'Imported from device'}
+            </p>
+            <div className="actions">
+              <Button
+                aria-label={'Preview ' + file.name}
+                disabled={busy}
+                onClick={(event) => {
+                  previewTrigger.current = event.currentTarget
+                  void act(async () => setPreview(await workspace.get(file.id)))
+                }}
+              >
+                Preview
+              </Button>
+              <Button
+                disabled={busy || !compatibleTools(file.mimeType).length}
+                onClick={() => setUseFile(file)}
+              >
+                Use in another tool
+              </Button>
+            </div>
+          </article>
+        ))}
       </div>
       <Modal
         open={!!preview}
@@ -266,36 +339,6 @@ export default function WorkspacePage() {
                 {tool.name}
               </Link>
             ))}
-        </div>
-      </Modal>
-      <Modal
-        open={clearOpen}
-        onClose={() => {
-          if (!busy) setClearOpen(false)
-        }}
-        title="Clear Workspace?"
-      >
-        <p>
-          This deletes every file stored in this browser’s Workspace. Download anything you need
-          first.
-        </p>
-        {error && <Message kind="error">{error}</Message>}
-        <div className="actions">
-          <Button disabled={busy} onClick={() => setClearOpen(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="danger"
-            disabled={busy}
-            onClick={() => {
-              void act(async () => {
-                await workspace.clear()
-                setClearOpen(false)
-              })
-            }}
-          >
-            Confirm clear
-          </Button>
         </div>
       </Modal>
     </div>

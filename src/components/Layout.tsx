@@ -29,101 +29,129 @@ function Navigation({ close }: { close?: () => void }) {
   return (
     <>
       <div className="navigation-header">
-      <NavLink to="/" className="brand" onClick={close}>
-        <span className="brand-icon">
-          <CodeXml size={24} />
-        </span>
-        <span className="sidebar-label">
-          DevToolbox<span className="version-pill">v3.0</span>
-        </span>
-      </NavLink>
-      {close && <Button variant="ghost" className="drawer-close" aria-label="Close navigation" onClick={close}><X size={20} /></Button>}
+        <NavLink to="/" className="brand" onClick={close}>
+          <span className="brand-icon">
+            <CodeXml size={24} />
+          </span>
+          <span className="sidebar-label">
+            DevToolbox<span className="version-pill">v3.1</span>
+          </span>
+        </NavLink>
+        {close && (
+          <Button
+            variant="ghost"
+            className="drawer-close"
+            aria-label="Close navigation"
+            onClick={close}
+          >
+            <X size={20} />
+          </Button>
+        )}
       </div>
       <div className="navigation-content">
-      <div className="sidebar-scroll">
-        <div className="nav-section-label sidebar-label">WORKSPACE</div>
-        <nav aria-label="Workspace">
-          <NavLink end to="/" title="Dashboard" onClick={close}>
-            <House size={18} />
-            <span className="sidebar-label">Dashboard</span>
-          </NavLink>
-          <NavLink end to="/tools" title="All Tools" onClick={close}>
-            <Grid2X2 size={18} />
-            <span className="sidebar-label">All Tools</span>
-            <span className="nav-count sidebar-label">{tools.length}</span>
-          </NavLink>
-          <NavLink to="/workspace" title="Workspace" onClick={close}>
-            <FolderOpen size={18} />
-            <span className="sidebar-label">Workspace</span>
-          </NavLink>
-          <NavLink to="/favorites" title="Favorites" onClick={close}>
-            <Star size={18} />
-            <span className="sidebar-label">Favorites</span>
-            {favorites.length > 0 && (
-              <span className="nav-count sidebar-label">{favorites.length}</span>
-            )}
-          </NavLink>
-          <NavLink to="/recent" title="Recent Tools" onClick={close}>
-            <History size={18} />
-            <span className="sidebar-label">Recent Tools</span>
-          </NavLink>
-        </nav>
-        <div className="nav-section-label sidebar-label">TOOL CATEGORIES</div>
-        <nav aria-label="Tool categories">
-          {categories
-            .filter((category) => tools.some((tool) => tool.category === category))
-            .map((category) => {
-              const Icon = categoryIcons[category]
-              return (
-                <NavLink
-                  key={category}
-                  to={`/category/${category.toLowerCase()}`}
-                  title={category}
-                  onClick={close}
-                >
-                  <Icon size={18} />
-                  <span className="sidebar-label">{category}</span>
-                  <span className="category-count sidebar-label">
-                    {tools.filter((tool) => tool.category === category).length}
-                  </span>
-                </NavLink>
-              )
-            })}
-        </nav>
-      </div>
-      <div className="sidebar-bottom">
-        <div className="local-card sidebar-label">
-          <span className="local-symbol">
-            <ShieldCheck size={18} />
-          </span>
-          <strong>Private by design</strong>
-          <p>
-            Your inputs stay in your browser.
-            <br />
-            Just you and your tools.
-          </p>
-          <span className="local-indicator">
-            <i />
-            All tools run locally
-          </span>
+        <div className="sidebar-scroll">
+          <div className="nav-section-label sidebar-label">WORKSPACE</div>
+          <nav aria-label="Workspace">
+            <NavLink end to="/" title="Dashboard" onClick={close}>
+              <House size={18} />
+              <span className="sidebar-label">Dashboard</span>
+            </NavLink>
+            <NavLink end to="/tools" title="All Tools" onClick={close}>
+              <Grid2X2 size={18} />
+              <span className="sidebar-label">All Tools</span>
+              <span className="nav-count sidebar-label">{tools.length}</span>
+            </NavLink>
+            <NavLink to="/workspace" title="Workspace" onClick={close}>
+              <FolderOpen size={18} />
+              <span className="sidebar-label">Workspace</span>
+            </NavLink>
+            <NavLink to="/favorites" title="Favorites" onClick={close}>
+              <Star size={18} />
+              <span className="sidebar-label">Favorites</span>
+              {favorites.length > 0 && (
+                <span className="nav-count sidebar-label">{favorites.length}</span>
+              )}
+            </NavLink>
+            <NavLink to="/recent" title="Recent Tools" onClick={close}>
+              <History size={18} />
+              <span className="sidebar-label">Recent Tools</span>
+            </NavLink>
+          </nav>
+          {favorites.some((id) => tools.some((tool) => tool.id === id)) && (
+            <>
+              <div className="nav-section-label sidebar-label">PINNED</div>
+              <nav aria-label="Pinned tools">
+                {favorites
+                  .flatMap((id) => tools.filter((tool) => tool.id === id))
+                  .slice(0, 4)
+                  .map((tool) => {
+                    const Icon = tool.icon
+                    return (
+                      <NavLink key={tool.id} to={tool.path} title={tool.name} onClick={close}>
+                        <Icon size={18} />
+                        <span className="sidebar-label">{tool.name}</span>
+                      </NavLink>
+                    )
+                  })}
+              </nav>
+            </>
+          )}
+          <div className="nav-section-label sidebar-label">TOOL CATEGORIES</div>
+          <nav aria-label="Tool categories">
+            {categories
+              .filter((category) => tools.some((tool) => tool.category === category))
+              .map((category) => {
+                const Icon = categoryIcons[category]
+                return (
+                  <NavLink
+                    key={category}
+                    to={`/category/${category.toLowerCase()}`}
+                    title={category}
+                    onClick={close}
+                  >
+                    <Icon size={18} />
+                    <span className="sidebar-label">{category}</span>
+                    <span className="category-count sidebar-label">
+                      {tools.filter((tool) => tool.category === category).length}
+                    </span>
+                  </NavLink>
+                )
+              })}
+          </nav>
         </div>
-        <nav aria-label="Preferences">
-          <NavLink to="/settings" title="Settings" onClick={close}>
-            <Settings2 size={18} />
-            <span className="sidebar-label">Settings</span>
-          </NavLink>
-        </nav>
-        <button
-          className="collapse-button"
-          onClick={preferences.toggleSidebar}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <PanelLeftClose size={17} />
-          <span className="sidebar-label">Collapse sidebar</span>
-          <ChevronLeft size={15} className="sidebar-label ml-auto" />
-        </button>
-      </div>
+        <div className="sidebar-bottom">
+          <div className="local-card sidebar-label">
+            <span className="local-symbol">
+              <ShieldCheck size={18} />
+            </span>
+            <strong>Private by design</strong>
+            <p>
+              Your inputs stay in your browser.
+              <br />
+              Just you and your tools.
+            </p>
+            <span className="local-indicator">
+              <i />
+              All tools run locally
+            </span>
+          </div>
+          <nav aria-label="Preferences">
+            <NavLink to="/settings" title="Settings" onClick={close}>
+              <Settings2 size={18} />
+              <span className="sidebar-label">Settings</span>
+            </NavLink>
+          </nav>
+          <button
+            className="collapse-button"
+            onClick={preferences.toggleSidebar}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <PanelLeftClose size={17} />
+            <span className="sidebar-label">Collapse sidebar</span>
+            <ChevronLeft size={15} className="sidebar-label ml-auto" />
+          </button>
+        </div>
       </div>
     </>
   )

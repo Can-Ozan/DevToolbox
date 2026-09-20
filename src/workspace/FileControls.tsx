@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { Download, FolderOpen, Plus, Save } from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Check, Download, FolderOpen, Plus, Save, Upload } from 'lucide-react'
 import { Button, Message, Modal } from '../components/ui'
-import { tools } from '../registry/tools'
+import { nextTools } from '../registry/discovery'
+import type { ProcessingStage, ReportStage } from '../lib/processing'
 import { workspace, useWorkspace, refreshWorkspace } from './workspaceStore'
 import type { FileInput, FileOutput } from './workspaceTypes'
 import {
@@ -14,14 +15,7 @@ import {
   validateBatch,
 } from './workspaceUtils'
 
-export function compatibleTools(mimeType: string) {
-  return tools.filter(
-    (tool) =>
-      tool.workspaceCompatible &&
-      tool.acceptsFileTypes?.length &&
-      acceptsFile(mimeType, tool.acceptsFileTypes),
-  )
-}
+export { compatibleTools } from '../registry/discovery'
 
 export function useObjectURL(blob?: Blob) {
   const [value, setValue] = useState<{ blob: Blob; url: string }>()
@@ -57,6 +51,7 @@ export function WorkspaceFilePicker({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
+  const [drag, setDrag] = useState<'valid' | 'invalid' | ''>('')
   const snapshot = useWorkspace()
   const [params] = useSearchParams()
   const requested = includeWorkspace ? params.get('file') : null
@@ -114,14 +109,40 @@ export function WorkspaceFilePicker({
   const matching = snapshot.files.filter((file) => acceptsFile(file.mimeType, accepted))
   return (
     <section
-      className="file-picker"
+      className={`file-picker ${drag ? `drop-${drag}` : ''}`}
       aria-label="Input source"
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault()
+        if (disabled || loading) return
+        const items = Array.from(event.dataTransfer.items).filter((item) => item.kind === 'file')
+        const invalid =
+          (!multiple && items.length > 1) ||
+          items.some((item) => item.type && !acceptsFile(item.type, accepted))
+        setDrag(invalid ? 'invalid' : 'valid')
+        event.dataTransfer.dropEffect = invalid ? 'none' : 'copy'
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDrag('')
+      }}
       onDrop={(event) => {
         event.preventDefault()
+        setDrag('')
         if (!disabled && !loading) choose(Array.from(event.dataTransfer.files, fromDevice))
       }}
     >
+      <div className="drop-prompt">
+        <Upload size={25} />
+        <strong>{multiple ? 'Drop your files here' : 'Drop your file here'}</strong>
+        <span className="helper-text">
+          {accepted?.map((type) => type.split('/')[1].toUpperCase()).join(', ') ??
+            'Files stay in your local Workspace'}
+        </span>
+      </div>
+      {drag === 'invalid' && (
+        <Message kind="error">
+          This file type or number of files is not supported here. Your current input is unchanged.
+        </Message>
+      )}
       <div className="actions">
         <input
           ref={input}
@@ -247,21 +268,77 @@ export function FileOutputPanel({
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState<{ id: string; name: string }>()
-  const current = useRef(output)
+  const navigate = useNavigate()
+  const savingRef = useRef(false)
+  const following = nextTools(output.sourceTool, output.blob.type)
+  const current = useRef<FileOutput | undefined>(output)
   useEffect(() => {
     current.current = output
     setSaved(undefined)
     setError('')
+    return () => {
+      current.current = undefined
+    }
   }, [output])
+  async function save(path?: string) {
+    if (savingRef.current) return
+    if (saved) {
+      if (path) navigate(`${path}?file=${encodeURIComponent(saved.id)}`)
+      return
+    }
+    const version = output
+    savingRef.current = true
+    setSaving(true)
+    setError('')
+    try {
+      const [file] = await workspace.add([output])
+      if (current.current === version) {
+        setSaved(file)
+        if (path) navigate(`${path}?file=${encodeURIComponent(file.id)}`)
+      }
+    } catch (reason) {
+      if (current.current === version) setError(fileError(reason))
+    } finally {
+      savingRef.current = false
+      setSaving(false)
+    }
+  }
   return (
     <section className="panel file-output" aria-label="File output">
-      <h2>Output</h2>
+      <h2 className="result-heading">
+        <Check size={22} /> Completed
+      </h2>
       <p className="file-name">{output.name}</p>
       <p className="helper-text">
         {formatBytes(output.blob.size)} · {output.blob.type}
         {output.detail ? ` · ${output.detail}` : ''}
       </p>
       {url && <img className="file-preview" src={url} alt="Output preview" />}
+      {output.originalSize !== undefined && (
+        <dl className="result-stats">
+          <div>
+            <dt>Original</dt>
+            <dd>{formatBytes(output.originalSize)}</dd>
+          </div>
+          <div>
+            <dt>Output</dt>
+            <dd>{formatBytes(output.blob.size)}</dd>
+          </div>
+          {output.originalSize > 0 && (
+            <div>
+              <dt>Difference</dt>
+              <dd>
+                {((output.blob.size / output.originalSize - 1) * 100).toFixed(1)}%{' '}
+                {output.blob.size === output.originalSize
+                  ? '(unchanged)'
+                  : output.blob.size > output.originalSize
+                    ? '(larger)'
+                    : '(smaller)'}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
       <div className="actions">
         <Button
           onClick={() => {
@@ -277,21 +354,11 @@ export function FileOutputPanel({
         </Button>
         <Button
           disabled={saving || !!saved}
-          onClick={async () => {
-            const version = output
-            setSaving(true)
-            setError('')
-            try {
-              const [file] = await workspace.add([output])
-              if (current.current === version) setSaved(file)
-            } catch (reason) {
-              if (current.current === version) setError(fileError(reason))
-            } finally {
-              setSaving(false)
-            }
+          onClick={() => {
+            void save()
           }}
         >
-          <Save size={16} />
+          {saved ? <Check size={16} /> : <Save size={16} />}
           {saving ? 'Saving…' : saved ? 'Saved to Workspace' : 'Save to Workspace'}
         </Button>
       </div>
@@ -301,18 +368,40 @@ export function FileOutputPanel({
           <Message kind="success">
             Saved as {saved.name}. <Link to="/workspace">Open Workspace</Link>
           </Message>
-          <div className="actions">
-            {compatibleTools(output.blob.type).map((tool) => (
-              <Link
-                className="button button-secondary"
-                key={tool.id}
-                to={`${tool.path}?file=${encodeURIComponent(saved.id)}`}
-              >
-                Use in {tool.name}
-              </Link>
-            ))}
-          </div>
         </>
+      )}
+      {!!following.length && (
+        <div className="continue-output">
+          <h3>Continue with</h3>
+          {!saved && (
+            <p className="helper-text">
+              Save a copy to Workspace and open it in a compatible tool.
+            </p>
+          )}
+          <div className="actions">
+            {following.map((tool) =>
+              saved ? (
+                <Link
+                  className="button button-secondary"
+                  key={tool.id}
+                  to={`${tool.path}?file=${encodeURIComponent(saved.id)}`}
+                >
+                  Use in {tool.name}
+                </Link>
+              ) : (
+                <Button
+                  key={tool.id}
+                  disabled={saving}
+                  onClick={() => {
+                    void save(tool.path)
+                  }}
+                >
+                  Save &amp; open {tool.name}
+                </Button>
+              ),
+            )}
+          </div>
+        </div>
       )}
     </section>
   )
@@ -322,6 +411,7 @@ export function useFileJob() {
   const [output, setOutput] = useState<FileOutput>()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [stage, setStage] = useState<ProcessingStage>('validating')
   const controller = useRef<AbortController | undefined>(undefined)
   useEffect(() => () => controller.current?.abort(), [])
   function reset() {
@@ -331,13 +421,16 @@ export function useFileJob() {
     setOutput(undefined)
     setError('')
   }
-  async function run(task: (signal: AbortSignal) => Promise<FileOutput>) {
+  async function run(task: (signal: AbortSignal, report: ReportStage) => Promise<FileOutput>) {
     reset()
     const current = new AbortController()
     controller.current = current
     setBusy(true)
+    setStage('validating')
     try {
-      const result = await task(current.signal)
+      const result = await task(current.signal, (stage) => {
+        if (!current.signal.aborted) setStage(stage)
+      })
       if (!current.signal.aborted) setOutput(result)
     } catch (reason) {
       if (!current.signal.aborted) setError(fileError(reason))
@@ -345,5 +438,5 @@ export function useFileJob() {
       if (!current.signal.aborted) setBusy(false)
     }
   }
-  return { output, error, busy, reset, run }
+  return { output, error, busy, stage, reset, run }
 }

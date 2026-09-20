@@ -3,9 +3,14 @@ import { Monitor, Moon, ShieldCheck, Sun, Trash2 } from 'lucide-react'
 import { preferences, usePreferences, type Theme } from '../storage/preferences'
 import { Button, Modal, useToast } from '../components/ui'
 
-type ResetAction = 'recent' | 'favorites' | 'all'
+import StorageMeter from '../workspace/StorageMeter'
+import ClearWorkspaceButton from '../workspace/ClearWorkspaceButton'
+
+type ResetAction = 'recent' | 'favorites' | 'all' | 'usage'
 export default function Settings() {
-  const { theme, favorites, recent } = usePreferences()
+  const prefs = usePreferences()
+  const { theme, favorites, recent, collapsed, jsonIndent, hexCase, jpegQuality, jpegBackground } =
+    prefs
   const [confirm, setConfirm] = useState<ResetAction | null>(null)
   const toast = useToast()
   const options: { id: Theme; label: string; icon: typeof Sun }[] = [
@@ -49,6 +54,74 @@ export default function Settings() {
         </div>
       </section>
       <section className="settings-section">
+        <h2>Sidebar</h2>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={collapsed} onChange={preferences.toggleSidebar} />{' '}
+          Collapse desktop sidebar
+        </label>
+      </section>
+      <section className="settings-section">
+        <h2>Tools</h2>
+        <div className="field-row">
+          <label className="field">
+            JSON indentation
+            <select
+              value={jsonIndent}
+              onChange={(event) =>
+                preferences.setOptions({ jsonIndent: event.target.value as '2' | '4' })
+              }
+            >
+              <option value="2">2 spaces</option>
+              <option value="4">4 spaces</option>
+            </select>
+          </label>
+          <label className="field">
+            HEX letter case
+            <select
+              value={hexCase}
+              onChange={(event) =>
+                preferences.setOptions({ hexCase: event.target.value as 'upper' | 'lower' })
+              }
+            >
+              <option value="upper">Uppercase</option>
+              <option value="lower">Lowercase</option>
+            </select>
+          </label>
+        </div>
+        <p>Defaults apply when you next open a tool.</p>
+      </section>
+      <section className="settings-section">
+        <h2>Files</h2>
+        <div className="field-row">
+          <label className="field">
+            Default JPEG quality ({jpegQuality}%)
+            <input
+              type="range"
+              min="10"
+              max="100"
+              value={jpegQuality}
+              onChange={(event) =>
+                preferences.setOptions({ jpegQuality: Number(event.target.value) })
+              }
+            />
+          </label>
+          <label className="field">
+            Default JPEG background
+            <input
+              type="color"
+              value={jpegBackground}
+              onChange={(event) => preferences.setOptions({ jpegBackground: event.target.value })}
+            />
+          </label>
+        </div>
+        <p>Image tools use these defaults on opening. You can change them for each output.</p>
+      </section>
+      <section className="settings-section">
+        <h2>Workspace</h2>
+        <StorageMeter />
+        <ClearWorkspaceButton />
+      </section>
+      <section className="settings-section">
         <h2>Local data</h2>
         <p>
           Preferences are saved in this browser. Files are stored only when you import or save them
@@ -78,13 +151,24 @@ export default function Settings() {
           <div>
             <strong>Reset preferences</strong>
             <p>
-              Reset your theme, sidebar, favorites, and history. Manage saved files in Workspace.
+              Reset your theme, sidebar, favorites, history, usage counts, view and tool defaults.
+              Saved Workspace files are kept.
             </p>
           </div>
           <Button variant="danger" onClick={() => setConfirm('all')}>
             Reset all preferences
           </Button>
         </div>
+      </section>
+      <section className="settings-section">
+        <h2>Local tool usage</h2>
+        <p>
+          Only tool IDs and open counts are stored locally, to order your most-used tools. No
+          analytics or content tracking.
+        </p>
+        <Button disabled={!Object.keys(prefs.toolUsage).length} onClick={() => setConfirm('usage')}>
+          Clear usage counts
+        </Button>
       </section>
       <div className="privacy-note settings-privacy">
         <ShieldCheck size={25} />
@@ -104,12 +188,12 @@ export default function Settings() {
         title={
           confirm === 'all'
             ? 'Reset all preferences?'
-            : `Clear ${confirm === 'recent' ? 'recent tools' : 'favorites'}?`
+            : `Clear ${confirm === 'recent' ? 'recent tools' : confirm === 'usage' ? 'usage counts' : 'favorites'}?`
         }
       >
         <p className="confirmation-copy">
           {confirm === 'all'
-            ? 'This removes your saved favorites and history, expands the sidebar, and restores the system theme.'
+            ? 'This clears favorites, history and usage counts, and restores appearance, view and tool defaults. Workspace files are kept.'
             : 'This removes this collection from your saved preferences.'}{' '}
           This action cannot be undone.
         </p>
@@ -122,6 +206,7 @@ export default function Settings() {
             onClick={() => {
               if (confirm === 'all') preferences.reset()
               else if (confirm === 'recent') preferences.clearRecent()
+              else if (confirm === 'usage') preferences.clearUsage()
               else preferences.clearFavorites()
               setConfirm(null)
               toast('Preferences updated')

@@ -22,4 +22,5 @@ export interface FileInput {
 
 export interface FileOutput extends FileInput {
   detail?: string
+  originalSize?: number
 }

@@ -156,7 +156,7 @@ test('new registry entries integrate with favorites, history and command search'
   await page.goto('/recent')
   await expect(page.locator('.tool-card')).toHaveCount(8)
   await page.keyboard.press('Control+k')
-  await page.getByRole('combobox').fill('yaml')
+  await page.getByRole('combobox', { name: 'Search tools, files and actions' }).fill('yaml')
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL('/tools/json-yaml')
 })

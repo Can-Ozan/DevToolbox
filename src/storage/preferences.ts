@@ -7,6 +7,12 @@ export interface Preferences {
   favorites: string[]
   recent: string[]
   collapsed: boolean
+  toolUsage: Record<string, number>
+  workspaceView: 'grid' | 'list'
+  jsonIndent: '2' | '4'
+  hexCase: 'upper' | 'lower'
+  jpegQuality: number
+  jpegBackground: string
 }
 export const STORAGE_KEY = 'devtoolbox.preferences.v1'
 const defaults: Preferences = {
@@ -15,6 +21,27 @@ const defaults: Preferences = {
   favorites: [],
   recent: [],
   collapsed: false,
+  toolUsage: {},
+  workspaceView: 'grid',
+  jsonIndent: '2',
+  hexCase: 'upper',
+  jpegQuality: 80,
+  jpegBackground: '#ffffff',
+}
+export function parseToolUsage(value: unknown): Record<string, number> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(
+        ([id, count]) =>
+          /^[a-z][a-z0-9-]{0,63}$/.test(id) &&
+          id !== 'constructor' &&
+          typeof count === 'number' &&
+          Number.isSafeInteger(count) &&
+          count > 0,
+      )
+      .slice(0, 100),
+  )
 }
 const uniqueStrings = (value: unknown): string[] =>
   Array.isArray(value) ? [...new Set(value.filter((v): v is string => typeof v === 'string'))] : []
@@ -31,6 +58,21 @@ export function parsePreferences(raw: string | null): Preferences {
       favorites: uniqueStrings(p.favorites),
       recent: uniqueStrings(p.recent).slice(0, 10),
       collapsed: p.collapsed === true,
+      toolUsage: parseToolUsage(p.toolUsage),
+      workspaceView: p.workspaceView === 'list' ? 'list' : 'grid',
+      jsonIndent: p.jsonIndent === '4' ? '4' : '2',
+      hexCase: p.hexCase === 'lower' ? 'lower' : 'upper',
+      jpegQuality:
+        typeof p.jpegQuality === 'number' &&
+        Number.isInteger(p.jpegQuality) &&
+        p.jpegQuality >= 10 &&
+        p.jpegQuality <= 100
+          ? p.jpegQuality
+          : 80,
+      jpegBackground:
+        typeof p.jpegBackground === 'string' && /^#[\da-f]{6}$/i.test(p.jpegBackground)
+          ? p.jpegBackground
+          : '#ffffff',
     }
   } catch {
     return { ...defaults }
@@ -99,9 +141,24 @@ export const preferences = {
         : [...state.favorites, id],
     }),
   visit: (id: string) => {
-    if (state.recent[0] !== id)
-      update({ recent: [id, ...state.recent.filter((item) => item !== id)].slice(0, 10) })
+    if (!/^[a-z][a-z0-9-]{0,63}$/.test(id) || id === 'constructor') return
+    update({
+      recent: [id, ...state.recent.filter((item) => item !== id)].slice(0, 10),
+      toolUsage: {
+        ...state.toolUsage,
+        [id]: Math.min((state.toolUsage[id] ?? 0) + 1, Number.MAX_SAFE_INTEGER),
+      },
+    })
   },
+  setOptions: (
+    patch: Partial<
+      Pick<
+        Preferences,
+        'workspaceView' | 'jsonIndent' | 'hexCase' | 'jpegQuality' | 'jpegBackground'
+      >
+    >,
+  ) => update(patch),
+  clearUsage: () => update({ toolUsage: {} }),
   clearRecent: () => update({ recent: [] }),
   clearFavorites: () => update({ favorites: [] }),
   reset: () => update({ ...defaults }),

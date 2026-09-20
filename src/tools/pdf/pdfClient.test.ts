@@ -16,6 +16,17 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 describe('PDF worker lifecycle', () => {
+  it('reports lifecycle stages without terminating before the result', async () => {
+    vi.stubGlobal('Worker', TestWorker)
+    const report = vi.fn()
+    const result = runPdf({ operation: 'inspect', files: [] }, new AbortController().signal, report)
+    TestWorker.last.onmessage?.({ data: { stage: 'reading' } })
+    expect(report).toHaveBeenCalledWith('reading')
+    expect(TestWorker.last.terminate).not.toHaveBeenCalled()
+    TestWorker.last.onmessage?.({ data: { result: { pageCount: 1 } } })
+    await expect(result).resolves.toEqual({ pageCount: 1 })
+    expect(TestWorker.last.terminate).toHaveBeenCalledOnce()
+  })
   it('terminates the worker after success', async () => {
     vi.stubGlobal('Worker', TestWorker)
     const result = runPdf({ operation: 'inspect', files: [] }, new AbortController().signal)

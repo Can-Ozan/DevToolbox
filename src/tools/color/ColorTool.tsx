@@ -2,14 +2,19 @@ import { useState } from 'react'
 import { CopyButton, Message } from '../../components/ui'
 import { formatColor, parseColor, type ColorFormat } from '../../lib/color'
 import { errorMessage } from '../../lib/encoding'
+import { usePreferences } from '../../storage/preferences'
 const initial = formatColor({ r: 119, g: 96, b: 215 })
 export default function ColorTool() {
-  const [values, setValues] = useState(initial)
+  const { hexCase } = usePreferences()
+  const letterCase = (value: string) =>
+    hexCase === 'lower' ? value.toLowerCase() : value.toUpperCase()
+  const [values, setValues] = useState({ ...initial, hex: letterCase(initial.hex) })
   const [preview, setPreview] = useState(initial.hex)
   const [error, setError] = useState('')
   function change(format: ColorFormat, value: string) {
     try {
       const converted = formatColor(parseColor(value, format))
+      converted.hex = letterCase(converted.hex)
       setValues({ ...converted, [format]: value })
       setPreview(converted.hex)
       setError('')
@@ -27,7 +32,7 @@ export default function ColorTool() {
               type="color"
               aria-label="Pick a color"
               value={preview}
-              onChange={(event) => change('hex', event.target.value.toUpperCase())}
+              onChange={(event) => change('hex', letterCase(event.target.value))}
             />
             Choose a color
           </label>
