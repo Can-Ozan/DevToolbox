@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './styles/index.css'
 import './styles/workflows.css'
+import './styles/conversion.css'
+import { startPwa } from './pwa/pwaStore'
+
+startPwa()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

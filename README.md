@@ -1,18 +1,18 @@
-# DevToolbox v3.1
+# DevToolbox v3.2
 
-> A local-first developer workspace with **29 tools**, image & PDF utilities, and a reusable browser file vault.
+> A local-first developer workspace with **32 tools**, image & PDF utilities, and a reusable browser file vault.
 
 [![Deploy DevToolbox to GitHub Pages](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![Tools](https://img.shields.io/badge/Tools-29-7C3AED)
+![Tools](https://img.shields.io/badge/Tools-32-7C3AED)
 
 ### 🔗 Live Demo
 
 **https://can-ozan.github.io/DevToolbox/**
 
-**Workflow & UX Update — local developer workspace & utility platform.**
+**Offline & Conversion Update — local developer workspace & utility platform.**
 
 DevToolbox brings everyday developer utilities, local file workflows, image processing, and PDF tools into one fast browser-based application.
 
@@ -23,7 +23,7 @@ Supported processing runs locally in your browser.
 
 ## ✨ Highlights
 
-- **29 developer tools** in one interface
+- **32 developer tools** in one interface
 - **Local Workspace / File Vault** powered by IndexedDB
 - Reuse files between compatible tools without uploading them again
 - Local image conversion, compression, resizing, rotation and metadata inspection
@@ -38,7 +38,18 @@ Supported processing runs locally in your browser.
 
 ---
 
-## What's new in v3.1
+## What's new in v3.2
+
+- **Installable PWA** with an offline app shell after the first successful online visit. Installation is optional; supported browsers expose **Install DevToolbox** in Settings.
+- **PDF → Images** renders selected pages locally to PNG/JPEG using a lazy-loaded, bundled PDF.js renderer and worker.
+- **Image Cropper** combines drag/resize selection, common aspect ratios and equivalent keyboard/numeric controls.
+- **JSON ↔ CSV Converter** handles flat tabular objects, quoted fields, Unicode, embedded newlines and comma/semicolon/tab delimiters.
+- **32 tools total**: three new tools plus one platform feature. PWA is not counted as a tool.
+- Existing local-first processing, Workspace, compatible-tool handoffs and v3.1 behavior remain. Generated files are only saved when you choose to save them.
+
+---
+
+## Workflow improvements from v3.1
 
 - Dashboard with quick actions, live Workspace file counts and up to three pinned/recent files to continue working on.
 - Universal command palette groups tools, Workspace file metadata and navigation/theme actions. File contents are never searched.
@@ -129,37 +140,46 @@ Unavailable/blocked IndexedDB, full storage, damaged metadata and missing blobs 
 
 ### More developer tools
 
-| Tool                    | Main capabilities                                     |
-| ----------------------- | ----------------------------------------------------- |
-| JSON ↔ YAML Converter   | Two-way conversion, validation and downloads          |
-| Markdown Previewer      | Live GFM preview, tables, task lists and code blocks  |
-| Cron Expression Builder | Visual 5-field builder, presets and descriptions      |
-| QR Code Generator       | Local QR generation with PNG download                 |
-| Case Converter          | 10 case formats including camel, snake and kebab      |
-| Number Base Converter   | Binary, octal, decimal and hexadecimal using BigInt   |
-| Color Contrast Checker  | WCAG AA/AAA contrast checks                           |
-| URL Parser              | URL components, query parameters and secret redaction |
+| Tool                    | Main capabilities                                                    |
+| ----------------------- | -------------------------------------------------------------------- |
+| JSON ↔ YAML Converter   | Two-way conversion, validation and downloads                         |
+| Markdown Previewer      | Live GFM preview, tables, task lists and code blocks                 |
+| Cron Expression Builder | Visual 5-field builder, presets and descriptions                     |
+| QR Code Generator       | Local QR generation with PNG download                                |
+| Case Converter          | 10 case formats including camel, snake and kebab                     |
+| Number Base Converter   | Binary, octal, decimal and hexadecimal using BigInt                  |
+| Color Contrast Checker  | WCAG AA/AAA contrast checks                                          |
+| URL Parser              | URL components, query parameters and secret redaction                |
+| JSON ↔ CSV Converter    | Flat JSON tables ↔ quoted CSV, delimiters, counts, copy and download |
 
 ### Image tools
 
-| Tool                   | Main capabilities                                         |
-| ---------------------- | --------------------------------------------------------- |
-| Image Format Converter | PNG / JPEG / WebP conversion with JPEG background control |
-| Image Compressor       | JPEG/WebP quality controls and size comparison            |
-| Image Resizer          | Width, height, aspect ratio, percentage and presets       |
-| Image Rotate / Flip    | 90° / 180° / 270° and horizontal/vertical flips           |
-| Image Metadata Viewer  | Filename, MIME type, size, width, height and aspect ratio |
+| Tool                   | Main capabilities                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------------- |
+| Image Format Converter | PNG / JPEG / WebP conversion with JPEG background control                               |
+| Image Compressor       | JPEG/WebP quality controls and size comparison                                          |
+| Image Resizer          | Width, height, aspect ratio, percentage and presets                                     |
+| Image Rotate / Flip    | 90° / 180° / 270° and horizontal/vertical flips                                         |
+| Image Metadata Viewer  | Filename, MIME type, size, width, height and aspect ratio                               |
+| Image Cropper          | Pointer/keyboard crop selection, aspect ratios, numeric bounds and PNG/JPEG/WebP output |
 
 ### PDF tools
 
-| Tool             | Main capabilities                                    |
-| ---------------- | ---------------------------------------------------- |
-| PDF Merger       | Merge multiple PDFs in a chosen order                |
-| PDF Splitter     | Extract ranges such as `1-3,5,8-10`                  |
-| PDF Page Reorder | Reorder or omit pages using a numeric page list      |
-| Images → PDF     | PNG/JPEG/WebP to A4 PDF with fit and margin controls |
+| Tool             | Main capabilities                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------ |
+| PDF Merger       | Merge multiple PDFs in a chosen order                                                      |
+| PDF Splitter     | Extract ranges such as `1-3,5,8-10`                                                        |
+| PDF Page Reorder | Reorder or omit pages using a numeric page list                                            |
+| Images → PDF     | PNG/JPEG/WebP to A4 PDF with fit and margin controls                                       |
+| PDF → Images     | Selected pages to PNG/JPEG, scale/quality, cancellation, previews and individual downloads |
 
-> PDF → Images is deferred. `pdf-lib` edits PDF structure but does not render pages; reliable browser-side raster export requires a separate rendering engine such as PDF.js. No PDF rendering dependency is included in this release.
+### Conversion details
+
+**PDF → Images:** choose all pages or an ascending/custom selection such as `1-3,5,8`; duplicate and out-of-range pages are rejected. PNG/JPEG output supports 1×, 1.5× and 2× resolution. Pages render sequentially, with real page/encoding status and cancellation. Each image has its own download, explicit Workspace save and compatible-tool handoff. Batch ZIP download is not included. PDF.js and its fonts/decoders/worker are bundled locally; nothing is uploaded or loaded from a runtime CDN. The renderer is fetched only when first used.
+
+**Image Cropper:** Free, 1:1, 4:3, 16:9 and 3:2 modes support dragging and a resize handle. Labeled X/Y/width/height fields provide a keyboard alternative; a locked ratio derives height from width. Focus the crop region and use arrows to move or Shift + arrows to resize. Reset restores the largest centered crop for the selected ratio. PNG/JPEG/WebP output retains the input format by default; JPEG/WebP quality and JPEG transparency background are configurable. Output is re-encoded, so embedded metadata and animation are not preserved.
+
+**JSON ↔ CSV:** JSON input must be a non-empty array of flat objects. Columns follow first appearance; missing fields and null become empty cells. Nested objects/arrays are rejected. CSV uses unique, non-empty first-row headers; values remain strings with whitespace preserved. UTF-8 BOMs, escaped quotes and embedded delimiters/newlines are supported; physical blank lines are skipped. Inconsistent row widths and malformed quotes produce errors. Comma, semicolon and tab delimiters are explicit. CSV values, including spreadsheet formula text, are preserved as data. Inputs are held only in memory.
 
 ---
 
@@ -194,7 +214,9 @@ To reduce browser freezes and excessive memory usage:
 - Workspace: up to **500 entries**
 - Images: up to **8192 px per side / 16 MP**
 - PDFs: up to **500 pages**
-- PDF worker timeout: **30 seconds**
+- PDF worker/rendering timeout: **30 seconds**
+- PDF → Images output: up to **30 pages / 32 MP total**, within the existing per-image dimensions and byte limits
+- JSON ↔ CSV input: **200,000 characters / 10,000 data rows / 200 columns / 100,000 cells**
 
 Limits are browser-side safety boundaries, not guarantees that every device can comfortably process the maximum size. These limits live in `src/workspace/workspaceUtils.ts`. Image headers are checked before decoding. Cancel or leave a tool to terminate its PDF worker. Use smaller inputs on memory-constrained devices.
 
@@ -202,16 +224,18 @@ Limits are browser-side safety boundaries, not guarantees that every device can 
 
 ## 🧪 Quality & testing
 
-The v3.1 release was verified with:
+The v3.2 release was verified with:
 
-- **139 unit tests**
-- **47 E2E tests** (Chromium)
+- **202 unit tests**
+- **61 E2E tests** (Chromium)
 - TypeScript type checking
 - ESLint
 - Production build verification
 - Responsive coverage
 - Accessibility checks
 - Workspace persistence/failure scenarios
+- Offline reload, static-only caching, optional install UI and consent-based multi-tab updates
+- Crop pixels/dimensions, PDF rendering, JSON/CSV conversion and new-tool Workspace workflows
 - Image and PDF workflows
 - Mobile navigation regression tests
 - Universal command search, usage tracking, Workspace views/menus and compatible-tool handoffs
@@ -222,6 +246,8 @@ Browser tests cover every tool, invalid input, clipboard/download behavior, work
 Workspace tests cover transactional add/retrieve/delete, concurrent duplicate names, pinning, missing blobs, corrupt metadata, storage unavailability and quota rollback. New browser workflows exercise image conversions and JPEG alpha handling, cross-tool persistence/reuse, PDF ordering/extraction, drag/drop, clear confirmation, MIME filtering, downloaded contents, loaded mobile layouts and file dialogs.
 
 Browser E2E tests currently target Chromium. Firefox/Safari verification is still useful before broader cross-browser guarantees.
+
+The [Object URL lifecycle audit](docs/object-url-lifecycle.md) records preview/download ownership, PDF renderer cleanup, and regression coverage for replacement, cancellation, errors, and navigation.
 
 ---
 
@@ -235,6 +261,8 @@ Browser E2E tests currently target Chromium. Firefox/Safari verification is stil
 - **IndexedDB**
 - **Canvas / Web APIs**
 - **pdf-lib**
+- **[PDF.js](https://mozilla.github.io/pdf.js/)** (`pdfjs-dist`) — lazy local PDF page rendering
+- **[Vite PWA](https://vite-pwa-org.netlify.app/guide/prompt-for-update)** (`vite-plugin-pwa`, build-time) — generated manifest and Workbox service worker
 - **yaml**
 - **react-markdown + remark-gfm**
 - **qrcode**
@@ -249,7 +277,7 @@ Browser E2E tests currently target Chromium. Firefox/Safari verification is stil
 
 ### Requirements
 
-- Node.js **22.12+**
+- Node.js **22.13+** (required by PDF.js)
 - npm
 
 ### Install
@@ -321,7 +349,11 @@ Serve fingerprinted files in `dist/assets/` with long immutable cache headers, a
 
 ### PWA status
 
-PWA support is deferred in v3.1 to avoid service-worker cache invalidation and subpath deployment risk in this UX release. No service worker or offline cache has been added; offline reopening is not guaranteed, although loaded utilities process inputs locally. Workspace blobs remain exclusively in IndexedDB.
+The first visit requires a network connection and a supported secure browser (HTTPS or localhost). Once installation of the service worker completes, the app shell and precached tools can reopen offline, including nested routes under `/DevToolbox/`. Settings shows offline readiness and an optional install action when the browser supplies an installation prompt.
+
+The service worker caches **application assets only**. Workspace files stay exclusively in IndexedDB; input/output payloads are never added to the service-worker cache. Heavy PDF.js rendering assets are excluded from the initial precache and cached as they are used, so a new PDF may need uncached fonts/decoders while offline. Browser cache eviction, storage clearing and browser support affect availability. Keep downloads as backups; offline reopening is not a permanent storage guarantee.
+
+Updates show a subtle notice and wait for explicit reload confirmation. Updating is disabled while a file job is active, and accepting an update in another tab does not force this tab to reload. Save or download unsaved work first. There is no cloud sync.
 
 ---
 
@@ -383,7 +415,6 @@ The tool registry remains the source of truth for search, categories, favorites,
 
 Potential future additions:
 
-- JSON ↔ CSV
 - XML formatter
 - SQL formatter
 - HTML / CSS / JavaScript formatter
@@ -396,7 +427,6 @@ Potential future additions:
 - ZIP utilities
 - CSV utilities
 - Additional image utilities
-- PDF → Images
 - Audio metadata tools
 
 ---

@@ -8,6 +8,7 @@ import {
   type ButtonHTMLAttributes,
 } from 'react'
 import { Check, Copy, Download, Info, X, CircleAlert } from 'lucide-react'
+import { downloadFile } from '../workspace/workspaceUtils'
 
 export function Button({
   children,
@@ -99,13 +100,12 @@ export function DownloadButton({
     <Button
       disabled={!text}
       onClick={() => {
-        const url = URL.createObjectURL(new Blob([text], { type: mimeType }))
-        const anchor = document.createElement('a')
-        anchor.href = url
-        anchor.download = filename
-        anchor.click()
-        setTimeout(() => URL.revokeObjectURL(url), 1000)
-        toast('Download started')
+        try {
+          downloadFile({ name: filename, blob: new Blob([text], { type: mimeType }) })
+          toast('Download started')
+        } catch {
+          toast('The download could not start. Please retry.')
+        }
       }}
     >
       <Download size={15} />

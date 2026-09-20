@@ -7,6 +7,7 @@ export interface ImageDimensions {
 }
 export type ImageFormat = 'image/png' | 'image/jpeg' | 'image/webp'
 export interface ImageOptions extends ImageDimensions {
+  crop?: ImageDimensions & { x: number; y: number }
   format: ImageFormat
   quality: number
   background: string
@@ -142,6 +143,17 @@ export async function processImage(
   const canvas = document.createElement('canvas')
   try {
     signal?.throwIfAborted()
+    const crop = options.crop ?? { x: 0, y: 0, width: bitmap.width, height: bitmap.height }
+    if (
+      !Object.values(crop).every(Number.isInteger) ||
+      crop.x < 0 ||
+      crop.y < 0 ||
+      crop.width < 1 ||
+      crop.height < 1 ||
+      crop.x + crop.width > bitmap.width ||
+      crop.y + crop.height > bitmap.height
+    )
+      throw new Error('Crop bounds must stay inside the image.')
     report?.('generating')
     const swap = options.rotation === 90 || options.rotation === 270
     canvas.width = swap ? options.height : options.width
@@ -157,6 +169,10 @@ export async function processImage(
     context.scale(options.flipX ? -1 : 1, options.flipY ? -1 : 1)
     context.drawImage(
       bitmap,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
       -options.width / 2,
       -options.height / 2,
       options.width,

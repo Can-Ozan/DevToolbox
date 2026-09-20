@@ -5,6 +5,7 @@ import { Button, Modal, useToast } from '../components/ui'
 
 import StorageMeter from '../workspace/StorageMeter'
 import ClearWorkspaceButton from '../workspace/ClearWorkspaceButton'
+import { PwaSettings } from '../pwa/PwaControls'
 
 type ResetAction = 'recent' | 'favorites' | 'all' | 'usage'
 export default function Settings() {
@@ -25,6 +26,7 @@ export default function Settings() {
         Settings<span className="heading-dot">.</span>
       </h1>
       <p className="page-description">A few preferences for a workspace that feels like yours.</p>
+      <PwaSettings />
       <section className="settings-section">
         <h2>Appearance</h2>
         <p>Choose a theme. System follows your device’s preference.</p>

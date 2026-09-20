@@ -124,6 +124,11 @@ test('Workspace views, type filters, keyboard overflow, downloads and empty stat
   }
   await page.getByRole('button', { name: 'All', exact: true }).click()
   await page.getByRole('button', { name: 'Grid', exact: true }).click()
+  // Grid thumbnails are decoded only when their cards enter the viewport.
+  await page
+    .locator('.workspace-file')
+    .filter({ has: page.getByRole('heading', { name: 'project.png', exact: true }) })
+    .scrollIntoViewIfNeeded()
   await expect(page.locator('.file-thumbnail img')).toBeVisible()
   const more = page.getByRole('button', { name: 'More actions for notes.txt', exact: true })
   await more.focus()
