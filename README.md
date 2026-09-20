@@ -1,4 +1,4 @@
-# DevToolbox v3.0
+# DevToolbox v3.1
 
 > A local-first developer workspace with **29 tools**, image & PDF utilities, and a reusable browser file vault.
 
@@ -9,7 +9,10 @@
 ![Tools](https://img.shields.io/badge/Tools-29-7C3AED)
 
 ### 🔗 Live Demo
+
 **https://can-ozan.github.io/DevToolbox/**
+
+**Workflow & UX Update — local developer workspace & utility platform.**
 
 DevToolbox brings everyday developer utilities, local file workflows, image processing, and PDF tools into one fast browser-based application.
 
@@ -25,8 +28,8 @@ Supported processing runs locally in your browser.
 - Reuse files between compatible tools without uploading them again
 - Local image conversion, compression, resizing, rotation and metadata inspection
 - Local PDF merge, split, reorder and Images → PDF workflows
-- Favorites and recent tools
-- **Ctrl/Cmd + K** command palette
+- Local favorites and the last 10 unique tools visited
+- Universal **Ctrl/Cmd + K** command palette for tools, Workspace file metadata and actions
 - Light, dark and system themes
 - Responsive desktop/mobile interface
 - Keyboard-friendly and accessibility-focused controls
@@ -35,21 +38,39 @@ Supported processing runs locally in your browser.
 
 ---
 
+## What's new in v3.1
+
+- Dashboard with quick actions, live Workspace file counts and up to three pinned/recent files to continue working on.
+- Universal command palette groups tools, Workspace file metadata and navigation/theme actions. File contents are never searched.
+- Workspace grid/list views, type filters, on-demand image thumbnails, keyboard-accessible overflow menus and approximate storage meter.
+- Explicit **Save & open** handoffs and **Continue with** actions derived from file compatibility; nothing is saved automatically.
+- Lightweight related-tool links, meaningful file/Workspace badges and sidebar favorites.
+- Clear drop states, real processing stages and completed-result details for image/PDF workflows.
+- Local tool-open counts power **Most used** after three distinct tools have been visited; otherwise the dashboard shows a curated **Featured tools** list. All Tools can sort by name, usage, recency or favorites.
+- Settings for JSON indentation, HEX letter case, image quality/background and Workspace clearing. Defaults apply on the next tool opening; usage counts can be cleared independently.
+
+---
+
 ## 🗂️ Workspace
 
-The v3 Workspace turns DevToolbox into more than a collection of isolated utilities.
+The Workspace / File Vault keeps files available across compatible tools in the current browser profile.
 
 You can:
 
 - Import files from your device
-- Drag & drop files
+- Drag & drop files or use the file picker
 - Save generated outputs to Workspace
 - Reuse an output directly in another compatible tool
 - Pin important files
-- Preview supported images and text files
-- Download or delete files
+- Preview supported images and text files, with on-demand image thumbnails in Grid view
+- Download, pin/unpin, copy filenames or delete files through a keyboard-accessible overflow menu
 - View file size, MIME type, source tool and creation time
-- Check approximate browser storage usage
+- Switch between persistent Grid/List views and filter by file type
+- Check approximate browser storage usage in a visual meter
+
+Open **Workspace** in navigation or search for it with Ctrl/Cmd + K. Choose a persistent Grid/List view and filter by file type. Search results focus the matching file card; secondary actions are in its three-dot menu (arrow keys, Enter, Escape). Import files with the device picker or drag and drop. Files are listed with type, size, date and source tool, with pinned files first and recent files next. Image and bounded plain-text previews are available; other formats show metadata and compatible tools. Only PNG, JPEG, WebP and PDF are accepted by the new processing tools; the vault can also store other file types for downloading.
+
+Every new file tool offers **Upload from device** and **Choose from Workspace**. The picker filters by accepted MIME type; actual image/PDF parsing validates the contents before processing. **Download** exports the result, and **Save to Workspace** persists a new file. Duplicate names receive suffixes such as `image-converted-2.png`; existing files are never replaced. Device inputs are only stored when explicitly imported or saved.
 
 ### Example workflow
 
@@ -58,11 +79,9 @@ JPG
  ↓
 Image Format Converter
  ↓
-Save to Workspace
+Save & open Image Compressor
  ↓
-Image Compressor
- ↓
-Choose from Workspace
+Compress image
  ↓
 Download
 ```
@@ -74,14 +93,18 @@ Images
  ↓
 Images → PDF
  ↓
-Save to Workspace
- ↓
-PDF Splitter
+Save & open PDF Splitter
  ↓
 Extract selected pages
 ```
 
-Workspace files are stored in **IndexedDB** in the current browser profile. Browser data can be cleared, so important files should still be downloaded and backed up normally.
+### IndexedDB storage and browser storage limits
+
+`src/workspace/db.ts` owns database access. Database `devtoolbox.workspace`, schema version 1, has a `files` metadata store keyed by secure UUID and a `blobs` store keyed by the same ID. A unique filename index plus a single read/write transaction protects naming and writes across tabs. Delete and clear also update both stores atomically. Lists and command search load metadata only; previews, visible image thumbnails and tool inputs read blobs on demand. Thumbnails are reduced locally, and object URLs are released when no longer displayed. `workspaceStore.ts` exposes subscriptions and refreshes on tab focus.
+
+Files remain in this browser profile and origin unless downloaded/exported by the user. They are not synced between devices or domains. Browser data can be cleared by you or the browser; **keep downloaded copies of important files**. The approximate usage/quota display uses `navigator.storage.estimate()` when available and covers the whole origin, not only Workspace. Storage is not a permanent backup.
+
+Unavailable/blocked IndexedDB, full storage, damaged metadata and missing blobs produce inline errors. A failed save does not silently fall back to temporary storage or remove the tool output. Device input and downloads remain available. Invalid metadata is reported without silently deleting it.
 
 ---
 
@@ -89,54 +112,54 @@ Workspace files are stored in **IndexedDB** in the current browser profile. Brow
 
 ### Core developer tools
 
-| Tool | Main capabilities |
-| --- | --- |
-| JSON Formatter | Format, minify, validate, indentation, copy and download |
-| Base64 Encoder / Decoder | Unicode-safe UTF-8 encode/decode |
-| UUID Generator | Secure UUID v4 generation in batches |
-| JWT Decoder | Decode header/payload and inspect standard claims |
-| URL Encoder / Decoder | Full URL and component encoding |
-| Unix Timestamp Converter | Seconds, milliseconds, local time, UTC and ISO |
-| Hash Generator | SHA-1, SHA-256, SHA-384 and SHA-512 |
-| Regex Tester | Matches, captures, flags, highlighting and timeout protection |
-| Password Generator | Secure configurable 8–128 character passwords |
-| Color Converter | HEX, RGB and HSL conversion |
-| Lorem Ipsum Generator | Paragraph, sentence and word generation |
-| Text Diff Checker | Side-by-side and unified line diffs |
+| Tool                     | Main capabilities                                             |
+| ------------------------ | ------------------------------------------------------------- |
+| JSON Formatter           | Format, minify, validate, indentation, copy and download      |
+| Base64 Encoder / Decoder | Unicode-safe UTF-8 encode/decode                              |
+| UUID Generator           | Secure UUID v4 generation in batches                          |
+| JWT Decoder              | Decode header/payload and inspect standard claims             |
+| URL Encoder / Decoder    | Full URL and component encoding                               |
+| Unix Timestamp Converter | Seconds, milliseconds, local time, UTC and ISO                |
+| Hash Generator           | SHA-1, SHA-256, SHA-384 and SHA-512                           |
+| Regex Tester             | Matches, captures, flags, highlighting and timeout protection |
+| Password Generator       | Secure configurable 8–128 character passwords                 |
+| Color Converter          | HEX, RGB and HSL conversion                                   |
+| Lorem Ipsum Generator    | Paragraph, sentence and word generation                       |
+| Text Diff Checker        | Side-by-side and unified line diffs                           |
 
-### v2 tools
+### More developer tools
 
-| Tool | Main capabilities |
-| --- | --- |
-| JSON ↔ YAML Converter | Two-way conversion, validation and downloads |
-| Markdown Previewer | Live GFM preview, tables, task lists and code blocks |
-| Cron Expression Builder | Visual 5-field builder, presets and descriptions |
-| QR Code Generator | Local QR generation with PNG download |
-| Case Converter | 10 case formats including camel, snake and kebab |
-| Number Base Converter | Binary, octal, decimal and hexadecimal using BigInt |
-| Color Contrast Checker | WCAG AA/AAA contrast checks |
-| URL Parser | URL components, query parameters and secret redaction |
+| Tool                    | Main capabilities                                     |
+| ----------------------- | ----------------------------------------------------- |
+| JSON ↔ YAML Converter   | Two-way conversion, validation and downloads          |
+| Markdown Previewer      | Live GFM preview, tables, task lists and code blocks  |
+| Cron Expression Builder | Visual 5-field builder, presets and descriptions      |
+| QR Code Generator       | Local QR generation with PNG download                 |
+| Case Converter          | 10 case formats including camel, snake and kebab      |
+| Number Base Converter   | Binary, octal, decimal and hexadecimal using BigInt   |
+| Color Contrast Checker  | WCAG AA/AAA contrast checks                           |
+| URL Parser              | URL components, query parameters and secret redaction |
 
-### v3 image tools
+### Image tools
 
-| Tool | Main capabilities |
-| --- | --- |
+| Tool                   | Main capabilities                                         |
+| ---------------------- | --------------------------------------------------------- |
 | Image Format Converter | PNG / JPEG / WebP conversion with JPEG background control |
-| Image Compressor | JPEG/WebP quality controls and size comparison |
-| Image Resizer | Width, height, aspect ratio, percentage and presets |
-| Image Rotate / Flip | 90° / 180° / 270° and horizontal/vertical flips |
-| Image Metadata Viewer | Filename, MIME type, size, width, height and aspect ratio |
+| Image Compressor       | JPEG/WebP quality controls and size comparison            |
+| Image Resizer          | Width, height, aspect ratio, percentage and presets       |
+| Image Rotate / Flip    | 90° / 180° / 270° and horizontal/vertical flips           |
+| Image Metadata Viewer  | Filename, MIME type, size, width, height and aspect ratio |
 
-### v3 PDF tools
+### PDF tools
 
-| Tool | Main capabilities |
-| --- | --- |
-| PDF Merger | Merge multiple PDFs in a chosen order |
-| PDF Splitter | Extract ranges such as `1-3,5,8-10` |
-| PDF Page Reorder | Reorder or omit pages using a numeric page list |
-| Images → PDF | PNG/JPEG/WebP to A4 PDF with fit and margin controls |
+| Tool             | Main capabilities                                    |
+| ---------------- | ---------------------------------------------------- |
+| PDF Merger       | Merge multiple PDFs in a chosen order                |
+| PDF Splitter     | Extract ranges such as `1-3,5,8-10`                  |
+| PDF Page Reorder | Reorder or omit pages using a numeric page list      |
+| Images → PDF     | PNG/JPEG/WebP to A4 PDF with fit and margin controls |
 
-> PDF → Images is not included in v3.0. Reliable browser-side PDF rendering would require an additional rendering engine such as PDF.js.
+> PDF → Images is deferred. `pdf-lib` edits PDF structure but does not render pages; reliable browser-side raster export requires a separate rendering engine such as PDF.js. No PDF rendering dependency is included in this release.
 
 ---
 
@@ -153,7 +176,11 @@ DevToolbox follows a local-first model.
 - No remote database is required
 - Dependencies are bundled with the application rather than loaded from runtime CDNs
 
-The hosting provider can still receive normal requests for the application files themselves. DevToolbox does not include tool input/file contents in those requests.
+Theme, sidebar state, favorite/recent tool IDs, small local tool-open counts, Workspace view and tool defaults are saved under the versioned `devtoolbox.preferences.v1` localStorage key. Workspace files and their metadata are stored in IndexedDB, never localStorage. Unsaved tool inputs/outputs, decoded tokens and generated passwords are held in memory and discarded when leaving a tool or refreshing. Explicitly imported/saved Workspace files remain until removed or browser storage is cleared. Clipboard and downloaded files persist independently according to your operating system and browser.
+
+There are no remote fonts, telemetry scripts, automatic external requests, authentication, remote databases, or API credentials. All processing dependencies and workers are bundled and served by the app's host; no runtime CDN packages or conversion APIs are used. File contents are not uploaded. Markdown blocks remote images; embedded raster data URLs are supported. Preview links open only when clicked. The host serves the application files and may log ordinary page requests according to its own configuration; tool input is never part of those requests. Usage counts remain in localStorage; the application does not report them to any service. No tool inputs or file contents are included in usage metadata.
+
+Malformed or unsupported stored preferences fall back to safe defaults. If writing localStorage fails, the app keeps working in memory and shows a notice. Changes are synchronized between tabs through browser storage events.
 
 ---
 
@@ -169,16 +196,16 @@ To reduce browser freezes and excessive memory usage:
 - PDFs: up to **500 pages**
 - PDF worker timeout: **30 seconds**
 
-Limits are browser-side safety boundaries, not guarantees that every device can comfortably process the maximum size.
+Limits are browser-side safety boundaries, not guarantees that every device can comfortably process the maximum size. These limits live in `src/workspace/workspaceUtils.ts`. Image headers are checked before decoding. Cancel or leave a tool to terminate its PDF worker. Use smaller inputs on memory-constrained devices.
 
 ---
 
 ## 🧪 Quality & testing
 
-The current v3 release was verified with:
+The v3.1 release was verified with:
 
-- **129 unit tests**
-- **39 Chromium E2E tests**
+- **139 unit tests**
+- **47 E2E tests** (Chromium)
 - TypeScript type checking
 - ESLint
 - Production build verification
@@ -187,7 +214,12 @@ The current v3 release was verified with:
 - Workspace persistence/failure scenarios
 - Image and PDF workflows
 - Mobile navigation regression tests
+- Universal command search, usage tracking, Workspace views/menus and compatible-tool handoffs
 - External-request checks for local processing flows
+
+Browser tests cover every tool, invalid input, clipboard/download behavior, worker timeout recovery, search keys, local preferences, reset dialogs, route loading, external-request absence, and horizontal overflow at 320, 375, 768, 1024, 1440, and 1920 pixels. Accessibility checks exercise light and dark pages, the command palette, and the mobile drawer.
+
+Workspace tests cover transactional add/retrieve/delete, concurrent duplicate names, pinning, missing blobs, corrupt metadata, storage unavailability and quota rollback. New browser workflows exercise image conversions and JPEG alpha handling, cross-tool persistence/reuse, PDF ordering/extraction, drag/drop, clear confirmation, MIME filtering, downloaded contents, loaded mobile layouts and file dialogs.
 
 Browser E2E tests currently target Chromium. Firefox/Safari verification is still useful before broader cross-browser guarantees.
 
@@ -229,7 +261,7 @@ npm ci
 npm run dev
 ```
 
-Then open the local Vite URL shown in the terminal.
+Then open the local Vite URL shown in the terminal. For secure randomness, hashing and clipboard support, use **localhost or HTTPS** in a current browser.
 
 ---
 
@@ -259,6 +291,8 @@ Linux CI:
 npx playwright install --with-deps chromium
 ```
 
+Browser tests start their own preview server. If port 4173 is occupied, set `DEVTOOLBOX_TEST_PORT` to another available port before running `npm run test:e2e`.
+
 ---
 
 ## 🌐 Deployment
@@ -269,13 +303,25 @@ DevToolbox is deployed with **GitHub Pages**:
 
 The repository includes GitHub Pages support for:
 
-- Vite base path
-- React Router basename
-- SPA `404.html` fallback
+- Vite base path via `VITE_BASE_PATH=/DevToolbox/` in the Pages build workflow
+- React Router basename derived from the Vite base URL
+- Base-aware favicon: `%BASE_URL%favicon.svg`
+- SPA `404.html` fallback generated from the production entry page
 - `.nojekyll`
-- bundled workers and assets
+- Bundled workers and lazy-loaded assets served from the same origin
 
-The application does not require server-side environment variables.
+```sh
+npm ci
+npm run build
+```
+
+The `dist/` directory contains the complete static app. Deploy it to a static host over HTTPS. Configure a history fallback that serves `index.html` for application routes such as `/tools/json`; missing app routes are handled by the app’s 404 page. A direct filesystem `file://` URL is not supported.
+
+Serve fingerprinted files in `dist/assets/` with long immutable cache headers, and `index.html` with revalidation. Keep the regex and PDF worker assets on the same origin. No server environment variables are necessary.
+
+### PWA status
+
+PWA support is deferred in v3.1 to avoid service-worker cache invalidation and subpath deployment risk in this UX release. No service worker or offline cache has been added; offline reopening is not guaranteed, although loaded utilities process inputs locally. Workspace blobs remain exclusively in IndexedDB.
 
 ---
 
@@ -300,7 +346,7 @@ marketing/          LinkedIn promotional assets
 public/             Static assets
 ```
 
-The tool registry remains the source of truth for search, categories, favorites, recent tools, routing and Workspace compatibility.
+The tool registry remains the source of truth for search, categories, favorites, recent tools, routing and Workspace compatibility. Compatible-tool handoffs derive from `producesFileTypes`, `acceptsFileTypes` and `workspaceCompatible`; related-tool links are bounded to keep tool pages uncluttered.
 
 ---
 

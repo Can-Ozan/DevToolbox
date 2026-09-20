@@ -13,6 +13,10 @@ interface WorkspaceState {
 let state: WorkspaceState = { files: [], loading: true, error: '', warning: '' }
 const listeners = new Set<() => void>()
 let revision = 0
+let watchers = 0
+const refreshOnFocus = () => {
+  void refreshWorkspace()
+}
 function publish(patch: Partial<WorkspaceState>) {
   state = { ...state, ...patch }
   listeners.forEach((listener) => listener())
@@ -50,12 +54,13 @@ export function useWorkspace() {
     () => state,
   )
   useEffect(() => {
-    void refreshWorkspace()
-    const refresh = () => {
+    if (watchers++ === 0) {
       void refreshWorkspace()
+      window.addEventListener('focus', refreshOnFocus)
     }
-    window.addEventListener('focus', refresh)
-    return () => window.removeEventListener('focus', refresh)
+    return () => {
+      if (--watchers === 0) window.removeEventListener('focus', refreshOnFocus)
+    }
   }, [])
   return snapshot
 }

@@ -7,7 +7,7 @@ test('dashboard, favorites, recent tools, theme and keyboard search persist', as
   ).toBeVisible()
   await page.getByRole('button', { name: 'Add JSON Formatter to favorites' }).click()
   await page.keyboard.press('Control+k')
-  await page.getByRole('combobox').fill('token')
+  await page.getByRole('combobox', { name: 'Search tools, files and actions' }).fill('token')
   await expect(page.getByRole('option')).toHaveCount(1)
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL('/tools/jwt')

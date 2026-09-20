@@ -1,3 +1,4 @@
+import type { ReportStage } from './processing'
 import { FILE_LIMITS, IMAGE_TYPES, validateFile } from '../workspace/workspaceUtils'
 
 export interface ImageDimensions {
@@ -123,7 +124,9 @@ export async function processImage(
   blob: Blob,
   options: ImageOptions,
   signal?: AbortSignal,
+  report?: ReportStage,
 ): Promise<Blob> {
+  report?.('validating')
   validateDimensions(options.width, options.height)
   if (
     !IMAGE_TYPES.includes(options.format) ||
@@ -134,10 +137,12 @@ export async function processImage(
     !/^#[\da-f]{6}$/i.test(options.background)
   )
     throw new Error('Invalid image output options.')
+  report?.('reading')
   const bitmap = await decodeImage(blob)
   const canvas = document.createElement('canvas')
   try {
     signal?.throwIfAborted()
+    report?.('generating')
     const swap = options.rotation === 90 || options.rotation === 270
     canvas.width = swap ? options.height : options.width
     canvas.height = swap ? options.width : options.height
@@ -157,6 +162,7 @@ export async function processImage(
       options.width,
       options.height,
     )
+    report?.('preparing')
     const result = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(
         (output) => {

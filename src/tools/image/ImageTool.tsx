@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Message } from '../../components/ui'
+import { usePreferences } from '../../storage/preferences'
+import ProcessingStatus from '../../workspace/ProcessingStatus'
 import {
   FileOutputPanel,
   useFileJob,
@@ -40,8 +42,9 @@ function ImageTool({ mode }: { mode: Mode }) {
   const [format, setFormat] = useState<ImageFormat>(
     mode === 'compress' ? 'image/jpeg' : 'image/png',
   )
-  const [quality, setQuality] = useState(80)
-  const [background, setBackground] = useState('#ffffff')
+  const defaults = usePreferences()
+  const [quality, setQuality] = useState(defaults.jpegQuality)
+  const [background, setBackground] = useState(defaults.jpegBackground)
   const [width, setWidth] = useState(0)
   const [height, setHeight] = useState(0)
   const [ratio, setRatio] = useState(true)
@@ -333,7 +336,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                   disabled={job.busy}
                   onClick={() => {
                     setError('')
-                    void job.run(async (signal) => {
+                    void job.run(async (signal, report) => {
                       const blob = await processImage(
                         file.blob,
                         {
@@ -347,8 +350,8 @@ function ImageTool({ mode }: { mode: Mode }) {
                           flipY: mode === 'rotate' && flipY,
                         },
                         signal,
+                        report,
                       )
-                      const saved = (1 - blob.size / file.blob.size) * 100
                       return {
                         name: outputFilename(
                           file.name,
@@ -363,11 +366,9 @@ function ImageTool({ mode }: { mode: Mode }) {
                         ),
                         blob,
                         sourceTool: ids[mode],
+                        originalSize: mode === 'compress' ? file.blob.size : undefined,
                         originalName: file.originalName ?? file.name,
-                        detail:
-                          mode === 'compress'
-                            ? `Original ${formatBytes(file.blob.size)} · ${Math.abs(saved).toFixed(1)}% ${saved >= 0 ? 'smaller' : 'larger'}`
-                            : `${mode === 'rotate' && rotation % 180 ? height : width} × ${mode === 'rotate' && rotation % 180 ? width : height} px`,
+                        detail: `${mode === 'rotate' && rotation % 180 ? height : width} × ${mode === 'rotate' && rotation % 180 ? width : height} px`,
                       }
                     })
                   }}
@@ -380,6 +381,7 @@ function ImageTool({ mode }: { mode: Mode }) {
           )}
         </>
       )}
+      {job.busy && <ProcessingStatus stage={job.stage} />}
       {job.output && <FileOutputPanel output={job.output} image />}
     </>
   )

@@ -31,6 +31,12 @@ export function ToolCard({ tool }: { tool: ToolDefinition }) {
       <Link className="tool-card-link" to={tool.path}>
         <h3>{tool.name}</h3>
         <p>{tool.description}</p>
+        {tool.workspaceCompatible && (
+          <div className="capability-badges">
+            <span>FILE</span>
+            <span>WORKSPACE</span>
+          </div>
+        )}
         <div className="card-bottom">
           <span className="category-tag">{tool.category}</span>
           <ArrowUpRight size={16} />

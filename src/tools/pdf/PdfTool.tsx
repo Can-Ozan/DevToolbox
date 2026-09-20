@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button, Message } from '../../components/ui'
+import ProcessingStatus from '../../workspace/ProcessingStatus'
 import { FileOutputPanel, useFileJob, WorkspaceFilePicker } from '../../workspace/FileControls'
 import type { FileInput } from '../../workspace/workspaceTypes'
 import {
@@ -242,12 +243,13 @@ function PdfTool({ mode }: { mode: Mode }) {
               disabled={job.busy || reading || (!multiple && !pageCount)}
               onClick={() => {
                 setError('')
-                void job.run(async (signal) => {
+                void job.run(async (signal, report) => {
                   let inputs = files.map((file) => file.blob)
                   if (mode === 'images') {
                     inputs = []
                     for (const file of files) {
                       signal.throwIfAborted()
+                      report('reading')
                       const dimensions = await imageDimensions(file.blob)
                       const normalized = await processImage(
                         file.blob,
@@ -261,6 +263,7 @@ function PdfTool({ mode }: { mode: Mode }) {
                           flipY: false,
                         },
                         signal,
+                        report,
                       )
                       inputs.push(normalized)
                       validateBatch(inputs.map((blob) => ({ name: 'Normalized image', blob })))
@@ -269,6 +272,7 @@ function PdfTool({ mode }: { mode: Mode }) {
                   const result = await runPdf(
                     { operation: mode, files: inputs, pages, orientation, fit, margin },
                     signal,
+                    report,
                   )
                   if (!result.blob) throw new Error('No PDF output was produced.')
                   return {
@@ -296,6 +300,7 @@ function PdfTool({ mode }: { mode: Mode }) {
           </div>
         </>
       )}
+      {job.busy && <ProcessingStatus stage={job.stage} />}
       {job.output && <FileOutputPanel output={job.output} />}
     </>
   )

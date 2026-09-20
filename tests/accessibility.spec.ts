@@ -10,7 +10,7 @@ test('stacked dialogs restore scrolling after command and history navigation', a
     await page.keyboard.press('Control+k')
     await expect(page.locator('dialog[open]')).toHaveCount(2)
     if (navigation === 'command') {
-      await page.getByRole('combobox').fill('json')
+      await page.getByRole('combobox', { name: 'Search tools, files and actions' }).fill('json')
       await page.keyboard.press('Enter')
     } else {
       await page.goBack()
@@ -59,7 +59,9 @@ test('accessible command palette and mobile navigation with focus containment', 
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await page.getByRole('button', { name: 'Open search', exact: true }).click()
-  await expect(page.getByRole('combobox')).toBeFocused()
+  await expect(
+    page.getByRole('combobox', { name: 'Search tools, files and actions' }),
+  ).toBeFocused()
   const palette = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
     .analyze()

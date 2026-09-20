@@ -1786,7 +1786,10 @@ h1 {
   align-items: center;
   flex-shrink: 0;
 }
-.navigation-header .brand { flex: 1; min-width: 0; }
+.navigation-header .brand {
+  flex: 1;
+  min-width: 0;
+}
 .navigation-content {
   display: flex;
   flex-direction: column;

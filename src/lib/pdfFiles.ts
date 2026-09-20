@@ -1,3 +1,4 @@
+import type { ReportStage } from './processing'
 import {
   PDFDocument,
   PageSizes,
@@ -61,11 +62,13 @@ async function loadPdf(blob: Blob) {
   }
 }
 
-export async function processPdf(request: PdfRequest): Promise<PdfResult> {
+export async function processPdf(request: PdfRequest, report?: ReportStage): Promise<PdfResult> {
+  report?.('validating')
   validateBatch(
     request.files.map((blob) => ({ name: 'PDF input', blob })),
     request.operation === 'images' ? ['image/png', 'image/jpeg'] : PDF_TYPES,
   )
+  report?.('reading')
   if (request.operation === 'inspect')
     return { pageCount: (await loadPdf(request.files[0])).getPageCount() }
   const output = await PDFDocument.create()
@@ -74,7 +77,9 @@ export async function processPdf(request: PdfRequest): Promise<PdfResult> {
     if (!Number.isFinite(margin) || margin < 0 || margin > 100)
       throw new Error('Margins must be between 0 and 100 points.')
     for (const blob of request.files) {
+      report?.('reading')
       const bytes = await blob.arrayBuffer()
+      report?.('generating')
       const image =
         blob.type === 'image/png' ? await output.embedPng(bytes) : await output.embedJpg(bytes)
       const [short, long] = PageSizes.A4
@@ -106,7 +111,9 @@ export async function processPdf(request: PdfRequest): Promise<PdfResult> {
     if (request.operation === 'merge' && request.files.length < 2)
       throw new Error('Choose at least two PDFs to merge.')
     for (const file of request.files) {
+      report?.('reading')
       const source = await loadPdf(file)
+      report?.('generating')
       const indices =
         request.operation === 'merge'
           ? source.getPageIndices()
@@ -120,6 +127,7 @@ export async function processPdf(request: PdfRequest): Promise<PdfResult> {
       for (const page of await output.copyPages(source, indices)) output.addPage(page)
     }
   }
+  report?.('preparing')
   const bytes = await output.save()
   return {
     blob: new Blob([new Uint8Array(bytes)], { type: 'application/pdf' }),

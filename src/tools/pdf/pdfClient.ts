@@ -1,7 +1,12 @@
+import type { ProcessingStage, ReportStage } from '../../lib/processing'
 import { FILE_LIMITS } from '../../workspace/workspaceUtils'
 import type { PdfRequest, PdfResult } from './pdfTypes'
 
-export function runPdf(request: PdfRequest, signal: AbortSignal): Promise<PdfResult> {
+export function runPdf(
+  request: PdfRequest,
+  signal: AbortSignal,
+  report?: ReportStage,
+): Promise<PdfResult> {
   signal.throwIfAborted()
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL('./pdf.worker.ts', import.meta.url), { type: 'module' })
@@ -24,8 +29,12 @@ export function runPdf(request: PdfRequest, signal: AbortSignal): Promise<PdfRes
       FILE_LIMITS.processingMs,
     )
     signal.addEventListener('abort', abort, { once: true })
-    worker.onmessage = (event: MessageEvent<{ result?: PdfResult; error?: string }>) =>
-      finish(event.data.result, event.data.error ? new Error(event.data.error) : undefined)
+    worker.onmessage = (
+      event: MessageEvent<{ result?: PdfResult; error?: string; stage?: ProcessingStage }>,
+    ) => {
+      if (event.data.stage) report?.(event.data.stage)
+      else finish(event.data.result, event.data.error ? new Error(event.data.error) : undefined)
+    }
     worker.onerror = (event) => {
       event.preventDefault()
       finish(undefined, new Error('PDF processing could not start. Refresh the page and retry.'))

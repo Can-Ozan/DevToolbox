@@ -9,15 +9,25 @@ import {
   Sparkles,
   Star,
   Zap,
+  FolderOpen,
 } from 'lucide-react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { tools } from '../registry/tools'
 import { usePreferences } from '../storage/preferences'
 import { ToolGrid } from '../components/ToolCard'
+import { compatibleTools, dashboardDiscovery } from '../registry/discovery'
+import { useWorkspace } from '../workspace/workspaceStore'
+import { formatBytes } from '../workspace/workspaceUtils'
 
 export default function Dashboard() {
   const { openSearch, shortcut } = useOutletContext<{ openSearch: () => void; shortcut: string }>()
-  const { favorites, recent } = usePreferences()
+  const prefs = usePreferences()
+  const { favorites, recent } = prefs
+  const snapshot = useWorkspace()
+  const discovery = dashboardDiscovery(prefs)
+  const quickTools = ['json', 'image-converter', 'image-compressor', 'pdf-merger', 'qr'].flatMap(
+    (id) => tools.filter((tool) => tool.id === id),
+  )
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
   const favoriteTools = tools.filter((tool) => favorites.includes(tool.id))
@@ -38,7 +48,10 @@ export default function Dashboard() {
           <h1>
             {greeting} <span className="greeting-wave">✦</span>
           </h1>
-          <p className="page-description">A little less friction. A little more building.</p>
+          <p className="page-description">Build faster with the tools you use every day.</p>
+          <p className="helper-text">
+            {tools.length} local-first tools for code, files, images and PDFs.
+          </p>
         </div>
         <span className="local-badge">
           <span />
@@ -51,7 +64,7 @@ export default function Dashboard() {
         </span>
         <span>
           <strong>What do you want to build today?</strong>
-          <span>Search developer tools…</span>
+          <span>Find tools, Workspace files, and actions…</span>
         </span>
         <kbd>{shortcut} K</kbd>
       </button>
@@ -65,10 +78,17 @@ export default function Dashboard() {
         </div>
         <div>
           <span className="stat-icon amber">
-            <Star size={18} />
+            <FolderOpen size={18} />
           </span>
-          <strong>{favorites.length}</strong>
-          <span>favorites</span>
+          <strong>{snapshot.error ? '—' : snapshot.loading ? '…' : snapshot.files.length}</strong>
+          <span>Workspace files{snapshot.error ? ' · unavailable' : ''}</span>
+        </div>
+        <div>
+          <span className="stat-icon purple">
+            <Clock3 size={18} />
+          </span>
+          <strong>{recent.length}</strong>
+          <span>recent tools</span>
         </div>
         <div>
           <span className="stat-icon green">
@@ -78,6 +98,65 @@ export default function Dashboard() {
           <span>browser-side processing</span>
         </div>
       </div>
+      <section className="dashboard-section" aria-label="Quick actions">
+        <div className="section-heading">
+          <h2>Quick actions</h2>
+        </div>
+        <div className="quick-actions">
+          {quickTools.map((tool) => {
+            const Icon = tool.icon
+            return (
+              <Link key={tool.id} to={tool.path}>
+                <Icon size={20} />
+                <span>{tool.name}</span>
+                <ArrowUpRight size={15} />
+              </Link>
+            )
+          })}
+          <Link to="/workspace">
+            <FolderOpen size={20} />
+            <span>Open Workspace</span>
+            <ArrowUpRight size={15} />
+          </Link>
+        </div>
+      </section>
+      {!snapshot.error && !!snapshot.files.length && (
+        <section className="dashboard-section" aria-label="Continue working">
+          <div className="section-heading">
+            <h2>Continue working</h2>
+            <Link to="/workspace">
+              Open Workspace <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="continue-files">
+            {snapshot.files.slice(0, 3).map((file) => (
+              <article className="panel" key={file.id}>
+                <h3 className="file-name">
+                  {file.pinned && '★ '}
+                  {file.name}
+                </h3>
+                <p className="helper-text">
+                  {file.mimeType} · {formatBytes(file.size)}
+                </p>
+                <p className="helper-text">
+                  {tools.find((tool) => tool.id === file.sourceTool)?.name ??
+                    'Imported from device'}
+                </p>
+                <div className="related-links">
+                  <Link to={`/workspace?file=${encodeURIComponent(file.id)}`}>Open file</Link>
+                  {compatibleTools(file.mimeType)
+                    .slice(0, 2)
+                    .map((tool) => (
+                      <Link key={tool.id} to={`${tool.path}?file=${encodeURIComponent(file.id)}`}>
+                        {tool.name}
+                      </Link>
+                    ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
       <section className="dashboard-section">
         <div className="section-heading">
           <div>
@@ -112,14 +191,18 @@ export default function Dashboard() {
         <div className="section-heading">
           <div>
             <Zap size={19} />
-            <h2>Popular tools</h2>
-            <span className="subtle-label">A good place to start</span>
+            <h2>{discovery.title}</h2>
+            <span className="subtle-label">
+              {discovery.title === 'Most used'
+                ? 'Based on your local history'
+                : 'A good place to start'}
+            </span>
           </div>
           <Link to="/tools">
             View all tools <ArrowRight size={15} />
           </Link>
         </div>
-        <ToolGrid items={tools.slice(0, 6)} />
+        <ToolGrid items={discovery.items} />
       </section>
       <section className="dashboard-section">
         <div className="section-heading">
