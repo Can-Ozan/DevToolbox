@@ -193,10 +193,10 @@ export const workspaceDB = {
             }
             names.add(entry.name)
             metadata.add(entry)
-            tx.objectStore(BLOBS).add(
-              input.blob.type ? input.blob : input.blob.slice(0, input.blob.size, entry.mimeType),
-              entry.id,
-            )
+            // Normalize device File objects to plain Blobs before IndexedDB persistence.
+            // WebKit can reject or inconsistently restore File instances in IndexedDB,
+            // while a Blob slice preserves the exact bytes and MIME type cross-browser.
+            tx.objectStore(BLOBS).add(input.blob.slice(0, input.blob.size, entry.mimeType), entry.id)
             return entry
           })
           done(entries)
