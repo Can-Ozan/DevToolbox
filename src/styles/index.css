@@ -1443,6 +1443,17 @@ h1 {
 .output-title h2 {
   font-size: 14px;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.result-list .output-title {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.result-list .output-title .button {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .check-options {
   display: grid;
