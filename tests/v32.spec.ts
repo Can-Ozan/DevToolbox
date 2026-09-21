@@ -240,7 +240,7 @@ test('PDF custom ranges/JPEG, invalid PDF, duplicate selections, size limits and
 
 test('new tools appear in catalog, search, palette and favorites', async ({ page }) => {
   await page.goto('/tools')
-  await expect(page.locator('.tool-card')).toHaveCount(32)
+  await expect(page.locator('.tool-card')).toHaveCount(35)
   for (const [id, name, query] of [
     ['pdf-to-images', 'PDF → Images', 'raster'],
     ['image-cropper', 'Image Cropper', 'crop'],

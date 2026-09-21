@@ -1,12 +1,12 @@
-# DevToolbox v3.2
+# DevToolbox v3.3
 
-> **32 local-first developer tools. One workspace. Zero backend.**
+> **35 local-first developer tools. One workspace. Zero backend.**
 
 [![Deploy DevToolbox to GitHub Pages](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![Tools](https://img.shields.io/badge/Tools-32-7C3AED)
+![Tools](https://img.shields.io/badge/Tools-35-7C3AED)
 ![Local First](https://img.shields.io/badge/Local--First-Yes-22C55E)
 
 ## Live Demo
@@ -21,7 +21,20 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 
 ---
 
-## What's new in v3.2
+## What's new in v3.3
+
+**Workspace & Developer Tools Update**
+
+- **XML Formatter / Validator**: format, minify, validate, copy and download; namespaces, declarations, comments and CDATA are preserved
+- **Code Formatter**: HTML, CSS and JavaScript formatting with lazy local Prettier workers
+- **Workspace multi-select**: select all filtered files, download, ZIP and confirmed atomic deletion
+- **ZIP Utilities**: create archives, inspect entries and explicitly extract selected files
+- **Workspace export/import**: portable ZIP backups with validated metadata and atomic restore; existing files are never overwritten
+- **Online/offline indicator** in Settings; local tools and saved files remain usable without a connection when their assets are cached
+- **Firefox/WebKit verification projects** alongside the complete Chromium suite; see the verification scope below
+- **35 tools total**: XML, one combined Code Formatter and ZIP Utilities add three registry entries
+
+## Retained from v3.2
 
 **Offline & Conversion Update**
 
@@ -32,7 +45,7 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 - Improved Blob/Object URL lifecycle cleanup for previews, downloads and processing flows
 - Safer PWA update handling across tabs
 - Expanded lifecycle, rendering, Workspace and regression coverage
-- **32 tools total**
+- All 32 existing tools and workflows are retained
 
 PWA is a platform feature and is not counted as a tool.
 
@@ -68,8 +81,18 @@ You can:
 - filter by file type
 - inspect approximate browser storage usage
 - download or delete files at any time
+- select individual or all filtered files for bulk downloads, ZIP creation and confirmed deletion
+- export the entire Workspace and import validated backups into another browser
 
 Workspace files are stored in **IndexedDB** in the current browser profile. They are not a cloud backup and are not synchronized between devices.
+
+Selection is page-local and is never persisted. Hidden filtered files remain selected until cleared. Browsers may ask permission for multiple individual downloads; ZIP selected provides one archive instead. The database remains at schema version **1**; no migration or data reset is needed.
+
+### Portable Workspace backup
+
+An export is a ZIP containing `manifest.json` and `files/0`, `files/1`, etc. Manifest schema version **1** includes export time, safe filenames, MIME, byte size, original name, optional source tool, pinned state and creation timestamp. It contains no preferences, usage records, file contents in URLs or object URLs.
+
+Import validates the entire manifest and every file before confirmation. One IndexedDB transaction then writes all metadata and Blobs with new IDs; duplicate names receive deterministic suffixes. A validation or storage failure leaves existing Workspace files intact and rolls back imported entries. Backup content is limited to **149 MB**, with a **100 MB** output archive limit. Larger Workspaces need separate downloads. Empty files cannot be stored in Workspace.
 
 ### Example workflow
 
@@ -110,6 +133,8 @@ Download
 | Tool | Capability |
 | --- | --- |
 | JSON Formatter | Format, validate and minify JSON |
+| XML Formatter / Validator | Local XML validation, indentation and safe minification |
+| Code Formatter | HTML, CSS and JavaScript formatting with Prettier |
 | Base64 Encoder / Decoder | Unicode-safe text encoding and decoding |
 | UUID Generator | Secure UUID v4 generation |
 | JWT Decoder | Inspect JWT header, payload and claims |
@@ -135,6 +160,7 @@ Download
 | Number Base Converter | Binary, octal, decimal and hexadecimal |
 | Color Converter | HEX, RGB and HSL |
 | Color Contrast Checker | WCAG AA/AAA contrast checks |
+| ZIP Utilities | Create, inspect and explicitly extract ZIP archives |
 
 ### Image
 
@@ -159,7 +185,27 @@ Download
 
 ---
 
-## v3.2 conversion details
+## Tool details
+
+### XML and code formatting
+
+XML uses the browser's native DOMParser and serializer. All DTD/entity declarations are rejected before parsing, so external entities and DTD resources are never fetched. Formatting preserves mixed text and `xml:space`; minification removes whitespace between element-only content. XML is limited to **200,000 characters / 100 nesting levels**.
+
+The [Prettier browser formatter](https://prettier.io/docs/browser) supports 2-space, 4-space or tab indentation. Its parser chunks load only on use, run in a cancellable worker and are excluded from the initial PWA precache. HTML uses strict whitespace handling; embedded scripts/styles remain unchanged. Input is displayed as text and is never executed. Code is limited to **200,000 characters / 30 seconds**. Code minification is not included.
+
+### ZIP safety and limits
+
+ZIP work uses [fflate](https://github.com/101arrowz/fflate) in a bundled same-origin worker. Nothing is uploaded or automatically extracted/saved. Create from device/Workspace files, or inspect an archive and choose entries. Output archives can be downloaded or explicitly saved to Workspace.
+
+- **500 content files** (plus a backup manifest), **1,000 total entries**, **150 MB expanded**, **100 MB per archive/file**, **200:1 maximum expansion**, **30-second processing timeout**
+- Device input uses the existing **30-file / 150 MB batch** picker; Workspace bulk ZIP/export can include up to 500 files
+- Rejects traversal, absolute/drive paths, symlinks, duplicate entry paths, overlapping data, inconsistent headers and CRC/size corruption
+- Checks actual streamed decompression size, not only claimed metadata; nested archives are never recursively extracted
+- Extraction flattens paths into safe filenames and adds suffixes to collisions
+- Supports stored/deflated, single-disk ZIP32 with ASCII/UTF-8 filenames; encrypted, ZIP64 and other filename encodings are unsupported
+- Existing image limits still apply when saving extracted images to Workspace; empty entries can be downloaded but cannot be saved
+
+Highly compressible archives created by DevToolbox use stored entries when needed to remain within its own expansion policy. Previews/downloads retain the shared [Object URL cleanup guarantees](docs/object-url-lifecycle.md).
 
 ### PDF → Images
 
@@ -269,7 +315,9 @@ The project includes automated coverage for:
 - accessibility checks
 - external-request regressions
 
-The current browser E2E suite targets Chromium. Firefox/Safari verification remains useful before broader cross-browser guarantees.
+Chromium runs the full suite. Firefox and WebKit each run a focused subset covering routing, keyboard search, responsive layout, IndexedDB persistence, previews/crop, PDF rendering, XML/code formatting, ZIP operations and object URL cleanup. WebKit automation is not a claim of testing every Safari/device version.
+
+On this Windows verification host, **App Control blocks Firefox's `lgpllibs.dll` and WebKit's `libwebp.dll`** even after browser/dependency installation. These projects remain configured and their launch failures are reported, not skipped. Firefox/WebKit results must be verified on an approved host before claiming cross-browser release readiness.
 
 ---
 
@@ -293,6 +341,8 @@ The current browser E2E suite targets Chromium. Firefox/Safari verification rema
 - axe-core
 - ESLint
 - Prettier
+- fflate — local ZIP compression/decompression, worker-only
+- @xmldom/xmldom — development-only DOM adapter for XML unit tests; browsers use native XML APIs
 
 ---
 
@@ -330,10 +380,12 @@ npm run build
 npm run preview
 ```
 
-Install Chromium once for E2E tests:
+Install the test browsers and required host dependencies:
 
 ```bash
-npx playwright install chromium
+npx playwright install --with-deps chromium firefox webkit
+npm run test:e2e -- --project=chromium
+npm run test:e2e -- --project=firefox --project=webkit
 ```
 
 ---

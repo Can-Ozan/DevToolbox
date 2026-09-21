@@ -140,8 +140,16 @@ export const workspaceDB = {
         } else done({ ...info, blob })
       }
     }),
-  async add(inputs: FileInput[]) {
-    validateBatch(inputs)
+  async add(inputs: FileInput[], options: { bulk?: boolean; restore?: boolean } = {}) {
+    if (options.bulk) {
+      if (!inputs.length || inputs.length > FILE_LIMITS.workspaceCount) throw new Error('Choose 1–500 files.')
+      if (inputs.reduce((total, file) => total + file.blob.size, 0) > FILE_LIMITS.batchBytes) throw new Error('Combined files must be at most 150 MB.')
+      inputs.forEach(file => validateBatch([file]))
+    } else validateBatch(inputs)
+    if (options.restore) inputs.forEach(input => {
+      const metadata = input as FileInput & Partial<WorkspaceFileInfo>
+      if (typeof metadata.pinned !== 'boolean' || typeof metadata.createdAt !== 'number' || !Number.isFinite(metadata.createdAt) || metadata.createdAt <= 0 || metadata.createdAt >= 8.64e15) throw new Error('Invalid imported file metadata.')
+    })
     return transaction<WorkspaceFileInfo[]>('readwrite', (tx, done, fail) => {
       const metadata = tx.objectStore(META)
       // Read names in the same write transaction to avoid collisions between tabs.
@@ -162,13 +170,14 @@ export const workspaceDB = {
               .map((item: WorkspaceFileInfo) => item.name),
           )
           const entries = inputs.map((input) => {
+            const restored = input as FileInput & Partial<WorkspaceFileInfo>
             const entry: WorkspaceFileInfo = {
               id: crypto.randomUUID(),
               name: uniqueFilename(input.name, names),
               mimeType: input.blob.type || 'application/octet-stream',
               size: input.blob.size,
-              createdAt: Date.now(),
-              pinned: false,
+              createdAt: options.restore ? restored.createdAt! : Date.now(),
+              pinned: options.restore ? restored.pinned! : false,
               sourceTool: input.sourceTool,
               originalName: safeFilename(input.originalName ?? input.name),
             }
@@ -193,6 +202,13 @@ export const workspaceDB = {
       tx.objectStore(BLOBS).delete(id)
       done(undefined)
     }),
+  deleteMany: (ids: string[]) => transaction<void>('readwrite', (tx, done) => {
+    for (const id of new Set(ids)) {
+      tx.objectStore(META).delete(id)
+      tx.objectStore(BLOBS).delete(id)
+    }
+    done(undefined)
+  }),
   clear: () =>
     transaction<void>('readwrite', (tx, done) => {
       tx.objectStore(META).clear()

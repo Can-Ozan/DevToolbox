@@ -76,6 +76,10 @@ export const workspace = {
     await workspaceDB.delete(id)
     await refreshWorkspace()
   },
+  async deleteMany(ids: string[]) {
+    await workspaceDB.deleteMany(ids)
+    await refreshWorkspace()
+  },
   async clear() {
     await workspaceDB.clear()
     await refreshWorkspace()

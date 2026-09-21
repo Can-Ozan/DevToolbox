@@ -38,6 +38,37 @@ async function damage(storeName: string, id: string, value?: unknown) {
 }
 
 describe('Workspace IndexedDB', () => {
+  it('restores backups into the existing v1 schema with fresh IDs and safe duplicate names',async()=>{
+    const [existing]=await workspaceDB.add([input()])
+    const restored=await workspaceDB.add([{...input(),pinned:true,createdAt:1700000000000} as Parameters<typeof workspaceDB.add>[0][number]],{bulk:true,restore:true})
+    expect(restored[0]).toMatchObject({name:'sample-2.txt',pinned:true,createdAt:1700000000000})
+    expect(restored[0].id).not.toBe(existing.id)
+    expect(await(await workspaceDB.get(existing.id)).blob.text()).toBe('hello')
+    const version=await new Promise<number>(resolve=>{const request=indexedDB.open(WORKSPACE_DB);request.onsuccess=()=>{resolve(request.result.version);request.result.close()}})
+    expect(version).toBe(1)
+  })
+  it('rolls back every imported entry when a later Blob write fails',async()=>{
+    const [existing]=await workspaceDB.add([input('keep.txt')])
+    const original=IDBObjectStore.prototype.add;let blobs=0
+    vi.spyOn(IDBObjectStore.prototype,'add').mockImplementation(function(this:IDBObjectStore,...args:Parameters<typeof original>){if(this.name==='blobs' && ++blobs===2)throw new DOMException('Full','QuotaExceededError');return original.apply(this,args)})
+    await expect(workspaceDB.add([input('one.txt'),input('two.txt')],{bulk:true})).rejects.toThrow('Full')
+    expect((await workspaceDB.list()).files.map(file=>file.id)).toEqual([existing.id])
+  })
+  it('deletes selected metadata and Blobs atomically, preserving unselected files',async()=>{
+    const [a,b,c]=await workspaceDB.add([input('a'),input('b'),input('c')])
+    const original=IDBObjectStore.prototype.delete
+    const mock=vi.spyOn(IDBObjectStore.prototype,'delete').mockImplementation(function(this:IDBObjectStore,...args:Parameters<typeof original>){if(this.name==='blobs' && args[0]===b.id)throw new Error('Delete failed');return original.apply(this,args)})
+    await expect(workspaceDB.deleteMany([a.id,b.id])).rejects.toThrow('Delete failed')
+    expect((await workspaceDB.list()).files).toHaveLength(3)
+    expect(await(await workspaceDB.get(a.id)).blob.text()).toBe('hello')
+    mock.mockRestore();await workspaceDB.deleteMany([a.id,b.id]);expect((await workspaceDB.list()).files.map(file=>file.id)).toEqual([c.id])
+  })
+  it('bounds bulk imports without changing existing data',async()=>{
+    await workspaceDB.add([input('keep')])
+    await expect(workspaceDB.add(Array.from({length:501},()=>input()),{bulk:true})).rejects.toThrow('500')
+    await expect(workspaceDB.add([input()],{bulk:true,restore:true})).rejects.toThrow('metadata')
+    expect((await workspaceDB.list()).files).toHaveLength(1)
+  })
   it('atomically saves and retrieves blob content and metadata', async () => {
     const [saved] = await workspaceDB.add([
       { ...input(), sourceTool: 'sample', originalName: 'original.txt' },

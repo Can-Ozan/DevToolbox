@@ -5,6 +5,7 @@ import App from './App'
 import './styles/index.css'
 import './styles/workflows.css'
 import './styles/conversion.css'
+import './styles/workspace-upgrade.css'
 import { startPwa } from './pwa/pwaStore'
 
 startPwa()
