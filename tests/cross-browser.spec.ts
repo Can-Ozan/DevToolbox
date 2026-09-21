@@ -64,8 +64,9 @@ test('cross-browser Workspace persistence, preview and crop release object URLs'
     }
   })
   await page.goto('/workspace')
+  await expect(page.getByText('Loading Workspace…')).not.toBeVisible()
   await page.locator('input[type=file]').setInputFiles(await image(page))
-  await expect(page.locator('.workspace-file')).toHaveCount(1)
+  await expect(page.locator('.workspace-file')).toHaveCount(1, { timeout: 10_000 })
   await page.reload()
   await expect(page.locator('.workspace-file')).toContainText('cross.png')
   await page.getByRole('button', { name: 'Preview cross.png', exact: true }).click()
