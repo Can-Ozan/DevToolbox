@@ -98,10 +98,16 @@ export function fileError(error: unknown) {
 }
 
 export function downloadFile(file: FileInput) {
+  // The download owns this URL independently of the originating component/job.
   const url = URL.createObjectURL(file.blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = safeFilename(file.name)
-  anchor.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  try {
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = safeFilename(file.name)
+    anchor.click()
+  } finally {
+    // Do not revoke synchronously or cancel this cleanup when the view unmounts.
+    // Scheduling in finally also covers DOM/click failures after URL creation.
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
 }

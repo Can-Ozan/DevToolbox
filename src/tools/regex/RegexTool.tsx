@@ -46,6 +46,8 @@ export default function RegexTool() {
         }
         worker.postMessage({ pattern, flags, text })
       } catch {
+        clearTimeout(timeout)
+        worker?.terminate()
         setResult({
           matches: [],
           limited: false,

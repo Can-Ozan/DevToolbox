@@ -79,7 +79,7 @@ describe('image safety and sizing', () => {
       expect(canvas.toBlob).toHaveBeenCalledWith(expect.any(Function), format, 0.8)
       expect(context.fillRect).toHaveBeenCalledTimes(format === 'image/jpeg' ? 1 : 0)
       expect(context.scale).toHaveBeenCalledWith(-1, 1)
-      expect(context.drawImage).toHaveBeenCalledWith(bitmap, -5, -10, 10, 20)
+      expect(context.drawImage).toHaveBeenCalledWith(bitmap, 0, 0, 1, 1, -5, -10, 10, 20)
       expect(bitmap.close).toHaveBeenCalledOnce()
       expect(canvas.width).toBe(0)
     },

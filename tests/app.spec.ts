@@ -172,9 +172,9 @@ test('colors, exact lorem quantities and both diff modes', async ({ page }) => {
 test('search, filters, reset confirmation, corruption recovery and 404', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('devtoolbox.preferences.v1', '{broken'))
   await page.goto('/tools')
-  await expect(page.locator('.tool-card')).toHaveCount(29)
+  await expect(page.locator('.tool-card')).toHaveCount(32)
   await page.getByRole('button', { name: 'Converters', exact: true }).click()
-  await expect(page.locator('.tool-card')).toHaveCount(5)
+  await expect(page.locator('.tool-card')).toHaveCount(6)
   await page.getByRole('button', { name: 'All tools', exact: true }).click()
   await page.getByLabel('Search all tools').fill('token')
   await expect(page.locator('.tool-card')).toHaveCount(1)

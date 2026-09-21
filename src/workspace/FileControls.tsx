@@ -4,6 +4,7 @@ import { Check, Download, FolderOpen, Plus, Save, Upload } from 'lucide-react'
 import { Button, Message, Modal } from '../components/ui'
 import { nextTools } from '../registry/discovery'
 import type { ProcessingStage, ReportStage } from '../lib/processing'
+import { beginFileActivity } from '../lib/fileActivity'
 import { workspace, useWorkspace, refreshWorkspace } from './workspaceStore'
 import type { FileInput, FileOutput } from './workspaceTypes'
 import {
@@ -18,6 +19,8 @@ import {
 export { compatibleTools } from '../registry/discovery'
 
 export function useObjectURL(blob?: Blob) {
+  // This effect owns one preview URL. React runs cleanup before replacement
+  // and on unmount; clearing the Blob removes the old src before revocation.
   const [value, setValue] = useState<{ blob: Blob; url: string }>()
   useEffect(() => {
     if (!blob) {
@@ -407,8 +410,8 @@ export function FileOutputPanel({
   )
 }
 
-export function useFileJob() {
-  const [output, setOutput] = useState<FileOutput>()
+export function useFileJob<T = FileOutput>() {
+  const [output, setOutput] = useState<T>()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [stage, setStage] = useState<ProcessingStage>('validating')
@@ -421,10 +424,12 @@ export function useFileJob() {
     setOutput(undefined)
     setError('')
   }
-  async function run(task: (signal: AbortSignal, report: ReportStage) => Promise<FileOutput>) {
+  async function run(task: (signal: AbortSignal, report: ReportStage) => Promise<T>) {
     reset()
     const current = new AbortController()
     controller.current = current
+    const finish = beginFileActivity()
+    current.signal.addEventListener('abort', finish, { once: true })
     setBusy(true)
     setStage('validating')
     try {
@@ -435,6 +440,8 @@ export function useFileJob() {
     } catch (reason) {
       if (!current.signal.aborted) setError(fileError(reason))
     } finally {
+      finish()
+      current.signal.removeEventListener('abort', finish)
       if (!current.signal.aborted) setBusy(false)
     }
   }
