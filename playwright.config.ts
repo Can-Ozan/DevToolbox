@@ -13,9 +13,17 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name:'chromium', use:{...devices['Desktop Chrome']} },
-    { name:'firefox', testMatch:'**/cross-browser.spec.ts', use:{...devices['Desktop Firefox']} },
-    { name:'webkit', testMatch:'**/cross-browser.spec.ts', use:{...devices['Desktop Safari']} },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'firefox',
+      testMatch: '**/cross-browser.spec.ts',
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'webkit',
+      testMatch: '**/cross-browser.spec.ts',
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
   webServer: {
     command: `npm run build && npm run preview -- --port ${port} --strictPort`,

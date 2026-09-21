@@ -193,7 +193,16 @@ export default function WorkspacePage() {
         </div>
       </div>
       <StorageMeter />
-      <WorkspaceActions files={snapshot.files} matching={matching} selected={selected} setSelected={setSelected} selectionMode={selectionMode} setSelectionMode={setSelectionMode} disabled={busy} onBusy={setArchiveBusy} />
+      <WorkspaceActions
+        files={snapshot.files}
+        matching={matching}
+        selected={selected}
+        setSelected={setSelected}
+        selectionMode={selectionMode}
+        setSelectionMode={setSelectionMode}
+        disabled={busy}
+        onBusy={setArchiveBusy}
+      />
       <div className="workspace-view-controls">
         <div className="filter-tabs" aria-label="Filter files by type">
           {filters.map((type) => (
@@ -251,7 +260,24 @@ export default function WorkspacePage() {
             tabIndex={-1}
           >
             {workspaceView === 'grid' && <FileThumbnail file={file} />}
-            {selectionMode && <label className="checkbox-label workspace-select"><input type="checkbox" aria-label={`Select ${file.name}`} checked={selected.includes(file.id)} disabled={busy || archiveBusy} onChange={event=>setSelected(event.target.checked ? [...selected,file.id] : selected.filter(id=>id!==file.id))} />Select file</label>}
+            {selectionMode && (
+              <label className="checkbox-label workspace-select">
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${file.name}`}
+                  checked={selected.includes(file.id)}
+                  disabled={busy || archiveBusy}
+                  onChange={(event) =>
+                    setSelected(
+                      event.target.checked
+                        ? [...selected, file.id]
+                        : selected.filter((id) => id !== file.id),
+                    )
+                  }
+                />
+                Select file
+              </label>
+            )}
             <div className="workspace-file-heading">
               <h2 className="file-name">
                 {file.pinned && <span aria-label="Pinned">★ </span>}

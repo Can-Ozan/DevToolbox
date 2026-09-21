@@ -130,58 +130,58 @@ Download
 
 ### Developer & Data
 
-| Tool | Capability |
-| --- | --- |
-| JSON Formatter | Format, validate and minify JSON |
+| Tool                      | Capability                                              |
+| ------------------------- | ------------------------------------------------------- |
+| JSON Formatter            | Format, validate and minify JSON                        |
 | XML Formatter / Validator | Local XML validation, indentation and safe minification |
-| Code Formatter | HTML, CSS and JavaScript formatting with Prettier |
-| Base64 Encoder / Decoder | Unicode-safe text encoding and decoding |
-| UUID Generator | Secure UUID v4 generation |
-| JWT Decoder | Inspect JWT header, payload and claims |
-| Regex Tester | Test patterns, captures and flags |
-| URL Encoder / Decoder | Encode/decode full URLs and components |
-| Unix Timestamp Converter | Convert epoch, local, UTC and ISO dates |
-| Hash Generator | SHA-1, SHA-256, SHA-384 and SHA-512 |
-| Markdown Previewer | Live GFM preview |
-| Cron Expression Builder | Build five-field cron expressions |
-| URL Parser | Inspect URL components and query parameters |
-| JSON ↔ YAML Converter | Two-way structured-data conversion |
-| JSON ↔ CSV Converter | Flat JSON tables ↔ quoted CSV |
+| Code Formatter            | HTML, CSS and JavaScript formatting with Prettier       |
+| Base64 Encoder / Decoder  | Unicode-safe text encoding and decoding                 |
+| UUID Generator            | Secure UUID v4 generation                               |
+| JWT Decoder               | Inspect JWT header, payload and claims                  |
+| Regex Tester              | Test patterns, captures and flags                       |
+| URL Encoder / Decoder     | Encode/decode full URLs and components                  |
+| Unix Timestamp Converter  | Convert epoch, local, UTC and ISO dates                 |
+| Hash Generator            | SHA-1, SHA-256, SHA-384 and SHA-512                     |
+| Markdown Previewer        | Live GFM preview                                        |
+| Cron Expression Builder   | Build five-field cron expressions                       |
+| URL Parser                | Inspect URL components and query parameters             |
+| JSON ↔ YAML Converter     | Two-way structured-data conversion                      |
+| JSON ↔ CSV Converter      | Flat JSON tables ↔ quoted CSV                           |
 
 ### Generators & Utilities
 
-| Tool | Capability |
-| --- | --- |
-| Password Generator | Configurable secure passwords |
-| QR Code Generator | Local QR generation with PNG download |
-| Lorem Ipsum Generator | Words, sentences and paragraphs |
-| Text Diff Checker | Side-by-side and unified text comparison |
-| Case Converter | Common casing formats |
-| Number Base Converter | Binary, octal, decimal and hexadecimal |
-| Color Converter | HEX, RGB and HSL |
-| Color Contrast Checker | WCAG AA/AAA contrast checks |
-| ZIP Utilities | Create, inspect and explicitly extract ZIP archives |
+| Tool                   | Capability                                          |
+| ---------------------- | --------------------------------------------------- |
+| Password Generator     | Configurable secure passwords                       |
+| QR Code Generator      | Local QR generation with PNG download               |
+| Lorem Ipsum Generator  | Words, sentences and paragraphs                     |
+| Text Diff Checker      | Side-by-side and unified text comparison            |
+| Case Converter         | Common casing formats                               |
+| Number Base Converter  | Binary, octal, decimal and hexadecimal              |
+| Color Converter        | HEX, RGB and HSL                                    |
+| Color Contrast Checker | WCAG AA/AAA contrast checks                         |
+| ZIP Utilities          | Create, inspect and explicitly extract ZIP archives |
 
 ### Image
 
-| Tool | Capability |
-| --- | --- |
-| Image Format Converter | PNG / JPEG / WebP conversion |
-| Image Compressor | JPEG/WebP quality and size reduction |
-| Image Resizer | Dimensions, percentage and presets |
-| Image Rotate / Flip | Rotation and mirroring |
-| Image Metadata Viewer | Size, MIME, dimensions and aspect ratio |
-| Image Cropper | Free/fixed-ratio crop with keyboard and numeric controls |
+| Tool                   | Capability                                               |
+| ---------------------- | -------------------------------------------------------- |
+| Image Format Converter | PNG / JPEG / WebP conversion                             |
+| Image Compressor       | JPEG/WebP quality and size reduction                     |
+| Image Resizer          | Dimensions, percentage and presets                       |
+| Image Rotate / Flip    | Rotation and mirroring                                   |
+| Image Metadata Viewer  | Size, MIME, dimensions and aspect ratio                  |
+| Image Cropper          | Free/fixed-ratio crop with keyboard and numeric controls |
 
 ### PDF
 
-| Tool | Capability |
-| --- | --- |
-| PDF Merger | Combine multiple PDFs |
-| PDF Splitter | Extract selected pages/ranges |
-| PDF Page Reorder | Reorder or omit pages |
-| Images → PDF | Convert ordered images into a PDF |
-| PDF → Images | Render selected pages to PNG/JPEG |
+| Tool             | Capability                        |
+| ---------------- | --------------------------------- |
+| PDF Merger       | Combine multiple PDFs             |
+| PDF Splitter     | Extract selected pages/ranges     |
+| PDF Page Reorder | Reorder or omit pages             |
+| Images → PDF     | Convert ordered images into a PDF |
+| PDF → Images     | Render selected pages to PNG/JPEG |
 
 ---
 

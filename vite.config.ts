@@ -62,7 +62,11 @@ export default defineConfig({
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/\/assets\//, /\/pdf-assets\//, /\.[a-z0-9]+$/i],
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
-        globIgnores: ['**/pdfRenderer-*.js', 'pdf-assets/**', '**/{standalone,babel,estree,html,postcss}-*.js'],
+        globIgnores: [
+          '**/pdfRenderer-*.js',
+          'pdf-assets/**',
+          '**/{standalone,babel,estree,html,postcss}-*.js',
+        ],
         // Runtime cache is limited to same-origin, bundled, query-free assets.
         // User data is passed to workers in memory, never through these URLs.
         runtimeCaching: [
