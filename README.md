@@ -86,6 +86,8 @@ You can:
 
 Workspace files are stored in **IndexedDB** in the current browser profile. They are not a cloud backup and are not synchronized between devices.
 
+Some browsers or private browsing contexts reject IndexedDB Blob storage. Failed imports show an error and restore the controls; device processing and downloads remain available. Use a normal browser profile for Workspace persistence.
+
 Selection is page-local and is never persisted. Hidden filtered files remain selected until cleared. Browsers may ask permission for multiple individual downloads; ZIP selected provides one archive instead. The database remains at schema version **1**; no migration or data reset is needed.
 
 ### Portable Workspace backup
@@ -317,7 +319,9 @@ The project includes automated coverage for:
 
 Chromium runs the full suite. Firefox and WebKit each run a focused subset covering routing, keyboard search, responsive layout, IndexedDB persistence, previews/crop, PDF rendering, XML/code formatting, ZIP operations and object URL cleanup. WebKit automation is not a claim of testing every Safari/device version.
 
-On this Windows verification host, **App Control blocks Firefox's `lgpllibs.dll` and WebKit's `libwebp.dll`** even after browser/dependency installation. These projects remain configured and their launch failures are reported, not skipped. Firefox/WebKit results must be verified on an approved host before claiming cross-browser release readiness.
+The WebKit persistence test uses an isolated temporary persistent profile because its default private context rejects IndexedDB Blob writes. A separate test covers that storage error path, including control recovery and the absence of partial files after reload. Playwright removes the temporary profile when the context closes.
+
+GitHub Actions installs and runs all three browser projects on Ubuntu. Windows App Control may block the bundled Firefox executable; local launch failures are reported separately from application test failures. Use the PR's CI results to confirm Firefox verification when it cannot launch locally.
 
 ---
 

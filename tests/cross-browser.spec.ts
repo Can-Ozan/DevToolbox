@@ -2,6 +2,24 @@ import { test, expect } from '@playwright/test'
 import { PDFDocument } from 'pdf-lib'
 import { readFile } from 'node:fs/promises'
 
+const workspaceTest = test.extend({
+  context: async ({ browserName, context, playwright, baseURL, contextOptions }, runTest) => {
+    if (browserName !== 'webkit') return runTest(context)
+    // WebKit's ephemeral/private context rejects IndexedDB Blob writes.
+    // A fresh temporary persistent profile exercises the normal file-vault lifecycle.
+    // An empty userDataDir lets Playwright create and remove the temporary profile.
+    const persistent = await playwright.webkit.launchPersistentContext('', {
+      ...contextOptions,
+      baseURL,
+    })
+    try {
+      await runTest(persistent)
+    } finally {
+      await persistent.close()
+    }
+  },
+})
+
 async function image(page: import('@playwright/test').Page) {
   const data = await page.evaluate(() => {
     const c = document.createElement('canvas')
@@ -45,53 +63,94 @@ test('cross-browser routing, keyboard search, responsive layout and optional PWA
   await expect(page.locator('.connection-status')).toContainText('Online')
   expect(errors).toEqual([])
 })
-test('cross-browser Workspace persistence, preview and crop release object URLs', async ({
+workspaceTest(
+  'cross-browser Workspace persistence, preview and crop release object URLs',
+  async ({ page }) => {
+    await page.addInitScript(() => {
+      const create = URL.createObjectURL.bind(URL),
+        revoke = URL.revokeObjectURL.bind(URL),
+        live = new Set<string>()
+      Object.assign(window, { liveURLs: live })
+      URL.createObjectURL = (value) => {
+        const url = create(value)
+        live.add(url)
+        return url
+      }
+      URL.revokeObjectURL = (url) => {
+        live.delete(url)
+        revoke(url)
+      }
+    })
+    await page.goto('/workspace')
+    await expect(page.getByRole('heading', { name: 'Your Workspace is empty.' })).toBeVisible()
+    await expect(page.getByText('Loading Workspace…')).not.toBeVisible()
+    const uploaded = await image(page)
+    await page.locator('input[type=file]').setInputFiles(uploaded)
+    await expect(page.getByRole('button', { name: 'Import files', exact: true })).toBeEnabled()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.locator('.workspace-file')).toHaveCount(1)
+    await page.reload()
+    await expect(page.locator('.workspace-file')).toContainText('cross.png')
+    await page.getByRole('button', { name: 'More actions for cross.png' }).click()
+    const downloading = page.waitForEvent('download')
+    await page.getByRole('menuitem', { name: 'Download cross.png' }).click()
+    const download = await downloading
+    expect(await readFile((await download.path())!)).toEqual(uploaded.buffer)
+    await page.getByRole('button', { name: 'Preview cross.png', exact: true }).click()
+    await expect(page.getByAltText('Preview of cross.png')).toBeVisible()
+    await expect(page.locator('.file-metadata')).toContainText('image/png')
+    await page.keyboard.press('Escape')
+    await page.goto('/tools/image-cropper')
+    await page.getByRole('button', { name: 'Choose from Workspace' }).click()
+    await page.getByRole('button', { name: /Use cross.png/ }).click()
+    await expect(page.getByAltText('Input preview')).toBeVisible()
+    await page.getByLabel('Crop width', { exact: true }).fill('40')
+    await page.getByRole('button', { name: 'Crop image', exact: true }).click()
+    await expect(page.getByAltText('Output preview')).toBeVisible()
+    await expect
+      .poll(() =>
+        page.getByAltText('Output preview').evaluate((img: HTMLImageElement) => img.naturalWidth),
+      )
+      .toBe(40)
+    await page.keyboard.press('Control+k')
+    await page
+      .getByRole('combobox', { name: 'Search tools, files and actions' })
+      .fill('open settings')
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL('/settings')
+    await expect.poll(() => page.evaluate(() => Reflect.get(window, 'liveURLs').size)).toBe(0)
+  },
+)
+test('cross-browser Workspace write rejection restores controls and reports the error', async ({
   page,
+  browserName,
 }) => {
-  await page.addInitScript(() => {
-    const create = URL.createObjectURL.bind(URL),
-      revoke = URL.revokeObjectURL.bind(URL),
-      live = new Set<string>()
-    Object.assign(window, { liveURLs: live })
-    URL.createObjectURL = (value) => {
-      const url = create(value)
-      live.add(url)
-      return url
-    }
-    URL.revokeObjectURL = (url) => {
-      live.delete(url)
-      revoke(url)
-    }
-  })
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  if (browserName !== 'webkit')
+    await page.addInitScript(() => {
+      const original = IDBObjectStore.prototype.add
+      IDBObjectStore.prototype.add = function (...args) {
+        // A real asynchronous constraint error; metadata must also roll back.
+        if (this.name === 'blobs') original.call(this, new Blob(['duplicate']), args[1])
+        return original.apply(this, args)
+      }
+    })
+  // WebKit's default private context produces the native Blob preparation error.
   await page.goto('/workspace')
-  await expect(page.getByText('Loading Workspace…')).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Your Workspace is empty.' })).toBeVisible()
   await page.locator('input[type=file]').setInputFiles(await image(page))
-  await expect(page.locator('.workspace-file')).toHaveCount(1, { timeout: 10_000 })
+  await expect(page.getByRole('alert')).toBeVisible()
+  if (browserName === 'webkit')
+    await expect(page.getByRole('alert')).toContainText('IndexedDB storage is unavailable')
+  await expect(page.getByRole('button', { name: 'Import files', exact: true })).toBeEnabled()
+  await expect(page.locator('.workspace-file')).toHaveCount(0)
   await page.reload()
-  await expect(page.locator('.workspace-file')).toContainText('cross.png')
-  await page.getByRole('button', { name: 'Preview cross.png', exact: true }).click()
-  await expect(page.getByAltText('Preview of cross.png')).toBeVisible()
-  await page.keyboard.press('Escape')
-  await page.goto('/tools/image-cropper')
-  await page.getByRole('button', { name: 'Choose from Workspace' }).click()
-  await page.getByRole('button', { name: /Use cross.png/ }).click()
-  await expect(page.getByAltText('Input preview')).toBeVisible()
-  await page.getByLabel('Crop width', { exact: true }).fill('40')
-  await page.getByRole('button', { name: 'Crop image', exact: true }).click()
-  await expect(page.getByAltText('Output preview')).toBeVisible()
-  await expect
-    .poll(() =>
-      page.getByAltText('Output preview').evaluate((img: HTMLImageElement) => img.naturalWidth),
-    )
-    .toBe(40)
-  await page.keyboard.press('Control+k')
-  await page
-    .getByRole('combobox', { name: 'Search tools, files and actions' })
-    .fill('open settings')
-  await page.keyboard.press('Enter')
-  await expect(page).toHaveURL('/settings')
-  await expect.poll(() => page.evaluate(() => Reflect.get(window, 'liveURLs').size)).toBe(0)
+  await expect(page.getByRole('heading', { name: 'Your Workspace is empty.' })).toBeVisible()
+  await expect(page.locator('.workspace-file')).toHaveCount(0)
+  expect(errors).toEqual([])
 })
+
 test('cross-browser PDF rendering uses the bundled local worker', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
@@ -115,7 +174,8 @@ test('cross-browser PDF rendering uses the bundled local worker', async ({ page 
 test('cross-browser native XML and local formatter workers', async ({ page }) => {
   await page.goto('/tools/xml')
   await page.getByLabel('XML input').fill('<a><b/></a>')
-  await page.getByRole('button', { name: 'Format XML', exact: true }).click()
+  // The asynchronous PWA banner can shift the page during a pointer click.
+  await page.getByRole('button', { name: 'Format XML', exact: true }).press('Enter')
   await expect(page.getByLabel('XML output')).toContainText('  <b/>')
   await page.getByLabel('XML input').fill('<a><b></a>')
   await page.getByRole('button', { name: 'Validate XML' }).click()

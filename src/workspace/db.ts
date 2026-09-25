@@ -58,8 +58,15 @@ async function transaction<T>(
         reject(
           failure ?? tx.error ?? new Error('Workspace operation was interrupted. Please retry.'),
         )
-      tx.onerror = () => {
-        /* The abort handler reports transaction failures. */
+      tx.onerror = (event) => {
+        // WebKit may leave other requests pending after a Blob preparation error.
+        // Abort the whole write, but do not wait for its stalled abort event to
+        // report the error. Successful writes still resolve only on commit.
+        if (!failure) {
+          failure = (event.target as IDBRequest).error ?? new Error('Workspace operation failed.')
+          tx.abort()
+          reject(failure)
+        }
       }
       try {
         work(
@@ -193,11 +200,8 @@ export const workspaceDB = {
             }
             names.add(entry.name)
             metadata.add(entry)
-            // Normalize device File objects to plain Blobs before IndexedDB persistence.
-            // WebKit can reject or inconsistently restore File instances in IndexedDB,
-            // while a Blob slice preserves the exact bytes and MIME type cross-browser.
             tx.objectStore(BLOBS).add(
-              input.blob.slice(0, input.blob.size, entry.mimeType),
+              input.blob.type ? input.blob : input.blob.slice(0, input.blob.size, entry.mimeType),
               entry.id,
             )
             return entry
