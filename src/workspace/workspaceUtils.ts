@@ -76,6 +76,7 @@ export function fromDevice(file: File): FileInput {
     jpeg: 'image/jpeg',
     webp: 'image/webp',
     pdf: 'application/pdf',
+    zip: 'application/zip',
   }
   return {
     name: file.name,

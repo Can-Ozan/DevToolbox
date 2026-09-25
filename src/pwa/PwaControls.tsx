@@ -2,12 +2,14 @@ import { useState } from 'react'
 import { Button, Modal } from '../components/ui'
 import { useFileActivity } from '../lib/fileActivity'
 import { installApp, updateApp, usePwa } from './pwaStore'
+import ConnectionStatus from './ConnectionStatus'
 
 export function PwaSettings() {
   const pwa = usePwa()
   return (
     <section className="settings-section">
       <h2>Install &amp; offline</h2>
+      <ConnectionStatus />
       <p>
         {pwa.error ||
           (pwa.ready

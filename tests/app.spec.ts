@@ -24,7 +24,8 @@ test('dashboard, favorites, recent tools, theme and keyboard search persist', as
   await expect(page.getByRole('heading', { name: 'JWT Decoder', exact: true })).toBeVisible()
   await page.keyboard.press('Meta+k')
   await expect(page.getByRole('dialog')).toBeVisible()
-  await page.keyboard.press('ArrowDown')
+  await page.getByRole('combobox', { name: 'Search tools, files and actions' }).fill('base64')
+  await expect(page.getByRole('option', { name: /Base64 Encoder \/ Decoder/ })).toBeVisible()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL('/tools/base64')
   await page.keyboard.press('Control+k')
@@ -172,7 +173,7 @@ test('colors, exact lorem quantities and both diff modes', async ({ page }) => {
 test('search, filters, reset confirmation, corruption recovery and 404', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('devtoolbox.preferences.v1', '{broken'))
   await page.goto('/tools')
-  await expect(page.locator('.tool-card')).toHaveCount(32)
+  await expect(page.locator('.tool-card')).toHaveCount(35)
   await page.getByRole('button', { name: 'Converters', exact: true }).click()
   await expect(page.locator('.tool-card')).toHaveCount(6)
   await page.getByRole('button', { name: 'All tools', exact: true }).click()

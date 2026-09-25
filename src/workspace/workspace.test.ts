@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
-import { IDBFactory, IDBObjectStore } from 'fake-indexeddb'
+import { IDBDatabase, IDBFactory, IDBObjectStore } from 'fake-indexeddb'
 import { WORKSPACE_DB, workspaceDB } from './db'
 import {
   acceptsFile,
@@ -37,7 +37,152 @@ async function damage(storeName: string, id: string, value?: unknown) {
   })
 }
 
+async function recordCounts() {
+  return new Promise<number[]>((resolve, reject) => {
+    const request = indexedDB.open(WORKSPACE_DB, 1)
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const db = request.result
+      const tx = db.transaction(['files', 'blobs'], 'readonly')
+      const counts = ['files', 'blobs'].map((store) => tx.objectStore(store).count())
+      tx.oncomplete = () => {
+        db.close()
+        resolve(counts.map((count) => count.result))
+      }
+      tx.onabort = () => {
+        db.close()
+        reject(tx.error)
+      }
+    }
+  })
+}
+
 describe('Workspace IndexedDB', () => {
+  it.each(['image/png', ''])('preserves uploaded File bytes and MIME (%s)', async (type) => {
+    const bytes = new Uint8Array([0, 1, 127, 128, 255])
+    const [saved] = await workspaceDB.add([
+      { name: 'upload.png', blob: new File([bytes], 'upload.png', { type }) },
+    ])
+    const restored = await workspaceDB.get(saved.id)
+    expect(restored.mimeType).toBe(type || 'application/octet-stream')
+    expect(restored.blob.type).toBe(restored.mimeType)
+    expect(restored.blob.size).toBe(bytes.length)
+    expect(new Uint8Array(await restored.blob.arrayBuffer())).toEqual(bytes)
+  })
+  it('does not resolve add when a successful Blob request is followed by an abort', async () => {
+    const original = IDBObjectStore.prototype.add
+    vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<typeof original>
+    ) {
+      const request = original.apply(this, args)
+      if (this.name === 'blobs') request.addEventListener('success', () => this.transaction.abort())
+      return request
+    })
+    await expect(workspaceDB.add([input()])).rejects.toThrow('interrupted')
+    expect((await workspaceDB.list()).files).toEqual([])
+    expect(await recordCounts()).toEqual([0, 0])
+  })
+  it('reports async write errors even if abort notification is missing, with both stores rolled back', async () => {
+    const [existing] = await workspaceDB.add([input('keep.txt')])
+    const originalTransaction = IDBDatabase.prototype.transaction
+    vi.spyOn(IDBDatabase.prototype, 'transaction').mockImplementation(function (
+      this: IDBDatabase,
+      ...args: Parameters<typeof originalTransaction>
+    ) {
+      const tx = originalTransaction.apply(this, args)
+      // Reproduce WebKit's missing abort notification after Blob preparation fails.
+      tx.addEventListener('abort', (event) => event.stopImmediatePropagation())
+      return tx
+    })
+    const originalAdd = IDBObjectStore.prototype.add
+    vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<typeof originalAdd>
+    ) {
+      if (this.name === 'blobs') originalAdd.call(this, new Blob(['duplicate']), args[1])
+      return originalAdd.apply(this, args)
+    })
+    await expect(workspaceDB.add([input('rejected.txt')])).rejects.toMatchObject({
+      name: 'ConstraintError',
+    })
+    expect((await workspaceDB.list()).files.map((file) => file.id)).toEqual([existing.id])
+    expect(await (await workspaceDB.get(existing.id)).blob.text()).toBe('hello')
+    expect(await recordCounts()).toEqual([1, 1])
+  })
+  it('restores backups into the existing v1 schema with fresh IDs and safe duplicate names', async () => {
+    const [existing] = await workspaceDB.add([input()])
+    const restored = await workspaceDB.add(
+      [
+        { ...input(), pinned: true, createdAt: 1700000000000 } as Parameters<
+          typeof workspaceDB.add
+        >[0][number],
+      ],
+      { bulk: true, restore: true },
+    )
+    expect(restored[0]).toMatchObject({
+      name: 'sample-2.txt',
+      pinned: true,
+      createdAt: 1700000000000,
+    })
+    expect(restored[0].id).not.toBe(existing.id)
+    expect(await (await workspaceDB.get(existing.id)).blob.text()).toBe('hello')
+    const version = await new Promise<number>((resolve) => {
+      const request = indexedDB.open(WORKSPACE_DB)
+      request.onsuccess = () => {
+        resolve(request.result.version)
+        request.result.close()
+      }
+    })
+    expect(version).toBe(1)
+  })
+  it('rolls back every imported entry when a later Blob write fails', async () => {
+    const [existing] = await workspaceDB.add([input('keep.txt')])
+    const original = IDBObjectStore.prototype.add
+    let blobs = 0
+    vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<typeof original>
+    ) {
+      if (this.name === 'blobs' && ++blobs === 2)
+        throw new DOMException('Full', 'QuotaExceededError')
+      return original.apply(this, args)
+    })
+    await expect(
+      workspaceDB.add([input('one.txt'), input('two.txt')], { bulk: true }),
+    ).rejects.toThrow('Full')
+    expect((await workspaceDB.list()).files.map((file) => file.id)).toEqual([existing.id])
+  })
+  it('deletes selected metadata and Blobs atomically, preserving unselected files', async () => {
+    const [a, b, c] = await workspaceDB.add([input('a'), input('b'), input('c')])
+    const original = IDBObjectStore.prototype.delete
+    const mock = vi.spyOn(IDBObjectStore.prototype, 'delete').mockImplementation(function (
+      this: IDBObjectStore,
+      ...args: Parameters<typeof original>
+    ) {
+      if (this.name === 'blobs' && args[0] === b.id) throw new Error('Delete failed')
+      return original.apply(this, args)
+    })
+    await expect(workspaceDB.deleteMany([a.id, b.id])).rejects.toThrow('Delete failed')
+    expect((await workspaceDB.list()).files).toHaveLength(3)
+    expect(await (await workspaceDB.get(a.id)).blob.text()).toBe('hello')
+    mock.mockRestore()
+    await workspaceDB.deleteMany([a.id, b.id])
+    expect((await workspaceDB.list()).files.map((file) => file.id)).toEqual([c.id])
+  })
+  it('bounds bulk imports without changing existing data', async () => {
+    await workspaceDB.add([input('keep')])
+    await expect(
+      workspaceDB.add(
+        Array.from({ length: 501 }, () => input()),
+        { bulk: true },
+      ),
+    ).rejects.toThrow('500')
+    await expect(workspaceDB.add([input()], { bulk: true, restore: true })).rejects.toThrow(
+      'metadata',
+    )
+    expect((await workspaceDB.list()).files).toHaveLength(1)
+  })
   it('atomically saves and retrieves blob content and metadata', async () => {
     const [saved] = await workspaceDB.add([
       { ...input(), sourceTool: 'sample', originalName: 'original.txt' },
@@ -88,17 +233,24 @@ describe('Workspace IndexedDB', () => {
     expect(await workspaceDB.list()).toEqual({ files: [], invalid: 1 })
     await expect(workspaceDB.get(file.id)).rejects.toThrow('missing or damaged')
   })
-  it('rolls back both stores when storage is full', async () => {
+  it.each([
+    'QuotaExceededError',
+    'DataCloneError',
+    'ConstraintError',
+    'SecurityError',
+    'InvalidStateError',
+  ])('rolls back both stores after a synchronous %s', async (name) => {
     const original = IDBObjectStore.prototype.add
     vi.spyOn(IDBObjectStore.prototype, 'add').mockImplementation(function (
       this: IDBObjectStore,
       ...args: Parameters<typeof original>
     ) {
-      if (this.name === 'blobs') throw new DOMException('Full', 'QuotaExceededError')
+      if (this.name === 'blobs') throw new DOMException('Write rejected', name)
       return original.apply(this, args)
     })
-    await expect(workspaceDB.add([input()])).rejects.toThrow('Full')
+    await expect(workspaceDB.add([input()])).rejects.toMatchObject({ name })
     expect((await workspaceDB.list()).files).toEqual([])
+    expect(await recordCounts()).toEqual([0, 0])
     expect(fileError(new DOMException('Full', 'QuotaExceededError'))).toContain('Nothing was saved')
   })
   it('handles unavailable IndexedDB', async () => {

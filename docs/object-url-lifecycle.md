@@ -1,4 +1,4 @@
-# Object URL lifecycle audit — v3.2
+# Object URL lifecycle audit — v3.3 (retains v3.2 guarantees)
 
 ## Creation sites
 
@@ -41,6 +41,15 @@ The service worker caches the app shell and explicitly matched same-origin HTTP(
 The 1-second download cleanup is intentionally separate from preview ownership. Preview URLs remain valid for their displayed images even after a separately created download URL is revoked.
 
 ## Tests and findings
+
+### v3.3 additions
+
+No new object URL creation sites or FileReaders were added. ZIP files/backups and formatted text download through the existing delayed-revocation helper. Archive contents remain Blobs; backup manifests never store object URLs.
+
+- `src/lib/workerJob.ts` owns one bundled worker, abort listener and 30-second timeout per job. Success, worker-reported error, worker startup/send failure, cancellation and timeout terminate the worker and remove timer/listener resources. `useFileJob` aborts on replacement, clear and unmount. ZIP compression and Prettier use these workers rather than fflate's Blob-based async worker APIs.
+- Formatter modules are lazy imports inside the worker. Parser chunks are excluded from initial PWA precaching and can be cached as same-origin static assets after use. ZIP outputs/backups remain outside service-worker caches.
+- `ConnectionStatus` subscribes to `online`/`offline` through `useSyncExternalStore`; both listeners are removed on unmount.
+- `src/lib/workerJob.test.ts` covers six completion/failure paths and checks zero remaining timers. `tests/cross-browser.spec.ts` checks real URL cleanup after crop/navigation; Firefox/WebKit execution is subject to host browser availability.
 
 - `src/workspace/download.test.ts`: successful and throwing download clicks; no premature revocation; eventual revocation and zero remaining timers.
 - `src/tools/pdf-to-images/pdfRenderer.test.ts`: success, render error, encoding error, cancellation, and timeout; loading-task destruction, canvas/page cleanup, abort-listener removal, zero timers, and no PDF object URL creation.

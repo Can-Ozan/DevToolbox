@@ -9,6 +9,7 @@ const base = process.env.VITE_BASE_PATH || '/'
 
 export default defineConfig({
   base,
+  worker: { format: 'es' },
   plugins: [
     react(),
     tailwindcss(),
@@ -38,7 +39,7 @@ export default defineConfig({
         id: base,
         name: 'DevToolbox',
         short_name: 'DevToolbox',
-        description: '32 local-first tools for code, files, images and PDFs.',
+        description: '35 local-first tools for code, files, images and PDFs.',
         start_url: base,
         scope: base,
         display: 'standalone',
@@ -61,7 +62,11 @@ export default defineConfig({
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/\/assets\//, /\/pdf-assets\//, /\.[a-z0-9]+$/i],
         globPatterns: ['**/*.{js,css,html,svg,png,webmanifest}'],
-        globIgnores: ['**/pdfRenderer-*.js', 'pdf-assets/**'],
+        globIgnores: [
+          '**/pdfRenderer-*.js',
+          'pdf-assets/**',
+          '**/{standalone,babel,estree,html,postcss}-*.js',
+        ],
         // Runtime cache is limited to same-origin, bundled, query-free assets.
         // User data is passed to workers in memory, never through these URLs.
         runtimeCaching: [

@@ -1,0 +1,54 @@
+.workspace-bulk {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+  min-width: 0;
+}
+.workspace-select {
+  min-height: 44px;
+}
+.workspace-select input,
+.archive-entry input {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.archive-entry-list {
+  max-height: 50dvh;
+  overflow: auto;
+  margin: 12px 0;
+}
+.archive-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 0;
+}
+.archive-entry .file-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.archive-entry small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.archive-input-list {
+  padding: 0;
+  list-style: none;
+}
+.archive-input-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+}
+.archive-input-list span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.connection-status {
+  font-size: 13px;
+}

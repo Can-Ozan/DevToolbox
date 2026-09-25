@@ -34,7 +34,7 @@ function Navigation({ close }: { close?: () => void }) {
             <CodeXml size={24} />
           </span>
           <span className="sidebar-label">
-            DevToolbox<span className="version-pill">v3.2</span>
+            DevToolbox<span className="version-pill">v3.3</span>
           </span>
         </NavLink>
         {close && (

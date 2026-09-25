@@ -7,6 +7,7 @@ import OverflowMenu from '../components/OverflowMenu'
 import FileThumbnail from './FileThumbnail'
 import StorageMeter from './StorageMeter'
 import ClearWorkspaceButton from './ClearWorkspaceButton'
+import WorkspaceActions from './WorkspaceActions'
 import { imageDimensions } from '../lib/imageFiles'
 import { compatibleTools, useObjectURL, WorkspaceFilePicker } from './FileControls'
 import { refreshWorkspace, useWorkspace, workspace } from './workspaceStore'
@@ -87,6 +88,9 @@ export default function WorkspacePage() {
   const snapshot = useWorkspace()
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [archiveBusy, setArchiveBusy] = useState(false)
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
   const [preview, setPreview] = useState<WorkspaceFile>()
   const previewTrigger = useRef<HTMLButtonElement | null>(null)
   const [useFile, setUseFile] = useState<WorkspaceFileInfo>()
@@ -156,7 +160,7 @@ export default function WorkspacePage() {
       <WorkspaceFilePicker
         includeWorkspace={false}
         multiple
-        disabled={busy}
+        disabled={busy || archiveBusy}
         deviceLabel="Import files"
         onSelect={(files) => {
           void act(async () => {
@@ -189,6 +193,16 @@ export default function WorkspacePage() {
         </div>
       </div>
       <StorageMeter />
+      <WorkspaceActions
+        files={snapshot.files}
+        matching={matching}
+        selected={selected}
+        setSelected={setSelected}
+        selectionMode={selectionMode}
+        setSelectionMode={setSelectionMode}
+        disabled={busy}
+        onBusy={setArchiveBusy}
+      />
       <div className="workspace-view-controls">
         <div className="filter-tabs" aria-label="Filter files by type">
           {filters.map((type) => (
@@ -246,6 +260,24 @@ export default function WorkspacePage() {
             tabIndex={-1}
           >
             {workspaceView === 'grid' && <FileThumbnail file={file} />}
+            {selectionMode && (
+              <label className="checkbox-label workspace-select">
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${file.name}`}
+                  checked={selected.includes(file.id)}
+                  disabled={busy || archiveBusy}
+                  onChange={(event) =>
+                    setSelected(
+                      event.target.checked
+                        ? [...selected, file.id]
+                        : selected.filter((id) => id !== file.id),
+                    )
+                  }
+                />
+                Select file
+              </label>
+            )}
             <div className="workspace-file-heading">
               <h2 className="file-name">
                 {file.pinned && <span aria-label="Pinned">★ </span>}
