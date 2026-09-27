@@ -113,7 +113,7 @@ export default function WorkspaceActions({
         )}
       </Modal>
       {selectionMode && (
-        <div className="panel">
+        <div className="workspace-selection-bar">
           <p role="status">
             {selectedFiles.length} files selected. Selection includes files hidden by filters.
           </p>

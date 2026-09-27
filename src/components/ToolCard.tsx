@@ -21,33 +21,34 @@ export function FavoriteButton({ tool }: { tool: ToolDefinition }) {
 export function ToolCard({ tool }: { tool: ToolDefinition }) {
   const Icon = tool.icon
   return (
-    <article className="tool-card group">
-      <div className="card-top">
-        <span className={`tool-icon ${tool.color}`}>
-          <Icon size={23} strokeWidth={1.7} />
-        </span>
-        <FavoriteButton tool={tool} />
-      </div>
+    <article className="tool-card">
+      <FavoriteButton tool={tool} />
       <Link className="tool-card-link" to={tool.path}>
-        <h3>{tool.name}</h3>
+        <div className="card-title">
+          <span className={`tool-icon ${tool.color}`}>
+            <Icon size={20} strokeWidth={1.7} />
+          </span>
+          <h3>{tool.name}</h3>
+        </div>
         <p>{tool.description}</p>
-        {tool.workspaceCompatible && (
-          <div className="capability-badges">
-            <span>FILE</span>
-            <span>WORKSPACE</span>
-          </div>
-        )}
         <div className="card-bottom">
           <span className="category-tag">{tool.category}</span>
+          {tool.workspaceCompatible && <span className="capability-label">File workflow</span>}
           <ArrowUpRight size={16} />
         </div>
       </Link>
     </article>
   )
 }
-export function ToolGrid({ items }: { items: ToolDefinition[] }) {
+export function ToolGrid({
+  items,
+  compact = false,
+}: {
+  items: ToolDefinition[]
+  compact?: boolean
+}) {
   return (
-    <div className="tool-grid">
+    <div className={`tool-grid ${compact ? 'tool-grid-compact' : ''}`}>
       {items.map((tool) => (
         <ToolCard key={tool.id} tool={tool} />
       ))}

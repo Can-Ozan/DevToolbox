@@ -1,3 +1,4 @@
+import { ToolTabs, ToolToolbar } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Button, Message } from '../../components/ui'
@@ -33,22 +34,19 @@ export default function ZipTool() {
   const available = inspect.output?.filter((entry) => !entry.directory) ?? []
   return (
     <>
-      <div className="filter-tabs" role="group" aria-label="ZIP operation">
-        {(['create', 'extract'] as const).map((value) => (
-          <button
-            key={value}
-            disabled={busy}
-            className={mode === value ? 'active' : ''}
-            aria-pressed={mode === value}
-            onClick={() => {
-              clear()
-              setMode(value)
-            }}
-          >
-            {value === 'create' ? 'Create ZIP' : 'Extract ZIP'}
-          </button>
-        ))}
-      </div>
+      <ToolTabs
+        label="ZIP operation"
+        value={mode}
+        disabled={busy}
+        options={[
+          { value: 'create', label: 'Create ZIP' },
+          { value: 'extract', label: 'Extract ZIP' },
+        ]}
+        onChange={(value) => {
+          clear()
+          setMode(value)
+        }}
+      />
       <p className="helper-text">
         Local ZIP processing. Up to 500 files / 1,000 entries, 150 MB expanded, 100 MB per
         archive/file and 200:1 expansion. Device batches accept 30 files. Encrypted, ZIP64 and
@@ -95,17 +93,6 @@ export default function ZipTool() {
               </li>
             ))}
           </ul>
-          <Button
-            variant="primary"
-            disabled={busy || !files.length}
-            onClick={() =>
-              void create.run((signal) =>
-                runArchive({ action: 'create', files, name: name.trim() || 'archive.zip' }, signal),
-              )
-            }
-          >
-            Generate ZIP
-          </Button>
         </>
       ) : (
         <>
@@ -118,15 +105,6 @@ export default function ZipTool() {
             }}
           />
           {archive && <p className="file-name">{archive.name}</p>}
-          <Button
-            disabled={busy || !archive}
-            onClick={() => {
-              clear()
-              void inspect.run((signal) => runArchive({ action: 'list', file: archive! }, signal))
-            }}
-          >
-            Inspect ZIP
-          </Button>
           {inspect.output && (
             <section aria-label="ZIP entries" className="panel">
               <h2>{inspect.output.length} archive entries</h2>
@@ -195,7 +173,31 @@ export default function ZipTool() {
           )}
         </>
       )}
-      <div className="actions">
+      <ToolToolbar>
+        {mode === 'create' ? (
+          <Button
+            variant="primary"
+            disabled={busy || !files.length}
+            onClick={() =>
+              void create.run((signal) =>
+                runArchive({ action: 'create', files, name: name.trim() || 'archive.zip' }, signal),
+              )
+            }
+          >
+            Generate ZIP
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            disabled={busy || !archive}
+            onClick={() => {
+              clear()
+              void inspect.run((signal) => runArchive({ action: 'list', file: archive! }, signal))
+            }}
+          >
+            Inspect ZIP
+          </Button>
+        )}
         <Button
           disabled={saving}
           onClick={() => {
@@ -209,7 +211,7 @@ export default function ZipTool() {
         {(create.busy || inspect.busy || extract.busy) && (
           <Button onClick={clear}>Cancel processing</Button>
         )}
-      </div>
+      </ToolToolbar>
       {busy && (
         <p role="status">{saving ? 'Saving files to Workspace…' : 'Processing ZIP locally…'}</p>
       )}

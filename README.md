@@ -1,6 +1,8 @@
-# DevToolbox v3.3
+# DevToolbox v4
 
-> **35 local-first developer tools. One workspace. Zero backend.**
+> **Full Interface Refresh**
+>
+> 35 local-first developer tools. One workspace. Zero backend.
 
 [![Deploy DevToolbox to GitHub Pages](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
@@ -21,7 +23,19 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 
 ---
 
-## What's new in v3.3
+## What's new in v4
+
+- **Full interface redesign**: a compact, dark-first shell with a restrained purple accent, thin borders and readable light/dark themes
+- **Unified design system**: shared color, spacing, typography and control tokens; consistent buttons, inputs, dialogs, menus and feedback
+- **Redesigned Dashboard**: command search, continuing work, recent tools, favorites, Most Used, categories and a compact Workspace summary
+- **Redesigned Workspace**: a file-manager layout with unified import/export controls, Grid/List views, filters and a clear bulk-selection bar
+- **Shared tool layouts**: category breadcrumbs, tool headers, grouped toolbars, editor panels, output actions and related tools
+- **Improved responsive behavior**: stacked editors and controls at narrow widths, an accessible mobile drawer and 44px mobile touch targets
+- **Accessibility polish**: visible keyboard focus, labeled controls, non-color-only feedback and reduced-motion support
+
+All **35 tools**, processing workers, Workspace data/schema, local preferences, PWA and GitHub Pages support are retained. The release version is **4.0.0**.
+
+## Retained from v3.3
 
 **Workspace & Developer Tools Update**
 
@@ -214,7 +228,7 @@ Highly compressible archives created by DevToolbox use stored entries when neede
 - accepts PDF input from device or Workspace
 - renders pages locally with PDF.js
 - supports all pages or custom ranges such as `1-3,5,8`
-- outputs PNG or JPEG
+- outputs PNG or JPEG with an opaque white page background (PDF artwork is preserved)
 - supports 1×, 1.5× and 2× render scale
 - provides cancellation and processing status
 - generated images can be downloaded, saved to Workspace or passed to compatible image tools
@@ -477,10 +491,7 @@ The central tool registry remains the source of truth for routing, search, categ
 
 Potential future additions:
 
-- XML formatter
 - SQL formatter
-- HTML / CSS / JavaScript formatter
-- ZIP utilities
 - HTTP status reference
 - MIME type lookup
 - Git cheat sheet

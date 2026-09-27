@@ -138,7 +138,7 @@ export function WorkspaceFilePicker({
         <strong>{multiple ? 'Drop your files here' : 'Drop your file here'}</strong>
         <span className="helper-text">
           {accepted?.map((type) => type.split('/')[1].toUpperCase()).join(', ') ??
-            'Files stay in your local Workspace'}
+            'Files stay on this device'}
         </span>
       </div>
       {drag === 'invalid' && (
@@ -161,7 +161,11 @@ export function WorkspaceFilePicker({
             if (files.length) choose(files)
           }}
         />
-        <Button disabled={disabled || loading} onClick={() => input.current?.click()}>
+        <Button
+          variant="primary"
+          disabled={disabled || loading}
+          onClick={() => input.current?.click()}
+        >
           <Plus size={16} />
           {deviceLabel}
         </Button>
@@ -180,9 +184,7 @@ export function WorkspaceFilePicker({
         )}
       </div>
       <p className="helper-text">
-        {loading
-          ? 'Opening file…'
-          : 'Or drop files here. Files are processed locally in your browser.'}
+        {loading ? 'Opening file…' : 'Processed on this device. Nothing is uploaded.'}
       </p>
       {error && !open && <Message kind="error">{error}</Message>}
       {includeWorkspace && (

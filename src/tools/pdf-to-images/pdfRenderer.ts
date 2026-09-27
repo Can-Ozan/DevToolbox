@@ -107,7 +107,9 @@ export async function renderPdfImages(
         render = page.render({
           canvas,
           viewport,
-          background: options.format === 'image/jpeg' ? '#ffffff' : 'rgba(0,0,0,0)',
+          // PDF.js creates an opaque canvas. A transparent fill leaves it black.
+          // Both exports use white paper; PNG does not imply a transparent page.
+          background: '#ffffff',
         })
         await render.promise
         signal.throwIfAborted()

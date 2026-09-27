@@ -1,3 +1,4 @@
+import { ToolToolbar } from './ToolLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowLeftRight, Eraser, Play } from 'lucide-react'
 import { Button, CopyButton, Editor, Message } from './ui'
@@ -33,7 +34,7 @@ export default function TransformTool({
   return (
     <>
       <div>{children}</div>
-      <div className="actions">
+      <ToolToolbar>
         <Button variant="primary" onClick={() => run(encode)}>
           <Play size={14} />
           Encode
@@ -61,10 +62,7 @@ export default function TransformTool({
           <Eraser size={15} />
           Clear
         </Button>
-        <span className="push-right">
-          <CopyButton text={output} label="Copy output" />
-        </span>
-      </div>
+      </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
@@ -80,6 +78,7 @@ export default function TransformTool({
         <Editor
           label="Output"
           value={output}
+          actions={<CopyButton text={output} label="Copy output" visibleLabel="Copy" />}
           readOnly
           placeholder="Your result will appear here…"
         />

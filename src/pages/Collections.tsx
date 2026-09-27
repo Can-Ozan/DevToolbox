@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { tools } from '../registry/tools'
 import { usePreferences } from '../storage/preferences'
 import { ToolGrid } from '../components/ToolCard'
+import { PageHeader } from '../components/ToolLayout'
 
 export default function Collections({ kind }: { kind: 'favorites' | 'recent' }) {
   const settings = usePreferences()
@@ -14,16 +15,16 @@ export default function Collections({ kind }: { kind: 'favorites' | 'recent' }) 
   const Icon = isFavorites ? Star : Clock3
   return (
     <div className="page-enter">
-      <div className="eyebrow">YOUR WORKSPACE</div>
-      <h1>
-        {isFavorites ? 'Your favorites' : 'Recently used'}
-        <span className="heading-dot">.</span>
-      </h1>
-      <p className="page-description">
-        {isFavorites
-          ? 'Your trusted tools, right where you need them.'
-          : 'Pick up where you left off. Your last 10 unique tools live here.'}
-      </p>
+      <PageHeader
+        eyebrow="YOUR COLLECTION"
+        title={isFavorites ? 'Your favorites' : 'Recently used'}
+        description={
+          isFavorites
+            ? 'Your trusted tools, right where you need them.'
+            : 'Pick up where you left off. Your last 10 unique tools live here.'
+        }
+        actions={<span className="count-pill">{items.length} tools</span>}
+      />
       <div className="collection-content">
         {items.length ? (
           <ToolGrid items={items} />

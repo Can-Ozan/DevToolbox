@@ -1,0 +1,2 @@
+# Match Prettier's LF output on every platform, including Windows checkouts.
+* text=auto eol=lf

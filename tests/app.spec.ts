@@ -2,9 +2,7 @@ import { test, expect } from '@playwright/test'
 
 test('dashboard, favorites, recent tools, theme and keyboard search persist', async ({ page }) => {
   await page.goto('/')
-  await expect(
-    page.getByRole('heading', { name: /Good (morning|afternoon|evening)/ }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Less friction. More flow.' })).toBeVisible()
   await page.getByRole('button', { name: 'Add JSON Formatter to favorites' }).click()
   await page.keyboard.press('Control+k')
   await page.getByRole('combobox', { name: 'Search tools, files and actions' }).fill('token')

@@ -1,3 +1,4 @@
+import { ToolToolbar } from '../../components/ToolLayout'
 import { Fragment, useMemo, useState } from 'react'
 import { Button, Editor, Message } from '../../components/ui'
 import { compareText } from '../../lib/diff'
@@ -68,7 +69,7 @@ export default function DiffTool() {
           minHeight={210}
         />
       </div>
-      <div className="actions">
+      <ToolToolbar>
         <Button
           onClick={() => {
             setOriginal('const project = "DevToolbox";\nconst version = 1;\nconst local = true;\n')
@@ -98,7 +99,7 @@ export default function DiffTool() {
             <option value="unified">Unified view</option>
           </select>
         </label>
-      </div>
+      </ToolToolbar>
       {result.error && <Message kind="error">{result.error}</Message>}
       {(original || modified) && !result.error && (
         <>

@@ -1,3 +1,4 @@
+import { ToolToolbar, ToolActions, ToolTabs } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { useFileJob } from '../../workspace/FileControls'
@@ -10,22 +11,20 @@ export default function CodeFormatter() {
   const job = useFileJob<string>()
   return (
     <>
-      <div className="filter-tabs" role="group" aria-label="Code language">
-        {(['html', 'css', 'javascript'] as const).map((value) => (
-          <button
-            key={value}
-            aria-pressed={language === value}
-            className={language === value ? 'active' : ''}
-            onClick={() => {
-              job.reset()
-              setLanguage(value)
-            }}
-          >
-            {value === 'javascript' ? 'JavaScript' : value.toUpperCase()}
-          </button>
-        ))}
-      </div>
-      <div className="actions">
+      <ToolTabs<CodeLanguage>
+        label="Code language"
+        value={language}
+        options={[
+          { value: 'html', label: 'HTML' },
+          { value: 'css', label: 'CSS' },
+          { value: 'javascript', label: 'JavaScript' },
+        ]}
+        onChange={(value) => {
+          job.reset()
+          setLanguage(value)
+        }}
+      />
+      <ToolToolbar>
         <Button
           variant="primary"
           disabled={job.busy}
@@ -41,7 +40,7 @@ export default function CodeFormatter() {
         >
           Format code
         </Button>
-        <label className="field">
+        <label className="toolbar-field">
           Indentation
           <select
             value={indent}
@@ -64,11 +63,12 @@ export default function CodeFormatter() {
           Clear
         </Button>
         {job.busy && <Button onClick={job.reset}>Cancel formatting</Button>}
-      </div>
+      </ToolToolbar>
       {job.busy && <p role="status">Formatting locally…</p>}
       {job.error && <Message kind="error">{job.error}</Message>}
       <div className="editor-grid">
         <Editor
+          minHeight={360}
           label="Code input"
           value={input}
           onChange={(value) => {
@@ -77,16 +77,25 @@ export default function CodeFormatter() {
           }}
           placeholder="Paste HTML, CSS or JavaScript…"
         />
-        <Editor label="Formatted code" value={job.output ?? ''} readOnly />
-      </div>
-      <div className="actions justify-end">
-        <CopyButton text={job.output ?? ''} label="Copy output" />
-        <DownloadButton
-          text={job.output ?? ''}
-          filename={`formatted.${language === 'javascript' ? 'js' : language}`}
-          mimeType="text/plain;charset=utf-8"
+        <Editor
+          minHeight={360}
+          label="Formatted code"
+          placeholder="Formatted code will appear here…"
+          value={job.output ?? ''}
+          actions={
+            <ToolActions label="Output actions">
+              <CopyButton text={job.output ?? ''} label="Copy output" visibleLabel="Copy" />
+              <DownloadButton
+                text={job.output ?? ''}
+                filename={`formatted.${language === 'javascript' ? 'js' : language}`}
+                mimeType="text/plain;charset=utf-8"
+              />
+            </ToolActions>
+          }
+          readOnly
         />
       </div>
+
       <p className="helper-text">
         Prettier runs in a local worker. Code is never executed or previewed. HTML text spacing is
         preserved; embedded scripts/styles are left unchanged. Up to 200,000 characters.

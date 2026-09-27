@@ -1,3 +1,4 @@
+import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
@@ -16,7 +17,7 @@ export default function JsonCsvTool() {
   }
   return (
     <>
-      <div className="actions">
+      <ToolToolbar>
         <Button
           variant="primary"
           onClick={() => {
@@ -49,7 +50,7 @@ export default function JsonCsvTool() {
         >
           Clear
         </Button>
-        <label className="field">
+        <label className="toolbar-field">
           Delimiter
           <select
             value={delimiter}
@@ -63,7 +64,7 @@ export default function JsonCsvTool() {
             <option value={'\t'}>Tab</option>
           </select>
         </label>
-      </div>
+      </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
@@ -78,6 +79,16 @@ export default function JsonCsvTool() {
         <Editor
           label={toCsv ? 'CSV output' : 'JSON output'}
           value={result?.output ?? ''}
+          actions={
+            <ToolActions label="Output actions">
+              <CopyButton text={result?.output ?? ''} label="Copy output" visibleLabel="Copy" />
+              <DownloadButton
+                text={result?.output ?? ''}
+                filename={toCsv ? 'data.csv' : 'data.json'}
+                mimeType={toCsv ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8'}
+              />
+            </ToolActions>
+          }
           readOnly
           placeholder="Converted data will appear here…"
         />
@@ -87,14 +98,7 @@ export default function JsonCsvTool() {
           {result.rows} rows · {result.columns} columns
         </p>
       )}
-      <div className="actions justify-end">
-        <CopyButton text={result?.output ?? ''} label="Copy output" />
-        <DownloadButton
-          text={result?.output ?? ''}
-          filename={toCsv ? 'data.csv' : 'data.json'}
-          mimeType={toCsv ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8'}
-        />
-      </div>
+
       <p className="helper-text">
         JSON accepts flat objects only. Columns follow their first appearance; missing values and
         null become empty cells. CSV uses the first row as unique headers and keeps values as

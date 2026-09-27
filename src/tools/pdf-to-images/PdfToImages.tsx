@@ -28,9 +28,9 @@ export default function PdfToImages() {
       />
       <p className="helper-text">
         Local PDF rendering · unencrypted PDFs up to 100 MB / 500 pages. Render up to 30 pages and
-        32 megapixels per batch; each page is limited to 16 megapixels and 8192 px per side.
-        Rendering stops after 30 seconds. Additional renderer assets require a network connection
-        the first time they are used.
+        32 megapixels per batch; each page is limited to 16 megapixels and 8192 px per side. PNG and
+        JPEG use a white page background. Rendering stops after 30 seconds. Additional renderer
+        assets require a network connection the first time they are used.
       </p>
       {job.error && <Message kind="error">{job.error}</Message>}
       {file && (

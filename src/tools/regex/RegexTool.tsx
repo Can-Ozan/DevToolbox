@@ -1,3 +1,4 @@
+import { ToolSection, ToolToolbar } from '../../components/ToolLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button, Editor, Message } from '../../components/ui'
 import type { RegexResult } from '../../lib/regex'
@@ -102,14 +103,7 @@ export default function RegexTool() {
         g: all matches · i: ignore case · m: multiline · s: dot matches newlines · u: Unicode · y:
         sticky. Enter a pattern without surrounding slashes.
       </p>
-      <Editor
-        label="Test text"
-        minHeight={160}
-        value={text}
-        onChange={setText}
-        placeholder="Paste text to test your regular expression…"
-      />
-      <div className="actions">
+      <ToolToolbar>
         <Button
           onClick={() => {
             setPattern('([\\w.+-]+)@([\\w.-]+\\.[a-zA-Z]{2,})')
@@ -129,25 +123,38 @@ export default function RegexTool() {
         >
           Clear
         </Button>
-      </div>
+      </ToolToolbar>
       {result.error && <Message kind="error">{result.error}</Message>}
       {result.limited && (
         <Message kind="warning">
           Showing the first 1,000 matches. Narrow your pattern to inspect fewer results.
         </Message>
       )}
-      <div className="output-title">
-        <h2>Match preview</h2>
-        <span className="count-pill" role="status">
-          {busy ? 'Testing…' : `${result.matches.length}${result.limited ? '+' : ''} matches`}
-        </span>
-      </div>
-      <div className="match-preview">
-        {text ? (
-          highlighted
-        ) : (
-          <span className="helper-text">Matches will be highlighted here.</span>
-        )}
+      <div className="editor-grid">
+        <Editor
+          label="Test text"
+          minHeight={260}
+          value={text}
+          onChange={setText}
+          placeholder="Paste text to test your regular expression…"
+        />
+
+        <ToolSection
+          title="Match preview"
+          actions={
+            <span className="count-pill" role="status">
+              {busy ? 'Testing…' : `${result.matches.length}${result.limited ? '+' : ''} matches`}
+            </span>
+          }
+        >
+          <div className="match-preview">
+            {text ? (
+              highlighted
+            ) : (
+              <span className="helper-text">Matches will be highlighted here.</span>
+            )}
+          </div>
+        </ToolSection>
       </div>
       {result.matches.length > 0 && (
         <table className="matches-table">
