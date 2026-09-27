@@ -6,8 +6,20 @@ import {
   useState,
   type ReactNode,
   type ButtonHTMLAttributes,
+  type CSSProperties,
 } from 'react'
-import { Check, Copy, Download, Info, X, CircleAlert } from 'lucide-react'
+import {
+  Check,
+  Copy,
+  Download,
+  Info,
+  X,
+  CircleAlert,
+  CircleCheck,
+  TriangleAlert,
+  CodeXml,
+  AlignLeft,
+} from 'lucide-react'
 import { downloadFile } from '../workspace/workspaceUtils'
 
 export function Button({
@@ -122,7 +134,15 @@ export function Message({
 }) {
   return (
     <div className={`message message-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
-      {kind === 'error' ? <CircleAlert size={17} /> : <Info size={17} />}
+      {kind === 'error' ? (
+        <CircleAlert size={17} />
+      ) : kind === 'success' ? (
+        <CircleCheck size={17} />
+      ) : kind === 'warning' ? (
+        <TriangleAlert size={17} />
+      ) : (
+        <Info size={17} />
+      )}
       <div>{children}</div>
     </div>
   )
@@ -145,17 +165,20 @@ export function Editor({
   minHeight?: number
 }) {
   return (
-    <section className="editor">
+    <section className={`editor ${readOnly ? 'editor-output' : 'editor-input'}`}>
       <div className="editor-heading">
-        <span>{label}</span>
-        <div className="flex items-center gap-2">
+        <span className="editor-label">
+          {readOnly ? <AlignLeft size={15} /> : <CodeXml size={15} />}
+          {label}
+        </span>
+        <div className="editor-heading-actions">
           {actions}
-          {readOnly && <span className="tiny-label">READ ONLY</span>}
+          {readOnly && !actions && <span className="tiny-label">READ ONLY</span>}
         </div>
       </div>
       <textarea
         aria-label={label}
-        style={{ minHeight }}
+        style={{ '--editor-min-height': `${minHeight}px` } as CSSProperties}
         spellCheck={false}
         autoCapitalize="off"
         autoCorrect="off"

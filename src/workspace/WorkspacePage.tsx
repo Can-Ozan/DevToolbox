@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import {
+  ArrowUpRight,
+  Eye,
+  FolderOpen,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  ShieldCheck,
+} from 'lucide-react'
+import { PageHeader } from '../components/ToolLayout'
 import { Button, copyText, Message, Modal, useToast } from '../components/ui'
 import { tools } from '../registry/tools'
 import { preferences, usePreferences } from '../storage/preferences'
@@ -148,204 +158,221 @@ export default function WorkspacePage() {
   }
   return (
     <div className="page-enter workspace-page">
-      <div className="eyebrow">LOCAL FILE VAULT</div>
-      <h1>
-        Workspace<span className="heading-dot">.</span>
-      </h1>
-      <p className="page-description">Reuse your files across tools. Files stay in this browser.</p>
-      <Message>
+      <PageHeader
+        eyebrow="LOCAL FILE VAULT"
+        title="Workspace"
+        description="Your files, connected. Save, organize, and continue in another tool."
+        actions={
+          <span className="count-pill">
+            <FolderOpen size={14} />
+            {snapshot.loading ? 'Loading…' : `${snapshot.files.length} files`}
+          </span>
+        }
+      />
+      <p className="workspace-note">
+        <ShieldCheck size={15} />
         Browser data can be cleared by you or your browser. Download important files to keep your
         own copy.
-      </Message>
-      <WorkspaceFilePicker
-        includeWorkspace={false}
-        multiple
-        disabled={busy || archiveBusy}
-        deviceLabel="Import files"
-        onSelect={(files) => {
-          void act(async () => {
-            await workspace.add(files)
-          })
-        }}
-      />
-      {(error || snapshot.error) && <Message kind="error">{error || snapshot.error}</Message>}
-      {snapshot.warning && <Message kind="warning">{snapshot.warning}</Message>}
-      <div className="workspace-toolbar">
-        <label className="field">
-          Search files
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Filename or type…"
-          />
-        </label>
-        <div className="actions">
-          <Button
-            disabled={busy}
-            onClick={() => {
-              void refreshWorkspace()
-            }}
-          >
-            Refresh files
-          </Button>
-          <ClearWorkspaceButton disabled={busy} />
+      </p>
+      <div className="workspace-manager">
+        <WorkspaceFilePicker
+          includeWorkspace={false}
+          multiple
+          disabled={busy || archiveBusy}
+          deviceLabel="Import files"
+          onSelect={(files) => {
+            void act(async () => {
+              await workspace.add(files)
+            })
+          }}
+        />
+        {(error || snapshot.error) && <Message kind="error">{error || snapshot.error}</Message>}
+        {snapshot.warning && <Message kind="warning">{snapshot.warning}</Message>}
+        <WorkspaceActions
+          files={snapshot.files}
+          matching={matching}
+          selected={selected}
+          setSelected={setSelected}
+          selectionMode={selectionMode}
+          setSelectionMode={setSelectionMode}
+          disabled={busy}
+          onBusy={setArchiveBusy}
+        />
+        <div className="workspace-toolbar">
+          <label className="field">
+            Search files
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Filename or type…"
+            />
+          </label>
+          <div className="actions">
+            <Button
+              disabled={busy}
+              onClick={() => {
+                void refreshWorkspace()
+              }}
+            >
+              <RefreshCw size={14} />
+              Refresh files
+            </Button>
+            <ClearWorkspaceButton disabled={busy} />
+          </div>
+        </div>
+
+        <div className="workspace-view-controls">
+          <div className="filter-tabs" aria-label="Filter files by type">
+            {filters.map((type) => (
+              <button
+                key={type}
+                aria-pressed={activeFilter === type}
+                className={activeFilter === type ? 'active' : ''}
+                onClick={() => setFilter(type)}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+          <div className="view-toggle" role="group" aria-label="Workspace view">
+            {(['grid', 'list'] as const).map((view) => (
+              <Button
+                key={view}
+                aria-pressed={workspaceView === view}
+                onClick={() => preferences.setOptions({ workspaceView: view })}
+              >
+                {view === 'grid' ? <LayoutGrid size={15} /> : <List size={15} />}
+                {view === 'grid' ? 'Grid' : 'List'}
+              </Button>
+            ))}
+          </div>
+        </div>
+        {snapshot.loading && <p role="status">Loading Workspace…</p>}
+        {!snapshot.loading && !snapshot.error && !snapshot.files.length && (
+          <section className="empty-state workspace-empty">
+            <span className="empty-icon">
+              <FolderOpen size={24} />
+            </span>
+            <h2>Your Workspace is empty.</h2>
+            <p>Save outputs from DevToolbox or import files to reuse them across tools.</p>
+            <Link className="button button-secondary" to="/category/image">
+              Explore file tools
+            </Link>
+            <p className="helper-text">Image → Convert → Compress · Images → PDF → Split</p>
+          </section>
+        )}
+        {!!snapshot.files.length && !matching.length && (
+          <p role="status">No matching files. Try another filter or filename.</p>
+        )}
+        {focusedFile &&
+          !snapshot.loading &&
+          !snapshot.files.some((file) => file.id === focusedFile) && (
+            <Message kind="warning">This file is no longer in Workspace.</Message>
+          )}
+        <div
+          className={'workspace-files workspace-' + workspaceView}
+          id="workspace-results"
+          tabIndex={-1}
+        >
+          {matching.map((file) => (
+            <article
+              className={`panel workspace-file ${selectionMode && selected.includes(file.id) ? 'is-selected' : ''}`}
+              key={file.id}
+              id={'workspace-file-' + file.id}
+              tabIndex={-1}
+            >
+              {workspaceView === 'grid' && <FileThumbnail file={file} />}
+              {selectionMode && (
+                <label className="checkbox-label workspace-select">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${file.name}`}
+                    checked={selected.includes(file.id)}
+                    disabled={busy || archiveBusy}
+                    onChange={(event) =>
+                      setSelected(
+                        event.target.checked
+                          ? [...selected, file.id]
+                          : selected.filter((id) => id !== file.id),
+                      )
+                    }
+                  />
+                  Select file
+                </label>
+              )}
+              <div className="workspace-file-heading">
+                <h2 className="file-name">
+                  {file.pinned && <span aria-label="Pinned">★ </span>}
+                  {file.name}
+                </h2>
+                <OverflowMenu
+                  label={'More actions for ' + file.name}
+                  disabled={busy}
+                  items={[
+                    {
+                      label: 'Download',
+                      name: 'Download ' + file.name,
+                      action: () => act(async () => downloadFile(await workspace.get(file.id))),
+                    },
+                    {
+                      label: file.pinned ? 'Unpin' : 'Pin',
+                      name: (file.pinned ? 'Unpin ' : 'Pin ') + file.name,
+                      action: () => act(() => workspace.pin(file.id, !file.pinned)),
+                    },
+                    {
+                      label: 'Copy filename',
+                      name: 'Copy filename ' + file.name,
+                      action: () =>
+                        act(async () => {
+                          await copyText(file.name)
+                          toast('Copied to clipboard')
+                        }),
+                    },
+                    {
+                      label: 'Delete',
+                      name: 'Delete ' + file.name,
+                      danger: true,
+                      action: () => act(() => workspace.delete(file.id)),
+                    },
+                  ]}
+                />
+              </div>
+              <p className="helper-text workspace-file-details">
+                {file.mimeType} · {formatBytes(file.size)} ·{' '}
+                {new Date(file.createdAt).toLocaleString()}
+              </p>
+              <p className="helper-text workspace-file-source">
+                Source:{' '}
+                {tools.find((tool) => tool.id === file.sourceTool)?.name ??
+                  file.sourceTool ??
+                  'Imported from device'}
+              </p>
+              <div className="actions">
+                <Button
+                  aria-label={'Preview ' + file.name}
+                  disabled={busy}
+                  onClick={(event) => {
+                    previewTrigger.current = event.currentTarget
+                    void act(async () => setPreview(await workspace.get(file.id)))
+                  }}
+                >
+                  <Eye size={15} />
+                  Preview
+                </Button>
+                <Button
+                  disabled={busy || !compatibleTools(file.mimeType).length}
+                  onClick={() => setUseFile(file)}
+                >
+                  Use in another tool
+                  <ArrowUpRight size={14} />
+                </Button>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
       <StorageMeter />
-      <WorkspaceActions
-        files={snapshot.files}
-        matching={matching}
-        selected={selected}
-        setSelected={setSelected}
-        selectionMode={selectionMode}
-        setSelectionMode={setSelectionMode}
-        disabled={busy}
-        onBusy={setArchiveBusy}
-      />
-      <div className="workspace-view-controls">
-        <div className="filter-tabs" aria-label="Filter files by type">
-          {filters.map((type) => (
-            <button
-              key={type}
-              aria-pressed={activeFilter === type}
-              className={activeFilter === type ? 'active' : ''}
-              onClick={() => setFilter(type)}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-        <div className="view-toggle" role="group" aria-label="Workspace view">
-          {(['grid', 'list'] as const).map((view) => (
-            <Button
-              key={view}
-              aria-pressed={workspaceView === view}
-              onClick={() => preferences.setOptions({ workspaceView: view })}
-            >
-              {view === 'grid' ? 'Grid' : 'List'}
-            </Button>
-          ))}
-        </div>
-      </div>
-      {snapshot.loading && <p role="status">Loading Workspace…</p>}
-      {!snapshot.loading && !snapshot.error && !snapshot.files.length && (
-        <section className="empty-state workspace-empty">
-          <h2>Your Workspace is empty.</h2>
-          <p>Save outputs from DevToolbox or import files to reuse them across tools.</p>
-          <Link className="button button-secondary" to="/category/image">
-            Explore file tools
-          </Link>
-          <p className="helper-text">Image → Convert → Compress · Images → PDF → Split</p>
-        </section>
-      )}
-      {!!snapshot.files.length && !matching.length && (
-        <p role="status">No matching files. Try another filter or filename.</p>
-      )}
-      {focusedFile &&
-        !snapshot.loading &&
-        !snapshot.files.some((file) => file.id === focusedFile) && (
-          <Message kind="warning">This file is no longer in Workspace.</Message>
-        )}
-      <div
-        className={'workspace-files workspace-' + workspaceView}
-        id="workspace-results"
-        tabIndex={-1}
-      >
-        {matching.map((file) => (
-          <article
-            className="panel workspace-file"
-            key={file.id}
-            id={'workspace-file-' + file.id}
-            tabIndex={-1}
-          >
-            {workspaceView === 'grid' && <FileThumbnail file={file} />}
-            {selectionMode && (
-              <label className="checkbox-label workspace-select">
-                <input
-                  type="checkbox"
-                  aria-label={`Select ${file.name}`}
-                  checked={selected.includes(file.id)}
-                  disabled={busy || archiveBusy}
-                  onChange={(event) =>
-                    setSelected(
-                      event.target.checked
-                        ? [...selected, file.id]
-                        : selected.filter((id) => id !== file.id),
-                    )
-                  }
-                />
-                Select file
-              </label>
-            )}
-            <div className="workspace-file-heading">
-              <h2 className="file-name">
-                {file.pinned && <span aria-label="Pinned">★ </span>}
-                {file.name}
-              </h2>
-              <OverflowMenu
-                label={'More actions for ' + file.name}
-                disabled={busy}
-                items={[
-                  {
-                    label: 'Download',
-                    name: 'Download ' + file.name,
-                    action: () => act(async () => downloadFile(await workspace.get(file.id))),
-                  },
-                  {
-                    label: file.pinned ? 'Unpin' : 'Pin',
-                    name: (file.pinned ? 'Unpin ' : 'Pin ') + file.name,
-                    action: () => act(() => workspace.pin(file.id, !file.pinned)),
-                  },
-                  {
-                    label: 'Copy filename',
-                    name: 'Copy filename ' + file.name,
-                    action: () =>
-                      act(async () => {
-                        await copyText(file.name)
-                        toast('Copied to clipboard')
-                      }),
-                  },
-                  {
-                    label: 'Delete',
-                    name: 'Delete ' + file.name,
-                    danger: true,
-                    action: () => act(() => workspace.delete(file.id)),
-                  },
-                ]}
-              />
-            </div>
-            <p className="helper-text">
-              {file.mimeType} · {formatBytes(file.size)} ·{' '}
-              {new Date(file.createdAt).toLocaleString()}
-            </p>
-            <p className="helper-text">
-              Source:{' '}
-              {tools.find((tool) => tool.id === file.sourceTool)?.name ??
-                file.sourceTool ??
-                'Imported from device'}
-            </p>
-            <div className="actions">
-              <Button
-                aria-label={'Preview ' + file.name}
-                disabled={busy}
-                onClick={(event) => {
-                  previewTrigger.current = event.currentTarget
-                  void act(async () => setPreview(await workspace.get(file.id)))
-                }}
-              >
-                Preview
-              </Button>
-              <Button
-                disabled={busy || !compatibleTools(file.mimeType).length}
-                onClick={() => setUseFile(file)}
-              >
-                Use in another tool
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
       <Modal
         open={!!preview}
         onClose={() => {

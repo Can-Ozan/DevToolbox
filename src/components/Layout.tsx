@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ChevronLeft,
   CodeXml,
-  Command,
   Grid2X2,
   History,
   House,
@@ -13,7 +12,6 @@ import {
   Search,
   Settings2,
   ShieldCheck,
-  Sparkles,
   Star,
   Sun,
   FolderOpen,
@@ -29,12 +27,12 @@ function Navigation({ close }: { close?: () => void }) {
   return (
     <>
       <div className="navigation-header">
-        <NavLink to="/" className="brand" onClick={close}>
+        <NavLink to="/" className="brand" aria-label="DevToolbox dashboard" onClick={close}>
           <span className="brand-icon">
             <CodeXml size={24} />
           </span>
           <span className="sidebar-label">
-            DevToolbox<span className="version-pill">v3.3</span>
+            DevToolbox<span className="version-pill">v4</span>
           </span>
         </NavLink>
         {close && (
@@ -50,7 +48,7 @@ function Navigation({ close }: { close?: () => void }) {
       </div>
       <div className="navigation-content">
         <div className="sidebar-scroll">
-          <div className="nav-section-label sidebar-label">WORKSPACE</div>
+          <div className="nav-section-label sidebar-label">OVERVIEW</div>
           <nav aria-label="Workspace">
             <NavLink end to="/" title="Dashboard" onClick={close}>
               <House size={18} />
@@ -125,11 +123,7 @@ function Navigation({ close }: { close?: () => void }) {
               <ShieldCheck size={18} />
             </span>
             <strong>Private by design</strong>
-            <p>
-              Your inputs stay in your browser.
-              <br />
-              Just you and your tools.
-            </p>
+            <p>Your inputs stay on this device.</p>
             <span className="local-indicator">
               <i />
               All tools run locally
@@ -211,7 +205,7 @@ export default function Layout() {
       </aside>
       <div className="main-shell">
         <header className="topbar">
-          <div className="flex items-center gap-3">
+          <div className="topbar-location">
             <Button
               variant="ghost"
               className="mobile-menu"
@@ -220,7 +214,9 @@ export default function Layout() {
             >
               <Menu size={21} />
             </Button>
-            <span className="breadcrumb-home">Workspace</span>
+            <NavLink className="breadcrumb-home" to="/">
+              DevToolbox
+            </NavLink>
             <span className="breadcrumb-slash">/</span>
             <span className="breadcrumb-current">{pageName}</span>
           </div>
@@ -231,10 +227,18 @@ export default function Layout() {
               aria-label="Open search"
             >
               <Search size={15} />
-              <span>Search anything…</span>
+              <span>Search tools, files, actions…</span>
               <kbd>{shortcut} K</kbd>
             </button>
-            <span className="topbar-divider" />
+            <NavLink
+              to="/workspace"
+              className="topbar-workspace"
+              aria-label="Go to Workspace"
+              title="Workspace"
+            >
+              <FolderOpen size={17} />
+              <span>Workspace</span>
+            </NavLink>
             <Button
               variant="ghost"
               aria-label="Toggle light and dark theme"
@@ -244,11 +248,9 @@ export default function Layout() {
                 )
               }
             >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+              <Sun size={18} className="theme-icon-sun" />
+              <Moon size={18} className="theme-icon-moon" />
             </Button>
-            <span className="workspace-avatar" title="Your local workspace">
-              <CodeXml size={18} />
-            </span>
           </div>
         </header>
         <main id="main-content" className="main-content" tabIndex={-1}>
@@ -265,7 +267,7 @@ export default function Layout() {
             Your data stays on your device.
           </span>
           <span>
-            Essential developer tools. Fast, private, and local. <Sparkles size={13} />
+            DevToolbox v4 <span aria-hidden="true">·</span> {tools.length} local tools
           </span>
         </footer>
       </div>
@@ -278,10 +280,6 @@ export default function Layout() {
         <Navigation close={() => setMobileOpen(false)} />
       </Modal>
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <span className="sr-only">
-        <Command />
-        Essential developer tools. Fast, private, and local.
-      </span>
     </div>
   )
 }

@@ -1,3 +1,4 @@
+import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Braces, CheckCheck, Eraser, Minimize2 } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
@@ -32,7 +33,7 @@ export default function JsonTool() {
   }
   return (
     <>
-      <div className="actions">
+      <ToolToolbar>
         <Button variant="primary" onClick={() => run('format')}>
           <Braces size={15} />
           Format JSON
@@ -45,7 +46,7 @@ export default function JsonTool() {
           <CheckCheck size={15} />
           Validate
         </Button>
-        <label className="flex items-center gap-2 text-xs">
+        <label className="toolbar-field">
           Indent
           <select
             aria-label="Indentation"
@@ -68,27 +69,32 @@ export default function JsonTool() {
         >
           Load sample
         </Button>
-      </div>
+      </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       {valid && <Message kind="success">Valid JSON. Your data is ready to use.</Message>}
       <div className="editor-grid">
         <Editor
+          minHeight={360}
           label="JSON input"
           value={input}
           onChange={change}
           placeholder={'{\n  "hello": "world"\n}'}
         />
         <Editor
+          minHeight={360}
           label="JSON output"
           value={output}
+          actions={
+            <ToolActions label="Output actions">
+              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+              <DownloadButton text={output} filename="formatted.json" />
+            </ToolActions>
+          }
           readOnly
           placeholder="Formatted JSON will appear here…"
         />
       </div>
-      <div className="actions justify-end">
-        <CopyButton text={output} label="Copy output" />
-        <DownloadButton text={output} filename="formatted.json" />
-      </div>
+
       <p className="helper-text">
         JSON uses double-quoted keys and strings. Comments and trailing commas are not supported.
         JavaScript number precision applies to very large integers.

@@ -1,6 +1,8 @@
+import { ToolToolbar } from '../../components/ToolLayout'
 import { useState } from 'react'
 import Markdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { taskListLabels } from './taskListLabels'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import './markdown.css'
 
@@ -12,7 +14,7 @@ export default function MarkdownTool() {
   const tooLarge = input.length > 100000
   return (
     <>
-      <div className="actions">
+      <ToolToolbar>
         <Button onClick={() => setInput(sample)}>Load sample</Button>
         <Button onClick={() => setInput('')}>Clear</Button>
         <CopyButton text={input} label="Copy Markdown" />
@@ -21,13 +23,13 @@ export default function MarkdownTool() {
           filename="document.md"
           mimeType="text/markdown;charset=utf-8"
         />
-      </div>
+      </ToolToolbar>
       <div className="editor-grid">
         <Editor
           label="Markdown input"
           value={input}
           onChange={setInput}
-          minHeight={420}
+          minHeight={360}
           placeholder="# Write something useful…"
         />
         <section className="editor">
@@ -41,6 +43,7 @@ export default function MarkdownTool() {
               <Markdown
                 skipHtml
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[taskListLabels]}
                 urlTransform={(url, key) =>
                   key === 'src' ? (localImage.test(url) ? url : '') : defaultUrlTransform(url)
                 }

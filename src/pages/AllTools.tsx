@@ -6,6 +6,7 @@ import { ToolGrid } from '../components/ToolCard'
 import NotFound from './NotFound'
 import { usePreferences } from '../storage/preferences'
 import { sortTools, type ToolSort } from '../registry/discovery'
+import { PageHeader } from '../components/ToolLayout'
 
 export default function AllTools() {
   const { category: routeCategory } = useParams()
@@ -17,15 +18,13 @@ export default function AllTools() {
   if (routeCategory && !category) return <NotFound />
   const results = sortTools(searchTools(query, category ?? filter), sort, prefs)
   return (
-    <div className="page-enter">
-      <div className="eyebrow">YOUR WORKBENCH</div>
-      <h1>
-        {category ?? 'All tools'}
-        <span className="heading-dot">.</span>
-      </h1>
-      <p className="page-description">
-        The right tool for the little things that take too much time.
-      </p>
+    <div className="catalog-page page-enter">
+      <PageHeader
+        eyebrow="TOOL LIBRARY"
+        title={category ?? 'All tools'}
+        description="Small tasks, sorted. Every tool runs right here in your browser."
+        actions={<span className="count-pill">{tools.length} local tools</span>}
+      />
       <div className="catalog-toolbar">
         <div className="input-with-icon">
           <Search size={18} />
@@ -36,7 +35,7 @@ export default function AllTools() {
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <span>
+        <span className="catalog-count" role="status">
           <SlidersHorizontal size={16} />
           {results.length} tools
         </span>

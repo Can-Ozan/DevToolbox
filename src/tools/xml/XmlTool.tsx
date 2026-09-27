@@ -1,3 +1,4 @@
+import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { formatXml, type XmlMode } from '../../lib/xml'
@@ -29,13 +30,13 @@ export default function XmlTool() {
   }
   return (
     <>
-      <div className="actions">
+      <ToolToolbar>
         <Button variant="primary" onClick={() => run('format')}>
           Format XML
         </Button>
         <Button onClick={() => run('minify')}>Minify XML</Button>
         <Button onClick={() => run('validate')}>Validate XML</Button>
-        <label className="field">
+        <label className="toolbar-field">
           Indentation
           <select value={indent} onChange={(e) => setIndent(e.target.value)}>
             <option value="2">2 spaces</option>
@@ -44,26 +45,36 @@ export default function XmlTool() {
           </select>
         </label>
         <Button onClick={() => change('')}>Clear</Button>
-      </div>
+      </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       {valid && <Message kind="success">Valid XML.</Message>}
       <div className="editor-grid">
         <Editor
+          minHeight={360}
           label="XML input"
           value={input}
           onChange={change}
           placeholder={'<project><name>DevToolbox</name></project>'}
         />
-        <Editor label="XML output" value={output} readOnly />
-      </div>
-      <div className="actions justify-end">
-        <CopyButton text={output} label="Copy output" />
-        <DownloadButton
-          text={output}
-          filename="formatted.xml"
-          mimeType="application/xml;charset=utf-8"
+        <Editor
+          minHeight={360}
+          label="XML output"
+          placeholder="Formatted XML will appear here…"
+          value={output}
+          actions={
+            <ToolActions label="Output actions">
+              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+              <DownloadButton
+                text={output}
+                filename="formatted.xml"
+                mimeType="application/xml;charset=utf-8"
+              />
+            </ToolActions>
+          }
+          readOnly
         />
       </div>
+
       <p className="helper-text">
         Local parsing only. DTD/entity declarations are rejected; no external resources are fetched.
         Mixed text and xml:space content are preserved. Up to 200,000 characters and 100 nesting

@@ -1,3 +1,4 @@
+import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
@@ -12,7 +13,7 @@ export default function JsonYamlTool() {
   const toYaml = direction === 'json-yaml'
   return (
     <>
-      <div className="actions">
+      <ToolToolbar>
         <Button
           variant="primary"
           onClick={() => {
@@ -47,7 +48,7 @@ export default function JsonYamlTool() {
         >
           Clear
         </Button>
-      </div>
+      </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
@@ -67,18 +68,23 @@ export default function JsonYamlTool() {
         <Editor
           label={toYaml ? 'YAML output' : 'JSON output'}
           value={output}
+          actions={
+            <ToolActions label="Output actions">
+              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+              <DownloadButton
+                text={output}
+                filename={toYaml ? 'converted.yaml' : 'converted.json'}
+                mimeType={
+                  toYaml ? 'application/yaml;charset=utf-8' : 'application/json;charset=utf-8'
+                }
+              />
+            </ToolActions>
+          }
           readOnly
           placeholder="Your converted document will appear here…"
         />
       </div>
-      <div className="actions justify-end">
-        <CopyButton text={output} label="Copy output" />
-        <DownloadButton
-          text={output}
-          filename={toYaml ? 'converted.yaml' : 'converted.json'}
-          mimeType={toYaml ? 'application/yaml;charset=utf-8' : 'application/json;charset=utf-8'}
-        />
-      </div>
+
       <p className="helper-text">
         Uses YAML 1.2 core types. JSON requires string keys and finite numbers. Comments and
         YAML-specific formatting are not preserved.

@@ -202,6 +202,7 @@ for (const theme of ['light', 'dark'] as const) {
     for (const tool of newTools) {
       await page.goto(`/tools/${tool}`)
       await expect(page.getByText('Opening your tool…')).not.toBeVisible()
+      if (tool === 'markdown') await page.getByRole('button', { name: 'Load sample' }).click()
       const report = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
         .analyze()
