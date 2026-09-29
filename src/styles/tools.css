@@ -258,7 +258,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-/* Tool page structure and editor surfaces, shared by all 35 tools. */
+/* Tool page structure and editor surfaces, shared by all 37 tools. */
 .tool-breadcrumb {
   display: flex;
   align-items: center;

@@ -4,6 +4,7 @@ import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { csvToJson, jsonToCsv, type Delimiter } from '../../lib/jsonCsv'
 import { errorMessage } from '../../lib/encoding'
+import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonCsvTool() {
   const [toCsv, setToCsv] = useState(true)
@@ -17,6 +18,13 @@ export default function JsonCsvTool() {
   }
   return (
     <>
+      <JsonFileInput
+        onText={(text) => {
+          setInput(text)
+          setToCsv(true)
+          clearResult()
+        }}
+      />
       <ToolToolbar>
         <Button
           variant="primary"

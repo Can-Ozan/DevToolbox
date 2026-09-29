@@ -1,9 +1,23 @@
-import type { FileInput, WorkspaceFile, WorkspaceFileInfo } from './workspaceTypes'
+import type {
+  FileInput,
+  WorkspaceFile,
+  WorkspaceFileInfo,
+  WorkspaceCollection,
+} from './workspaceTypes'
+import {
+  availableCollectionName,
+  collectionName,
+  COLLECTION_LIMIT,
+  validCollection,
+  validateCollections,
+} from './collections'
 import { FILE_LIMITS, safeFilename, uniqueFilename, validateBatch } from './workspaceUtils'
 
 export const WORKSPACE_DB = 'devtoolbox.workspace'
 const META = 'files'
 const BLOBS = 'blobs'
+const COLLECTIONS = 'collections'
+export const WORKSPACE_DB_VERSION = 2
 
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -11,16 +25,24 @@ function openDatabase(): Promise<IDBDatabase> {
       reject(new Error('IndexedDB storage is unavailable. Device input and downloads still work.'))
       return
     }
-    const request = indexedDB.open(WORKSPACE_DB, 1)
+    const request = indexedDB.open(WORKSPACE_DB, WORKSPACE_DB_VERSION)
     let expired = false
     const timeout = setTimeout(() => {
       expired = true
       reject(new Error('Workspace storage did not respond. Close other DevToolbox tabs and retry.'))
     }, 5000)
-    request.onupgradeneeded = () => {
-      const metadata = request.result.createObjectStore(META, { keyPath: 'id' })
-      metadata.createIndex('name', 'name', { unique: true })
-      request.result.createObjectStore(BLOBS)
+    request.onupgradeneeded = (event) => {
+      if (event.oldVersion < 1) {
+        const metadata = request.result.createObjectStore(META, { keyPath: 'id' })
+        metadata.createIndex('name', 'name', { unique: true })
+        request.result.createObjectStore(BLOBS)
+      }
+      // Additive v1 → v2 migration: existing records and Blobs stay untouched.
+      // Missing collectionId means unassigned; no rewriting of stored files is needed.
+      if (event.oldVersion < 2) {
+        request.result.createObjectStore(COLLECTIONS, { keyPath: 'id' })
+        request.transaction!.objectStore(META).createIndex('collectionId', 'collectionId')
+      }
     }
     request.onsuccess = () => {
       clearTimeout(timeout)
@@ -50,7 +72,7 @@ async function transaction<T>(
   const database = await openDatabase()
   try {
     return await new Promise<T>((resolve, reject) => {
-      const tx = database.transaction([META, BLOBS], mode)
+      const tx = database.transaction([META, BLOBS, COLLECTIONS], mode)
       let value: T
       let failure: Error | undefined
       tx.oncomplete = () => resolve(value)
@@ -113,16 +135,27 @@ function validMetadata(value: unknown): value is WorkspaceFileInfo {
 
 export const workspaceDB = {
   list: () =>
-    transaction<{ files: WorkspaceFileInfo[]; invalid: number }>('readonly', (tx, done) => {
+    transaction<{
+      files: WorkspaceFileInfo[]
+      collections: WorkspaceCollection[]
+      invalid: number
+    }>('readonly', (tx, done) => {
       const request = tx.objectStore(META).getAll()
-      request.onsuccess = () => {
+      const collections = tx.objectStore(COLLECTIONS).getAll()
+      collections.onsuccess = () => {
         const all: unknown[] = request.result
         const files = all.filter(validMetadata)
         done({
           files: files.sort(
             (a, b) => Number(b.pinned) - Number(a.pinned) || b.createdAt - a.createdAt,
           ),
-          invalid: all.length - files.length,
+          collections: collections.result
+            .filter(validCollection)
+            .sort((a, b) => a.name.localeCompare(b.name)),
+          invalid:
+            all.length -
+            files.length +
+            collections.result.filter((item) => !validCollection(item)).length,
         })
       }
     }),
@@ -147,9 +180,19 @@ export const workspaceDB = {
         } else done({ ...info, blob })
       }
     }),
-  async add(inputs: FileInput[], options: { bulk?: boolean; restore?: boolean } = {}) {
+  async add(
+    inputs: FileInput[],
+    options: { bulk?: boolean; restore?: boolean; collections?: WorkspaceCollection[] } = {},
+  ) {
+    const importedCollections = options.collections ?? []
+    validateCollections(importedCollections)
+    if (importedCollections.length && !options.restore)
+      throw new Error('Collections can only be imported with a backup.')
     if (options.bulk) {
-      if (!inputs.length || inputs.length > FILE_LIMITS.workspaceCount)
+      if (
+        (!inputs.length && !importedCollections.length) ||
+        inputs.length > FILE_LIMITS.workspaceCount
+      )
         throw new Error('Choose 1–500 files.')
       if (inputs.reduce((total, file) => total + file.blob.size, 0) > FILE_LIMITS.batchBytes)
         throw new Error('Combined files must be at most 150 MB.')
@@ -171,8 +214,24 @@ export const workspaceDB = {
       const metadata = tx.objectStore(META)
       // Read names in the same write transaction to avoid collisions between tabs.
       const namesRequest = metadata.getAll()
-      namesRequest.onsuccess = () => {
+      const collectionsRequest = tx.objectStore(COLLECTIONS).getAll()
+      collectionsRequest.onsuccess = () => {
         try {
+          if (collectionsRequest.result.length + importedCollections.length > COLLECTION_LIMIT)
+            throw new Error(
+              'Workspace holds up to 100 collections. Remove unused collections before importing.',
+            )
+          const collectionIds = new Map<string, string>()
+          const collectionNames = collectionsRequest.result
+            .filter(validCollection)
+            .map((item) => item.name)
+          for (const collection of importedCollections) {
+            const name = availableCollectionName(collection.name, collectionNames)
+            const id = crypto.randomUUID()
+            collectionNames.push(name)
+            collectionIds.set(collection.id, id)
+            tx.objectStore(COLLECTIONS).add({ ...collection, id, name })
+          }
           if (namesRequest.result.length + inputs.length > FILE_LIMITS.workspaceCount) {
             fail(
               new Error(
@@ -188,6 +247,12 @@ export const workspaceDB = {
           )
           const entries = inputs.map((input) => {
             const restored = input as FileInput & Partial<WorkspaceFileInfo>
+            if (
+              options.restore &&
+              restored.collectionId !== undefined &&
+              !collectionIds.has(restored.collectionId)
+            )
+              throw new Error('Imported file references a missing collection.')
             const entry: WorkspaceFileInfo = {
               id: crypto.randomUUID(),
               name: uniqueFilename(input.name, names),
@@ -197,6 +262,15 @@ export const workspaceDB = {
               pinned: options.restore ? restored.pinned! : false,
               sourceTool: input.sourceTool,
               originalName: safeFilename(input.originalName ?? input.name),
+              ...(options.restore && restored.collectionId
+                ? { collectionId: collectionIds.get(restored.collectionId) }
+                : {}),
+              ...(typeof input.lastModified === 'number' &&
+              Number.isFinite(input.lastModified) &&
+              input.lastModified > 0 &&
+              input.lastModified < 8.64e15
+                ? { lastModified: input.lastModified }
+                : {}),
             }
             names.add(entry.name)
             metadata.add(entry)
@@ -231,6 +305,7 @@ export const workspaceDB = {
     transaction<void>('readwrite', (tx, done) => {
       tx.objectStore(META).clear()
       tx.objectStore(BLOBS).clear()
+      tx.objectStore(COLLECTIONS).clear()
       done(undefined)
     }),
   pin: (id: string, pinned: boolean) =>
@@ -245,5 +320,74 @@ export const workspaceDB = {
         store.put({ ...request.result, pinned })
         done(undefined)
       }
+    }),
+  saveCollection: (name: string, id?: string) => {
+    const normalized = collectionName(name)
+    return transaction<WorkspaceCollection>('readwrite', (tx, done, fail) => {
+      const store = tx.objectStore(COLLECTIONS)
+      const request = store.getAll()
+      request.onsuccess = () => {
+        const existing = request.result.filter(validCollection)
+        const old = existing.find((item) => item.id === id)
+        if (id && !old) return fail(new Error('Collection no longer exists. Refresh Workspace.'))
+        if (!id && request.result.length >= COLLECTION_LIMIT)
+          return fail(new Error('Workspace holds up to 100 collections.'))
+        if (
+          existing.some(
+            (item) => item.id !== id && item.name.toLowerCase() === normalized.toLowerCase(),
+          )
+        )
+          return fail(new Error('A collection with this name already exists.'))
+        const collection = {
+          id: id ?? crypto.randomUUID(),
+          name: normalized,
+          createdAt: old?.createdAt ?? Date.now(),
+        }
+        store.put(collection)
+        done(collection)
+      }
+    })
+  },
+  deleteCollection: (id: string) =>
+    transaction<void>('readwrite', (tx, done) => {
+      const store = tx.objectStore(META)
+      const request = store.index('collectionId').openCursor(id)
+      request.onsuccess = () => {
+        const cursor = request.result
+        if (cursor) {
+          const value = { ...cursor.value }
+          delete value.collectionId
+          cursor.update(value)
+          cursor.continue()
+        }
+      }
+      tx.objectStore(COLLECTIONS).delete(id)
+      done(undefined)
+    }),
+  moveFiles: (ids: string[], collectionId?: string) =>
+    transaction<void>('readwrite', (tx, done, fail) => {
+      if (!ids.length || ids.length > FILE_LIMITS.workspaceCount)
+        return fail(new Error('Choose 1–500 files.'))
+      const move = () => {
+        for (const id of new Set(ids)) {
+          const request = tx.objectStore(META).get(id)
+          request.onsuccess = () => {
+            if (!validMetadata(request.result))
+              return fail(new Error('A selected file no longer exists. Refresh Workspace.'))
+            const file = { ...request.result }
+            if (collectionId) file.collectionId = collectionId
+            else delete file.collectionId
+            tx.objectStore(META).put(file)
+          }
+        }
+        done(undefined)
+      }
+      if (collectionId) {
+        const request = tx.objectStore(COLLECTIONS).get(collectionId)
+        request.onsuccess = () =>
+          validCollection(request.result)
+            ? move()
+            : fail(new Error('Collection no longer exists. Refresh Workspace.'))
+      } else move()
     }),
 }

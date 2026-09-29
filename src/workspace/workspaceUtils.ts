@@ -47,7 +47,7 @@ export function outputFilename(name: string, suffix: string, extension: string) 
 }
 
 export function acceptsFile(mimeType: string, accepted?: readonly string[]) {
-  return !accepted?.length || accepted.includes(mimeType)
+  return !accepted?.length || accepted.includes('*/*') || accepted.includes(mimeType)
 }
 
 export function validateFile(file: FileInput, accepted?: readonly string[]) {
@@ -77,10 +77,12 @@ export function fromDevice(file: File): FileInput {
     webp: 'image/webp',
     pdf: 'application/pdf',
     zip: 'application/zip',
+    json: 'application/json',
   }
   return {
     name: file.name,
     originalName: file.name,
+    lastModified: file.lastModified,
     blob: file.type
       ? file
       : file.slice(0, file.size, inferred[extension ?? ''] ?? 'application/octet-stream'),

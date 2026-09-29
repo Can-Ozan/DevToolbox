@@ -1,14 +1,14 @@
-# DevToolbox v4
+# DevToolbox v4.1
 
-> **Full Interface Refresh**
+> **Workspace Intelligence Update**
 >
-> 35 local-first developer tools. One workspace. Zero backend.
+> 37 local-first developer tools. One workspace. Zero backend.
 
 [![Deploy DevToolbox to GitHub Pages](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/Can-Ozan/DevToolbox/actions/workflows/deploy-pages.yml)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
-![Tools](https://img.shields.io/badge/Tools-35-7C3AED)
+![Tools](https://img.shields.io/badge/Tools-37-7C3AED)
 ![Local First](https://img.shields.io/badge/Local--First-Yes-22C55E)
 
 ## Live Demo
@@ -23,7 +23,17 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 
 ---
 
-## What's new in v4
+## What's new in v4.1
+
+- **Workspace Collections**: create, rename, filter and organize files with single/bulk moves; deleting a collection retains its files
+- **Smart File Inspector**: deterministic image, PDF, JSON and ZIP inspection, with registry-based tool recommendations and Workspace handoffs
+- **Package.json Analyzer**: local project overview, dependency groups, scripts and structural diagnostics; copy a summary or download analysis as JSON
+- **Safe persistence upgrade**: additive IndexedDB v1 → v2 migration and collection-aware v2 backups; v1 backups remain importable
+- **37 tools** total. Collections is a Workspace feature, not a separate tool. Release version: **4.1.0**
+
+The v4 design, existing processing limits, PWA and GitHub Pages support are retained. No dependencies or network services were added.
+
+## Retained from v4
 
 - **Full interface redesign**: a compact, dark-first shell with a restrained purple accent, thin borders and readable light/dark themes
 - **Unified design system**: shared color, spacing, typography and control tokens; consistent buttons, inputs, dialogs, menus and feedback
@@ -33,7 +43,7 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 - **Improved responsive behavior**: stacked editors and controls at narrow widths, an accessible mobile drawer and 44px mobile touch targets
 - **Accessibility polish**: visible keyboard focus, labeled controls, non-color-only feedback and reduced-motion support
 
-All **35 tools**, processing workers, Workspace data/schema, local preferences, PWA and GitHub Pages support are retained. The release version is **4.0.0**.
+The v4.0.0 interface refresh retained all 35 existing tools, processing workers, Workspace data, local preferences, PWA and GitHub Pages support.
 
 ## Retained from v3.3
 
@@ -93,6 +103,8 @@ You can:
 - preview supported images and text
 - switch between Grid and List views
 - filter by file type
+- create, rename and delete collections; filter by All Files, Unassigned or a collection
+- move one or multiple selected files into a collection, or remove their assignment
 - inspect approximate browser storage usage
 - download or delete files at any time
 - select individual or all filtered files for bulk downloads, ZIP creation and confirmed deletion
@@ -102,11 +114,15 @@ Workspace files are stored in **IndexedDB** in the current browser profile. They
 
 Some browsers or private browsing contexts reject IndexedDB Blob storage. Failed imports show an error and restore the controls; device processing and downloads remain available. Use a normal browser profile for Workspace persistence.
 
-Selection is page-local and is never persisted. Hidden filtered files remain selected until cleared. Browsers may ask permission for multiple individual downloads; ZIP selected provides one archive instead. The database remains at schema version **1**; no migration or data reset is needed.
+Selection is page-local and is never persisted. Hidden filtered files remain selected until cleared. Browsers may ask permission for multiple individual downloads; ZIP selected provides one archive instead. Database schema **2** adds a collections store and a collection index to the existing files store. Migration does not rewrite or delete existing files or Blobs; older files begin unassigned.
+
+Each file belongs to zero or one collection. Up to **100 collections** with unique, case-insensitive names of **1–80 characters** are supported. Deleting a collection removes assignments, never its files. Clear Workspace explicitly deletes both files and collections.
 
 ### Portable Workspace backup
 
-An export is a ZIP containing `manifest.json` and `files/0`, `files/1`, etc. Manifest schema version **1** includes export time, safe filenames, MIME, byte size, original name, optional source tool, pinned state and creation timestamp. It contains no preferences, usage records, file contents in URLs or object URLs.
+An export is a ZIP containing `manifest.json` and `files/0`, `files/1`, etc. Manifest schema **2** includes collections, file memberships, export time, safe filenames, MIME, byte size, original name, optional source tool, pinned state, creation timestamp and last-modified time when available. Empty collections are preserved. It contains no preferences, usage records, file contents in URLs or object URLs.
+
+Imports accept both **v1 and v2** backups. V1 files are unassigned. Restored files and collections receive fresh IDs; memberships are remapped and name collisions receive suffixes. Existing files/collections remain untouched. Collections and files commit together or roll back together.
 
 Import validates the entire manifest and every file before confirmation. One IndexedDB transaction then writes all metadata and Blobs with new IDs; duplicate names receive deterministic suffixes. A validation or storage failure leaves existing Workspace files intact and rolls back imported entries. Backup content is limited to **149 MB**, with a **100 MB** output archive limit. Larger Workspaces need separate downloads. Empty files cannot be stored in Workspace.
 
@@ -146,37 +162,39 @@ Download
 
 ### Developer & Data
 
-| Tool                      | Capability                                              |
-| ------------------------- | ------------------------------------------------------- |
-| JSON Formatter            | Format, validate and minify JSON                        |
-| XML Formatter / Validator | Local XML validation, indentation and safe minification |
-| Code Formatter            | HTML, CSS and JavaScript formatting with Prettier       |
-| Base64 Encoder / Decoder  | Unicode-safe text encoding and decoding                 |
-| UUID Generator            | Secure UUID v4 generation                               |
-| JWT Decoder               | Inspect JWT header, payload and claims                  |
-| Regex Tester              | Test patterns, captures and flags                       |
-| URL Encoder / Decoder     | Encode/decode full URLs and components                  |
-| Unix Timestamp Converter  | Convert epoch, local, UTC and ISO dates                 |
-| Hash Generator            | SHA-1, SHA-256, SHA-384 and SHA-512                     |
-| Markdown Previewer        | Live GFM preview                                        |
-| Cron Expression Builder   | Build five-field cron expressions                       |
-| URL Parser                | Inspect URL components and query parameters             |
-| JSON ↔ YAML Converter     | Two-way structured-data conversion                      |
-| JSON ↔ CSV Converter      | Flat JSON tables ↔ quoted CSV                           |
+| Tool                      | Capability                                                 |
+| ------------------------- | ---------------------------------------------------------- |
+| JSON Formatter            | Format, validate and minify JSON                           |
+| Package.json Analyzer     | Local metadata, dependency, script and diagnostic overview |
+| XML Formatter / Validator | Local XML validation, indentation and safe minification    |
+| Code Formatter            | HTML, CSS and JavaScript formatting with Prettier          |
+| Base64 Encoder / Decoder  | Unicode-safe text encoding and decoding                    |
+| UUID Generator            | Secure UUID v4 generation                                  |
+| JWT Decoder               | Inspect JWT header, payload and claims                     |
+| Regex Tester              | Test patterns, captures and flags                          |
+| URL Encoder / Decoder     | Encode/decode full URLs and components                     |
+| Unix Timestamp Converter  | Convert epoch, local, UTC and ISO dates                    |
+| Hash Generator            | SHA-1, SHA-256, SHA-384 and SHA-512                        |
+| Markdown Previewer        | Live GFM preview                                           |
+| Cron Expression Builder   | Build five-field cron expressions                          |
+| URL Parser                | Inspect URL components and query parameters                |
+| JSON ↔ YAML Converter     | Two-way structured-data conversion                         |
+| JSON ↔ CSV Converter      | Flat JSON tables ↔ quoted CSV                              |
 
 ### Generators & Utilities
 
-| Tool                   | Capability                                          |
-| ---------------------- | --------------------------------------------------- |
-| Password Generator     | Configurable secure passwords                       |
-| QR Code Generator      | Local QR generation with PNG download               |
-| Lorem Ipsum Generator  | Words, sentences and paragraphs                     |
-| Text Diff Checker      | Side-by-side and unified text comparison            |
-| Case Converter         | Common casing formats                               |
-| Number Base Converter  | Binary, octal, decimal and hexadecimal              |
-| Color Converter        | HEX, RGB and HSL                                    |
-| Color Contrast Checker | WCAG AA/AAA contrast checks                         |
-| ZIP Utilities          | Create, inspect and explicitly extract ZIP archives |
+| Tool                   | Capability                                                           |
+| ---------------------- | -------------------------------------------------------------------- |
+| Password Generator     | Configurable secure passwords                                        |
+| QR Code Generator      | Local QR generation with PNG download                                |
+| Lorem Ipsum Generator  | Words, sentences and paragraphs                                      |
+| Text Diff Checker      | Side-by-side and unified text comparison                             |
+| Case Converter         | Common casing formats                                                |
+| Number Base Converter  | Binary, octal, decimal and hexadecimal                               |
+| Color Converter        | HEX, RGB and HSL                                                     |
+| Color Contrast Checker | WCAG AA/AAA contrast checks                                          |
+| ZIP Utilities          | Create, inspect and explicitly extract ZIP archives                  |
+| Smart File Inspector   | Detect supported formats, inspect metadata and open compatible tools |
 
 ### Image
 
@@ -202,6 +220,20 @@ Download
 ---
 
 ## Tool details
+
+### Smart File Inspector
+
+Choose a device/Workspace file or drop one to inspect filename, extension, reported/detected MIME, size and last-modified time when available. Binary signatures take precedence over MIME/filename hints. Images show dimensions/aspect ratio; PDF.js supplies page count; JSON shows parse validity, top-level shape/count; ZIP uses the existing safe entry inspection worker. Unsupported formats show metadata only and are never rendered or executed.
+
+Recommendations use the central registry's accepted formats and explain compatibility. JSON ↔ CSV/YAML recommendations also apply the converters' shape/safety checks. Package.json Analyzer is suggested for `package.json`. A handoff reuses a compatible Workspace file or explicitly saves a copy of device input; a detected MIME correction creates a compatible copy. No file is saved merely by inspecting it.
+
+Inspection is not a malware/security scan. Existing image, PDF and ZIP safety limits remain in force. PDF workers are destroyed on success/error/cancel/unmount; inspection creates no preview object URLs. JSON inspection/file handoffs are limited to **800 KB and 200,000 characters**.
+
+### Package.json Analyzer
+
+Paste JSON, choose a local file or open JSON from Workspace. View project metadata, four dependency groups, scripts and deterministic diagnostics. Common scripts are marked; missing useful scripts are informational, and dependency overlap can be intentional. Copy the summary or download the analysis as JSON. JSON Formatter, JSON ↔ YAML and JSON ↔ CSV also accept bounded JSON file handoffs.
+
+No npm lookup, version resolution, outdated-package detection or vulnerability assessment is performed. Script commands and repository values are displayed as inert text. Limits: **200,000 characters, 1,000 dependency declarations and 200 scripts**. Inputs are held in memory unless explicitly saved to Workspace.
 
 ### XML and code formatting
 
@@ -331,7 +363,7 @@ The project includes automated coverage for:
 - accessibility checks
 - external-request regressions
 
-Chromium runs the full suite. Firefox and WebKit each run a focused subset covering routing, keyboard search, responsive layout, IndexedDB persistence, previews/crop, PDF rendering, XML/code formatting, ZIP operations and object URL cleanup. WebKit automation is not a claim of testing every Safari/device version.
+Chromium runs the full suite. Firefox and WebKit each run a focused subset covering routing, keyboard search, responsive layout, IndexedDB persistence, previews/crop, PDF rendering, XML/code formatting, ZIP operations, object URL cleanup, Collections, Inspector and Package.json Analyzer. New-interface coverage includes 320, 375, 768, 1024 and 1440 px in both themes and axe checks. WebKit automation is not a claim of testing every Safari/device version.
 
 The WebKit persistence test uses an isolated temporary persistent profile because its default private context rejects IndexedDB Blob writes. A separate test covers that storage error path, including control recovery and the absence of partial files after reload. Playwright removes the temporary profile when the context closes.
 
@@ -495,7 +527,6 @@ Potential future additions:
 - HTTP status reference
 - MIME type lookup
 - Git cheat sheet
-- package.json analyzer
 - additional image utilities
 - audio metadata tools
 

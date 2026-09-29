@@ -1,6 +1,19 @@
 import { tools, type ToolDefinition } from './tools'
 import type { Preferences } from '../storage/preferences'
 import { acceptsFile } from '../workspace/workspaceUtils'
+import type { Inspection } from '../tools/file-inspector/inspection'
+
+export function inspectionTools(name: string, result: Inspection) {
+  if (!result.valid) return []
+  return compatibleTools(result.mimeType)
+    .filter(
+      (tool) =>
+        tool.id !== 'file-inspector' &&
+        !result.excludedTools.includes(tool.id) &&
+        (tool.id !== 'package-json' || name.toLowerCase() === 'package.json'),
+    )
+    .map((tool) => ({ tool, reason: `Accepts ${result.mimeType}. ${tool.description}` }))
+}
 
 export type ToolSort = 'recommended' | 'name' | 'usage' | 'recent' | 'favorites'
 export function sortTools(
@@ -61,7 +74,11 @@ export function nextTools(sourceId: string | undefined, mimeType: string) {
   return compatibleTools(mimeType).filter((tool) => tool.id !== sourceId)
 }
 export function relatedTools(tool: ToolDefinition) {
-  const explicit: Record<string, string[]> = { json: ['json-yaml', 'base64', 'url-parser'] }
+  const explicit: Record<string, string[]> = {
+    json: ['json-yaml', 'base64', 'package-json', 'file-inspector'],
+    'package-json': ['json', 'json-yaml', 'file-inspector', 'json-csv'],
+    'file-inspector': ['image-converter', 'pdf-to-images', 'json', 'zip'],
+  }
   const ids = explicit[tool.id]
   if (ids) return ids.flatMap((id) => tools.filter((candidate) => candidate.id === id))
   const compatible = new Set(

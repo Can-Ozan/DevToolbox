@@ -81,7 +81,7 @@ test('universal palette searches metadata, groups results and performs keyboard 
     page.getByRole('group', { name: 'Actions', exact: true }).getByRole('option'),
   ).toContainText('Open Workspace')
   await input.fill('private-content-should-not-be-searchable')
-  await expect(page.getByRole('option')).toHaveCount(0)
+  await expect(page.getByRole('listbox').getByRole('option')).toHaveCount(0)
   await input.fill('notes.txt')
   await page.keyboard.press('ArrowDown')
   await page.keyboard.press('Enter')
@@ -177,7 +177,12 @@ test('explicit save-and-open workflow, related tools and defaults are consumed',
   await page.getByLabel('Default JPEG background').fill('#00ff00')
   await page.goto('/tools/json')
   await expect(page.getByLabel('Indentation')).toHaveValue('4')
-  await expect(page.getByRole('region', { name: 'Related tools' }).getByRole('link')).toHaveCount(3)
+  await expect(page.getByRole('region', { name: 'Related tools' }).getByRole('link')).toHaveCount(4)
+  await expect(
+    page
+      .getByRole('region', { name: 'Related tools' })
+      .getByRole('link', { name: /Package.json Analyzer/ }),
+  ).toBeVisible()
   await page.goto('/tools/color')
   await expect(page.getByRole('textbox', { name: 'HEX', exact: true })).toHaveValue('#7760d7')
   await page.goto('/tools/image-converter')
@@ -315,7 +320,7 @@ test('drop feedback rejects unsupported files without replacing a usable input',
     await page.evaluate(
       async () =>
         new Promise<number>((resolve, reject) => {
-          const request = indexedDB.open('devtoolbox.workspace', 1)
+          const request = indexedDB.open('devtoolbox.workspace')
           request.onerror = () => reject(request.error)
           request.onsuccess = () => {
             const db = request.result

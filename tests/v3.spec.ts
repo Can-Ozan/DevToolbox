@@ -219,7 +219,7 @@ test('Workspace drag/drop and corrupted metadata or missing blobs show recoverab
   await expect(page.locator('.workspace-file')).toHaveCount(1)
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => {
-      const request = indexedDB.open('devtoolbox.workspace', 1)
+      const request = indexedDB.open('devtoolbox.workspace')
       request.onsuccess = () => {
         const db = request.result
         const tx = db.transaction('blobs', 'readwrite')
@@ -235,7 +235,7 @@ test('Workspace drag/drop and corrupted metadata or missing blobs show recoverab
   await expect(page.getByRole('alert')).toContainText('missing or damaged')
   await page.evaluate(async () => {
     await new Promise<void>((resolve) => {
-      const request = indexedDB.open('devtoolbox.workspace', 1)
+      const request = indexedDB.open('devtoolbox.workspace')
       request.onsuccess = () => {
         const db = request.result
         const tx = db.transaction('files', 'readwrite')

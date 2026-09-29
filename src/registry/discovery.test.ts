@@ -96,6 +96,7 @@ describe('local usage and discovery', () => {
       'pdf-splitter',
       'pdf-reorder',
       'pdf-to-images',
+      'file-inspector',
     ])
     expect(nextTools('pdf-merger', 'image/png')).toEqual([])
     expect(nextTools('image-converter', 'image/png').map((tool) => tool.id)).toContain(

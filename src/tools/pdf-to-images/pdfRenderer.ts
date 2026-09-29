@@ -12,6 +12,57 @@ import {
 } from '../../workspace/workspaceUtils'
 
 GlobalWorkerOptions.workerSrc = workerUrl
+/** Metadata-only PDF.js job: bytes in, page count out; no preview or object URL. */
+export async function inspectPdf(file: FileInput, signal: AbortSignal) {
+  validateFile(file, PDF_TYPES)
+  signal.throwIfAborted()
+  const data = new Uint8Array(await file.blob.arrayBuffer())
+  signal.throwIfAborted()
+  const loading = getDocument({
+    data,
+    stopAtErrors: true,
+    enableXfa: false,
+    maxImageSize: FILE_LIMITS.imagePixels,
+  })
+  let encrypted = false
+  let timedOut = false
+  const cancel = () => {
+    void loading.destroy().catch(() => {})
+  }
+  loading.onPassword = () => {
+    encrypted = true
+    cancel()
+  }
+  signal.addEventListener('abort', cancel, { once: true })
+  const timer = setTimeout(() => {
+    timedOut = true
+    cancel()
+  }, FILE_LIMITS.processingMs)
+  try {
+    const pdf = await loading.promise
+    signal.throwIfAborted()
+    const metadata = await pdf.getMetadata()
+    signal.throwIfAborted()
+    if (timedOut) throw new Error('PDF inspection exceeded 30 seconds.')
+    if ((metadata.info as { EncryptFilterName?: string }).EncryptFilterName)
+      throw new Error('Encrypted PDFs are not supported. Use an unencrypted copy.')
+    if (!pdf.numPages || pdf.numPages > FILE_LIMITS.pdfPages)
+      throw new Error(`Choose a PDF with 1–${FILE_LIMITS.pdfPages} pages.`)
+    return pdf.numPages
+  } catch (error) {
+    signal.throwIfAborted()
+    if (encrypted)
+      throw new Error('Encrypted PDFs are not supported. Use an unencrypted copy.', {
+        cause: error,
+      })
+    if (timedOut) throw new Error('PDF inspection exceeded 30 seconds.', { cause: error })
+    throw error
+  } finally {
+    clearTimeout(timer)
+    signal.removeEventListener('abort', cancel)
+    await loading.destroy().catch(() => {})
+  }
+}
 export interface RenderOptions {
   pages: string
   format: 'image/png' | 'image/jpeg'

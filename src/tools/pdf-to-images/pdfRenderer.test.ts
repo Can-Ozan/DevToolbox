@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { getDocument } from 'pdfjs-dist'
-import { renderPdfImages } from './pdfRenderer'
+import { inspectPdf, renderPdfImages } from './pdfRenderer'
 
 vi.mock('pdfjs-dist', () => ({ getDocument: vi.fn(), GlobalWorkerOptions: {} }))
 afterEach(() => {
@@ -8,6 +8,55 @@ afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
 })
+
+it.each(['success', 'error', 'cancel', 'timeout', 'encrypted'] as const)(
+  'cleans up PDF metadata inspection on %s',
+  async (mode) => {
+    vi.useFakeTimers()
+    vi.mocked(getDocument).mockClear()
+    const controller = new AbortController()
+    const remove = vi.spyOn(controller.signal, 'removeEventListener')
+    const create = vi.spyOn(URL, 'createObjectURL')
+    let rejectLoading: (error: Error) => void = () => {}
+    const pending = mode === 'cancel' || mode === 'timeout'
+    const loading = {
+      promise: pending
+        ? new Promise((_, reject) => {
+            rejectLoading = reject
+          })
+        : mode === 'error'
+          ? Promise.reject(new Error('Invalid PDF'))
+          : Promise.resolve({
+              numPages: 3,
+              getMetadata: async () => ({
+                info: mode === 'encrypted' ? { EncryptFilterName: 'Standard' } : {},
+              }),
+            }),
+      destroy: vi.fn(async () => {
+        if (pending) rejectLoading(new Error('Destroyed'))
+      }),
+    }
+    vi.mocked(getDocument).mockReturnValue(loading as unknown as ReturnType<typeof getDocument>)
+    const outcome = inspectPdf(
+      { name: 'test.pdf', blob: new Blob(['%PDF-1.7'], { type: 'application/pdf' }) },
+      controller.signal,
+    ).then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    )
+    // The Blob read finishes before the loading task attaches its cleanup hooks.
+    await vi.waitFor(() => expect(getDocument).toHaveBeenCalled())
+    if (mode === 'cancel') controller.abort()
+    if (mode === 'timeout') await vi.advanceTimersByTimeAsync(30_000)
+    const result = await outcome
+    expect(result).toHaveProperty(mode === 'success' ? 'value' : 'error')
+    if (mode === 'success') expect(result).toEqual({ value: 3 })
+    expect(loading.destroy).toHaveBeenCalled()
+    expect(remove).toHaveBeenCalledWith('abort', expect.any(Function))
+    expect(create).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  },
+)
 
 it.each(
   (['image/png', 'image/jpeg'] as const).flatMap((format) =>

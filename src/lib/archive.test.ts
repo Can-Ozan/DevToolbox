@@ -99,8 +99,37 @@ describe('safe local ZIP', () => {
   })
 })
 describe('Workspace backup schema', () => {
+  it('imports original v1 backups without collections', async () => {
+    const output = await exportBackup([backupFile()])
+    const content = unzipSync(new Uint8Array(await output.blob.arrayBuffer()))
+    const manifest = JSON.parse(new TextDecoder().decode(content['manifest.json']))
+    manifest.schemaVersion = 1
+    delete manifest.collections
+    content['manifest.json'] = strToU8(JSON.stringify(manifest))
+    const restored = await importBackup(archive(zipSync(content)))
+    expect(restored.collections).toEqual([])
+    expect(await restored.files[0].blob.text()).toBe('private bytes')
+  })
+  it.each(['missing collection', 'duplicate IDs', 'duplicate names', 'invalid name'] as const)(
+    'rejects %s before importing any data',
+    async (mode) => {
+      const collection = { id: 'c1', name: 'Project', createdAt: 1700000000000 }
+      const output = await exportBackup(
+        [{ ...backupFile(), collectionId: collection.id }],
+        [collection],
+      )
+      const content = unzipSync(new Uint8Array(await output.blob.arrayBuffer()))
+      const manifest = JSON.parse(new TextDecoder().decode(content['manifest.json']))
+      if (mode === 'missing collection') manifest.files[0].collectionId = 'missing'
+      if (mode === 'duplicate IDs') manifest.collections.push({ ...collection, name: 'Other' })
+      if (mode === 'duplicate names') manifest.collections.push({ ...collection, id: 'c2' })
+      if (mode === 'invalid name') manifest.collections[0].name = ''
+      content['manifest.json'] = strToU8(JSON.stringify(manifest))
+      await expect(importBackup(archive(zipSync(content)))).rejects.toThrow()
+    },
+  )
   it('roundtrips safe metadata and bytes without preferences, IDs or URLs', async () => {
-    const result = await importBackup(await exportBackup([backupFile()]))
+    const { files: result } = await importBackup(await exportBackup([backupFile()]))
     expect(result[0]).toMatchObject({
       name: 'note.txt',
       pinned: true,
@@ -118,7 +147,7 @@ describe('Workspace backup schema', () => {
       const original = await exportBackup([backupFile()]),
         content = unzipSync(new Uint8Array(await original.blob.arrayBuffer()))
       const manifest = JSON.parse(new TextDecoder().decode(content['manifest.json']))
-      if (mode === 'version') manifest.schemaVersion = 2
+      if (mode === 'version') manifest.schemaVersion = 99
       if (mode === 'missing') delete content['files/0']
       if (mode === 'size') manifest.files[0].size++
       if (mode === 'path') manifest.files[0].path = '../secret'

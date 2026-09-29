@@ -1,4 +1,4 @@
-import type { FileInput } from '../workspace/workspaceTypes'
+import type { FileInput, WorkspaceCollection } from '../workspace/workspaceTypes'
 export const ZIP_TYPES = ['application/zip', 'application/x-zip-compressed']
 export const ZIP_LIMITS = {
   entries: 1000,
@@ -17,10 +17,15 @@ export interface ArchiveEntry {
 export interface BackupInput extends FileInput {
   pinned: boolean
   createdAt: number
+  collectionId?: string
+}
+export interface WorkspaceBackup {
+  files: BackupInput[]
+  collections: WorkspaceCollection[]
 }
 export type ArchiveRequest =
   | { action: 'create'; files: FileInput[]; name: string }
   | { action: 'list'; file: FileInput }
   | { action: 'extract'; file: FileInput; selected: number[] }
-  | { action: 'export'; files: BackupInput[] }
+  | { action: 'export'; files: BackupInput[]; collections?: WorkspaceCollection[] }
   | { action: 'import'; file: FileInput }

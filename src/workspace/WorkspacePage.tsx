@@ -18,6 +18,7 @@ import FileThumbnail from './FileThumbnail'
 import StorageMeter from './StorageMeter'
 import ClearWorkspaceButton from './ClearWorkspaceButton'
 import WorkspaceActions from './WorkspaceActions'
+import WorkspaceCollections, { MoveCollectionModal } from './WorkspaceCollections'
 import { imageDimensions } from '../lib/imageFiles'
 import { compatibleTools, useObjectURL, WorkspaceFilePicker } from './FileControls'
 import { refreshWorkspace, useWorkspace, workspace } from './workspaceStore'
@@ -101,6 +102,8 @@ export default function WorkspacePage() {
   const [archiveBusy, setArchiveBusy] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
+  const [collection, setCollection] = useState('')
+  const [moveIds, setMoveIds] = useState<string[]>()
   const [preview, setPreview] = useState<WorkspaceFile>()
   const previewTrigger = useRef<HTMLButtonElement | null>(null)
   const [useFile, setUseFile] = useState<WorkspaceFileInfo>()
@@ -124,8 +127,16 @@ export default function WorkspacePage() {
     (type) => type === 'All' || snapshot.files.some((file) => fileType(file) === type),
   )
   const activeFilter = filters.includes(filter) ? filter : 'All'
+  const activeCollection =
+    collection === 'unassigned' || snapshot.collections.some((item) => item.id === collection)
+      ? collection
+      : ''
   const matching = snapshot.files.filter(
     (file) =>
+      (!activeCollection ||
+        (activeCollection === 'unassigned'
+          ? !snapshot.collections.some((item) => item.id === file.collectionId)
+          : file.collectionId === activeCollection)) &&
       (activeFilter === 'All' || fileType(file) === activeFilter) &&
       (file.name + ' ' + file.mimeType).toLowerCase().includes(query.toLowerCase()),
   )
@@ -137,6 +148,7 @@ export default function WorkspacePage() {
     if (snapshot.loading || focusedRequest.current === focusedFile) return
     setQuery('')
     setFilter('All')
+    setCollection('')
     const frame = requestAnimationFrame(() => {
       const card = document.getElementById('workspace-file-' + focusedFile)
       focusedRequest.current = focusedFile
@@ -190,6 +202,7 @@ export default function WorkspacePage() {
         {snapshot.warning && <Message kind="warning">{snapshot.warning}</Message>}
         <WorkspaceActions
           files={snapshot.files}
+          collections={snapshot.collections}
           matching={matching}
           selected={selected}
           setSelected={setSelected}
@@ -197,6 +210,13 @@ export default function WorkspacePage() {
           setSelectionMode={setSelectionMode}
           disabled={busy}
           onBusy={setArchiveBusy}
+        />
+        <WorkspaceCollections
+          collections={snapshot.collections}
+          files={snapshot.files}
+          active={activeCollection}
+          onChange={setCollection}
+          disabled={busy || archiveBusy || snapshot.loading}
         />
         <div className="workspace-toolbar">
           <label className="field">
@@ -330,6 +350,11 @@ export default function WorkspacePage() {
                         }),
                     },
                     {
+                      label: 'Move to collection',
+                      name: 'Move ' + file.name + ' to collection',
+                      action: () => setMoveIds([file.id]),
+                    },
+                    {
                       label: 'Delete',
                       name: 'Delete ' + file.name,
                       danger: true,
@@ -347,6 +372,14 @@ export default function WorkspacePage() {
                 {tools.find((tool) => tool.id === file.sourceTool)?.name ??
                   file.sourceTool ??
                   'Imported from device'}
+                {file.collectionId && (
+                  <span>
+                    <br />
+                    Collection:{' '}
+                    {snapshot.collections.find((item) => item.id === file.collectionId)?.name ??
+                      'Unassigned'}
+                  </span>
+                )}
               </p>
               <div className="actions">
                 <Button
@@ -373,6 +406,13 @@ export default function WorkspacePage() {
         </div>
       </div>
       <StorageMeter />
+      {moveIds && (
+        <MoveCollectionModal
+          ids={moveIds}
+          collections={snapshot.collections}
+          onClose={() => setMoveIds(undefined)}
+        />
+      )}
       <Modal
         open={!!preview}
         onClose={() => {

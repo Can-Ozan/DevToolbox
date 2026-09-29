@@ -7,6 +7,14 @@ export interface WorkspaceFileInfo {
   sourceTool?: string
   originalName?: string
   pinned: boolean
+  collectionId?: string
+  lastModified?: number
+}
+
+export interface WorkspaceCollection {
+  id: string
+  name: string
+  createdAt: number
 }
 
 export interface WorkspaceFile extends WorkspaceFileInfo {
@@ -18,6 +26,7 @@ export interface FileInput {
   blob: Blob
   originalName?: string
   sourceTool?: string
+  lastModified?: number
 }
 
 export interface FileOutput extends FileInput {

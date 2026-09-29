@@ -133,6 +133,8 @@ const definitions = [
     keywords: ['beautify', 'validator', 'pretty', 'object'],
     color: 'amber',
     component: lazy(() => import('../tools/json/JsonTool')),
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/json'],
   },
   {
     id: 'base64',
@@ -253,6 +255,8 @@ const definitions = [
     keywords: ['yaml', 'yml', 'json', 'serialize'],
     color: 'amber',
     component: lazy(() => import('../tools/json-yaml/JsonYamlTool')),
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/json'],
   },
   {
     id: 'markdown',
@@ -493,6 +497,33 @@ const definitions = [
     color: 'green',
     keywords: ['csv', 'json', 'table', 'delimiter', 'tsv', 'spreadsheet'],
     component: lazy(() => import('../tools/json-csv/JsonCsvTool')),
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/json'],
+  },
+  {
+    id: 'package-json',
+    name: 'Package.json Analyzer',
+    description:
+      'Review project metadata, dependencies, scripts and structural diagnostics locally.',
+    category: 'Developer',
+    icon: FileJson2,
+    color: 'amber',
+    keywords: ['npm', 'package', 'dependencies', 'scripts', 'engines', 'manifest'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['application/json'],
+    component: lazy(() => import('../tools/package-json/PackageJsonTool')),
+  },
+  {
+    id: 'file-inspector',
+    name: 'Smart File Inspector',
+    description: 'Inspect local file metadata and find compatible tools with clear reasons.',
+    category: 'Utilities',
+    icon: FileSearch,
+    color: 'teal',
+    keywords: ['detect', 'mime', 'metadata', 'file', 'inspect'],
+    workspaceCompatible: true,
+    acceptsFileTypes: ['*/*'],
+    component: lazy(() => import('../tools/file-inspector/FileInspector')),
   },
 ] satisfies Omit<ToolDefinition, 'path'>[]
 export const tools: ToolDefinition[] = definitions.map((tool) => ({
