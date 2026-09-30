@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Bug, Github, Lightbulb, Monitor, Moon, ShieldCheck, Star, Sun, Trash2 } from 'lucide-react'
+import { Bug, Lightbulb, Monitor, Moon, ShieldCheck, Star, Sun, Trash2 } from 'lucide-react'
 import { preferences, usePreferences, type Theme } from '../storage/preferences'
 import { Button, Modal, useToast } from '../components/ui'
 
@@ -185,9 +185,7 @@ export default function Settings() {
             href="https://github.com/Can-Ozan/DevToolbox"
             target="_blank"
             rel="noreferrer"
-          >
-            <Github size={15} />
-            View on GitHub
+          >            View on GitHub
           </a>
           <a
             className="button"
