@@ -188,7 +188,7 @@ export default function Layout() {
         : `${pageName} in DevToolbox — a private, local-first developer workspace.`
     const title = isTool ? `${pageName} — Free Local Developer Tool | DevToolbox` : `${pageName} | DevToolbox`
     const canonicalUrl = new URL(
-      `${import.meta.env.BASE_URL}${location.pathname.replace(/^\\//, '')}`,
+      `${import.meta.env.BASE_URL}${location.pathname.replace(/^\//, '')}`,
       window.location.origin,
     ).toString()
 
