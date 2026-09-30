@@ -48,7 +48,7 @@ export default function PackageJsonTool() {
       {error && <Message kind="error">{error}</Message>}
       {result && (
         <>
-          <section className="panel file-output" aria-label="Project summary">
+          <section className="panel file-output package-analysis" aria-label="Project summary">
             <h2>Summary</h2>
             <dl className="result-stats">
               {result.overview.map(([key, value]) => (
@@ -59,7 +59,7 @@ export default function PackageJsonTool() {
               ))}
             </dl>
           </section>
-          <section className="panel file-output" aria-label="Dependencies">
+          <section className="panel file-output package-analysis" aria-label="Dependencies">
             <h2>Dependencies</h2>
             {result.dependencies.map(({ group, entries }) => (
               <details key={group}>
@@ -81,7 +81,7 @@ export default function PackageJsonTool() {
               </details>
             ))}
           </section>
-          <section className="panel file-output" aria-label="Scripts">
+          <section className="panel file-output package-analysis" aria-label="Scripts">
             <h2>Scripts</h2>
             {!result.scripts.length && <p className="helper-text">No scripts declared.</p>}
             <dl className="analysis-entries">
@@ -99,7 +99,7 @@ export default function PackageJsonTool() {
             </dl>
             <p className="helper-text">Commands are displayed as text and are never executed.</p>
           </section>
-          <section className="panel file-output" aria-label="Diagnostics">
+          <section className="panel file-output package-analysis" aria-label="Diagnostics">
             <h2>Diagnostics ({result.diagnostics.length})</h2>
             <ul className="analysis-diagnostics">
               {result.diagnostics.map((item, index) => (

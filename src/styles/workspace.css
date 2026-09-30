@@ -434,6 +434,9 @@
 .inspection-recommendation + .inspection-recommendation {
   margin-top: 16px;
 }
+.package-analysis {
+  overflow-wrap: anywhere;
+}
 .analysis-entries {
   margin: 12px 0;
 }

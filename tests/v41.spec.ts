@@ -35,6 +35,18 @@ const packageInput = JSON.stringify({
   scripts: { dev: 'vite', test: '', postinstall: '<script>throw new Error("unsafe")</script>' },
   repository: 'https://example.invalid/private-repo',
 })
+const longPackageName = `@scope/${'dependency'.repeat(20)}`
+const longPackageInput = JSON.stringify({
+  name: 'project'.repeat(30),
+  version: `1.0.0-${'abcdef'.repeat(40)}`,
+  private: true,
+  type: 'module',
+  dependencies: { [longPackageName]: `1.0.0-${'abcdef'.repeat(40)}` },
+  // The duplicate declaration includes the long name in a diagnostic as well.
+  devDependencies: { [longPackageName]: 'latest' },
+  scripts: { build: `node ${'command'.repeat(60)}`, ['script'.repeat(40)]: '' },
+  repository: `https://example.invalid/${'repository'.repeat(30)}`,
+})
 
 test('Package analyzer paste/file/Workspace, diagnostics, copy/download, errors and privacy', async ({
   page,
@@ -107,24 +119,52 @@ test('Package analyzer paste/file/Workspace, diagnostics, copy/download, errors 
 })
 
 for (const theme of ['light', 'dark'] as const) {
-  test(`Package analyzer responsive results and accessibility in ${theme}`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: theme })
-    await page.goto('/tools/package-json')
-    await page.getByLabel('package.json input', { exact: true }).fill(packageInput)
-    await page.getByRole('button', { name: 'Analyze package.json', exact: true }).click()
-    await page.getByText('dependencies (1)', { exact: true }).click()
-    await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
-    for (const width of [320, 375, 768, 1024, 1440]) {
-      await page.setViewportSize({ width, height: 900 })
-      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
-        true,
-      )
-    }
-    expect(
-      (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
-        .violations,
-    ).toEqual([])
-  })
+  for (const [sample, input] of [
+    ['results', packageInput],
+    ['long values', longPackageInput],
+  ]) {
+    test(`Package analyzer responsive ${sample} and accessibility in ${theme}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: theme })
+      await page.goto('/tools/package-json')
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme)
+      await page.getByLabel('package.json input', { exact: true }).fill(input)
+      await page.getByRole('button', { name: 'Analyze package.json', exact: true }).click()
+      const dependencies = page.getByRole('region', { name: 'Dependencies', exact: true })
+      for (const details of await dependencies.locator('details').all()) {
+        await details.locator('summary').click()
+        await expect(details).toHaveAttribute('open', '')
+      }
+      for (const width of [320, 375, 768, 1024, 1440]) {
+        await test.step(`${sample} at ${width}px`, async () => {
+          await page.setViewportSize({ width, height: 900 })
+          expect(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+          ).toBe(true)
+          // A field can spill into panel padding without widening the page on every OS/font.
+          const overflowingText = await page
+            .locator('.file-output dt, .file-output dd, .file-output li, .file-output summary')
+            .evaluateAll((elements) =>
+              elements
+                .filter((element) => element.scrollWidth > element.clientWidth)
+                .map((element) => ({
+                  text: element.textContent,
+                  width: element.clientWidth,
+                  scrollWidth: element.scrollWidth,
+                })),
+            )
+          expect(overflowingText).toEqual([])
+          if (width === 320 || width === 1440) {
+            expect(
+              (await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze())
+                .violations,
+            ).toEqual([])
+          }
+        })
+      }
+    })
+  }
 }
 
 test('Inspector detects image/PDF/ZIP, validates JSON, and hands off persisted bytes', async ({
