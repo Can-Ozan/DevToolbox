@@ -185,7 +185,9 @@ export default function Settings() {
             href="https://github.com/Can-Ozan/DevToolbox"
             target="_blank"
             rel="noreferrer"
-          >            View on GitHub
+          >
+            {' '}
+            View on GitHub
           </a>
           <a
             className="button"
