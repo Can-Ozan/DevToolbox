@@ -89,6 +89,67 @@ DevToolbox is designed around a few simple principles:
 
 ---
 
+## Architecture
+
+DevToolbox is a **local-first browser application**. Files and text stay in the browser unless the user explicitly downloads or exports them. The central registry connects navigation, search, tool metadata and Workspace compatibility, while heavier processing is delegated to local browser workers where appropriate.
+
+```mermaid
+flowchart LR
+    U[User] --> UI[React UI / App Shell]
+
+    UI --> R[Central Tool Registry]
+    R --> T[37 Developer Tools]
+    R --> S[Search / Favorites / Recent]
+    R --> H[Workspace Handoffs]
+
+    T --> B[Browser APIs]
+    T --> W[Local Processing Workers]
+    T --> WS[Workspace]
+
+    W --> PDF[PDF.js / PDF Processing]
+    W --> ZIP[ZIP Worker / fflate]
+    W --> FMT[Formatter Workers / Prettier]
+
+    WS --> IDB[(IndexedDB)]
+    WS --> C[Collections]
+    WS --> BK[Backup / Restore]
+
+    UI --> PWA[PWA / Service Worker]
+    PWA --> CACHE[(App Asset Cache)]
+
+    T --> D[Download / Export]
+    WS --> D
+
+    NB[No backend\nNo analytics\nNo cloud upload] -. local-first boundary .-> UI
+```
+
+### Typical local workflow
+
+```mermaid
+flowchart LR
+    A[Device File] --> B[Smart File Inspector]
+    A --> C[Workspace]
+    C --> B
+    B --> D[Recommended Compatible Tool]
+    D --> E[Local Processing]
+    E --> F{Next step}
+    F -->|Save| C
+    F -->|Open in another tool| G[Compatible DevToolbox Tool]
+    F -->|Finish| H[Download]
+    G --> E
+```
+
+Key architectural rules:
+
+- **Local-first:** supported processing stays in the browser.
+- **Registry-driven:** routes, search, favorites, recent tools and file compatibility use the central tool registry.
+- **Workspace-backed:** reusable files and Collections are persisted in IndexedDB.
+- **Worker-isolated:** heavier PDF, ZIP and formatting jobs use local workers where available.
+- **PWA-ready:** the app shell can work offline after the first successful visit; Workspace files remain separate from the service-worker cache.
+- **No backend:** DevToolbox does not require an account, conversion API, analytics service or automatic cloud upload.
+
+---
+
 ## Workspace
 
 The built-in **Workspace / File Vault** keeps files available across compatible tools without uploading them to a server.
