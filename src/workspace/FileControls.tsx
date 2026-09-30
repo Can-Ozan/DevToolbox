@@ -137,7 +137,9 @@ export function WorkspaceFilePicker({
         <Upload size={25} />
         <strong>{multiple ? 'Drop your files here' : 'Drop your file here'}</strong>
         <span className="helper-text">
-          {accepted?.map((type) => type.split('/')[1].toUpperCase()).join(', ') ??
+          {(accepted?.includes('*/*')
+            ? undefined
+            : accepted?.map((type) => type.split('/')[1].toUpperCase()).join(', ')) ??
             'Files stay on this device'}
         </span>
       </div>

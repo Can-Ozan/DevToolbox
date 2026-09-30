@@ -5,8 +5,15 @@ import {
   uniqueFilename,
   validateFile,
 } from '../workspace/workspaceUtils'
-import type { FileInput, FileOutput } from '../workspace/workspaceTypes'
-import { ZIP_LIMITS, ZIP_TYPES, type ArchiveEntry, type BackupInput } from './archiveTypes'
+import type { FileInput, FileOutput, WorkspaceCollection } from '../workspace/workspaceTypes'
+import { validateCollections } from '../workspace/collections'
+import {
+  ZIP_LIMITS,
+  ZIP_TYPES,
+  type ArchiveEntry,
+  type BackupInput,
+  type WorkspaceBackup,
+} from './archiveTypes'
 
 interface Entry extends ArchiveEntry {
   start: number
@@ -262,21 +269,28 @@ function pack(content: Zippable, name: string): FileOutput {
     sourceTool: 'zip',
   }
 }
-export async function exportBackup(files: BackupInput[]) {
-  if (!files.length || files.length > ZIP_LIMITS.files)
-    throw new Error('Workspace export needs 1–500 files.')
+export async function exportBackup(files: BackupInput[], collections: WorkspaceCollection[] = []) {
+  validateCollections(collections)
+  if ((!files.length && !collections.length) || files.length > ZIP_LIMITS.files)
+    throw new Error('Workspace export needs files or collections, with at most 500 files.')
   if (files.reduce((sum, file) => sum + file.blob.size, 0) > ZIP_LIMITS.bytes - 1024 * 1024)
     throw new Error(
       'Backup content is limited to 149 MB. Download files separately for larger Workspaces.',
     )
   const content: Zippable = Object.create(null)
   const manifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     exportedAt: new Date().toISOString(),
+    collections,
     files: [] as Record<string, unknown>[],
   }
   for (const [index, file] of files.entries()) {
     validateFile(file)
+    if (
+      file.collectionId !== undefined &&
+      !collections.some((item) => item.id === file.collectionId)
+    )
+      throw new Error('A file references a missing collection. Refresh Workspace before exporting.')
     const path = `files/${index}`,
       name = safeFilename(file.name)
     content[path] = new Uint8Array(await file.blob.arrayBuffer())
@@ -289,30 +303,39 @@ export async function exportBackup(files: BackupInput[]) {
       sourceTool: file.sourceTool,
       pinned: file.pinned,
       createdAt: file.createdAt,
+      collectionId: file.collectionId,
+      lastModified: file.lastModified,
     })
   }
   content['manifest.json'] = new TextEncoder().encode(JSON.stringify(manifest, null, 2))
   return pack(content, 'devtoolbox-workspace.zip')
 }
-export async function importBackup(file: FileInput): Promise<BackupInput[]> {
+export async function importBackup(file: FileInput): Promise<WorkspaceBackup> {
   const bytes = await archiveBytes(file),
     entries = inspectZip(bytes)
   const manifestEntry = entries.find((entry) => entry.path === 'manifest.json' && !entry.directory)
   if (!manifestEntry || manifestEntry.size > 1024 * 1024)
     throw new Error('Missing or oversized Workspace manifest.json.')
-  let manifest: { schemaVersion?: unknown; exportedAt?: unknown; files?: unknown }
+  let manifest: {
+    schemaVersion?: unknown
+    exportedAt?: unknown
+    files?: unknown
+    collections?: unknown
+  }
   try {
     manifest = JSON.parse(await readEntry(bytes, manifestEntry).text())
   } catch {
     throw new Error('Invalid Workspace manifest.json.')
   }
-  if (!manifest || manifest.schemaVersion !== 1)
+  if (!manifest || ![1, 2].includes(manifest.schemaVersion as number))
     throw new Error('Unsupported Workspace backup schema version.')
+  const collections = manifest.schemaVersion === 2 ? manifest.collections : []
+  validateCollections(collections)
   if (
     typeof manifest.exportedAt !== 'string' ||
     !Number.isFinite(Date.parse(manifest.exportedAt)) ||
     !Array.isArray(manifest.files) ||
-    !manifest.files.length ||
+    (!manifest.files.length && !collections.length) ||
     manifest.files.length > ZIP_LIMITS.files
   )
     throw new Error('Invalid Workspace backup manifest.')
@@ -337,7 +360,15 @@ export async function importBackup(file: FileInput): Promise<BackupInput[]> {
       !Number.isFinite(item.createdAt) ||
       (item.sourceTool !== undefined &&
         (typeof item.sourceTool !== 'string' || item.sourceTool.length > 100)) ||
-      (item.originalName !== undefined && typeof item.originalName !== 'string')
+      (item.originalName !== undefined && typeof item.originalName !== 'string') ||
+      (item.lastModified !== undefined &&
+        (typeof item.lastModified !== 'number' ||
+          !Number.isFinite(item.lastModified) ||
+          item.lastModified <= 0 ||
+          item.lastModified >= 8.64e15)) ||
+      (item.collectionId !== undefined &&
+        (manifest.schemaVersion !== 2 ||
+          !collections.some((collection) => collection.id === item.collectionId)))
     )
       throw new Error('Invalid backup file metadata.')
     paths.add(item.path)
@@ -352,11 +383,13 @@ export async function importBackup(file: FileInput): Promise<BackupInput[]> {
       createdAt: item.createdAt,
       sourceTool: item.sourceTool as string | undefined,
       originalName: safeFilename((item.originalName as string) ?? item.name),
+      ...(item.collectionId !== undefined ? { collectionId: item.collectionId as string } : {}),
+      ...(item.lastModified !== undefined ? { lastModified: item.lastModified as number } : {}),
     }
     validateFile(restored)
     return restored
   })
   if (entries.filter((entry) => !entry.directory).length !== paths.size + 1)
     throw new Error('Backup contains unlisted files.')
-  return result
+  return { files: result, collections }
 }

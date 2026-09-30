@@ -4,6 +4,7 @@ import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { convertJsonYaml } from '../../lib/jsonYaml'
 import { errorMessage } from '../../lib/encoding'
+import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonYamlTool() {
   const [direction, setDirection] = useState<'json-yaml' | 'yaml-json'>('json-yaml')
@@ -13,6 +14,14 @@ export default function JsonYamlTool() {
   const toYaml = direction === 'json-yaml'
   return (
     <>
+      <JsonFileInput
+        onText={(text) => {
+          setInput(text)
+          setDirection('json-yaml')
+          setOutput('')
+          setError('')
+        }}
+      />
       <ToolToolbar>
         <Button
           variant="primary"

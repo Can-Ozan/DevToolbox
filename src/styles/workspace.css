@@ -427,6 +427,37 @@
   font: var(--text-lg)/1.6 var(--font-code);
   margin: 4px 0 0;
 }
+.result-stats > div {
+  min-width: 0;
+  max-width: 100%;
+}
+.inspection-recommendation + .inspection-recommendation {
+  margin-top: 16px;
+}
+.package-analysis {
+  overflow-wrap: anywhere;
+}
+.analysis-entries {
+  margin: 12px 0;
+}
+.analysis-entries > div {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.analysis-entries dt {
+  font-weight: 600;
+}
+.analysis-entries dd {
+  margin: 8px 0 0;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+.analysis-diagnostics {
+  padding-left: 20px;
+}
+.analysis-diagnostics li + li {
+  margin-top: 12px;
+}
 .continue-output {
   margin-top: 20px;
   padding-top: 20px;

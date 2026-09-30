@@ -4,6 +4,7 @@ import { Braces, CheckCheck, Eraser, Minimize2 } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { errorMessage } from '../../lib/encoding'
 import { usePreferences } from '../../storage/preferences'
+import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonTool() {
   const [input, setInput] = useState('')
@@ -33,6 +34,7 @@ export default function JsonTool() {
   }
   return (
     <>
+      <JsonFileInput onText={change} />
       <ToolToolbar>
         <Button variant="primary" onClick={() => run('format')}>
           <Braces size={15} />

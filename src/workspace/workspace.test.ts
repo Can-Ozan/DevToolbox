@@ -22,7 +22,7 @@ afterEach(() => {
 
 async function damage(storeName: string, id: string, value?: unknown) {
   await new Promise<void>((resolve, reject) => {
-    const request = indexedDB.open(WORKSPACE_DB, 1)
+    const request = indexedDB.open(WORKSPACE_DB)
     request.onsuccess = () => {
       const db = request.result
       const tx = db.transaction(storeName, 'readwrite')
@@ -39,7 +39,7 @@ async function damage(storeName: string, id: string, value?: unknown) {
 
 async function recordCounts() {
   return new Promise<number[]>((resolve, reject) => {
-    const request = indexedDB.open(WORKSPACE_DB, 1)
+    const request = indexedDB.open(WORKSPACE_DB)
     request.onerror = () => reject(request.error)
     request.onsuccess = () => {
       const db = request.result
@@ -110,7 +110,7 @@ describe('Workspace IndexedDB', () => {
     expect(await (await workspaceDB.get(existing.id)).blob.text()).toBe('hello')
     expect(await recordCounts()).toEqual([1, 1])
   })
-  it('restores backups into the existing v1 schema with fresh IDs and safe duplicate names', async () => {
+  it('restores backups into the migrated schema with fresh IDs and safe duplicate names', async () => {
     const [existing] = await workspaceDB.add([input()])
     const restored = await workspaceDB.add(
       [
@@ -134,7 +134,7 @@ describe('Workspace IndexedDB', () => {
         request.result.close()
       }
     })
-    expect(version).toBe(1)
+    expect(version).toBe(2)
   })
   it('rolls back every imported entry when a later Blob write fails', async () => {
     const [existing] = await workspaceDB.add([input('keep.txt')])
@@ -230,7 +230,7 @@ describe('Workspace IndexedDB', () => {
     await damage('blobs', file.id)
     await expect(workspaceDB.get(file.id)).rejects.toThrow('missing or damaged')
     await damage('files', file.id, { id: file.id, name: file.name })
-    expect(await workspaceDB.list()).toEqual({ files: [], invalid: 1 })
+    expect(await workspaceDB.list()).toEqual({ files: [], collections: [], invalid: 1 })
     await expect(workspaceDB.get(file.id)).rejects.toThrow('missing or damaged')
   })
   it.each([

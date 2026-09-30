@@ -4,7 +4,7 @@ import { useWorkspace, workspace } from './workspaceStore'
 import { fileError } from './workspaceUtils'
 
 export default function ClearWorkspaceButton({ disabled = false }: { disabled?: boolean }) {
-  const { files, warning } = useWorkspace()
+  const { files, collections, warning } = useWorkspace()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -12,7 +12,7 @@ export default function ClearWorkspaceButton({ disabled = false }: { disabled?: 
     <>
       <Button
         variant="danger"
-        disabled={disabled || (!files.length && !warning)}
+        disabled={disabled || (!files.length && !collections.length && !warning)}
         onClick={() => {
           setError('')
           setOpen(true)
@@ -28,8 +28,8 @@ export default function ClearWorkspaceButton({ disabled = false }: { disabled?: 
         title="Clear Workspace?"
       >
         <p>
-          This deletes every file stored in this browser’s Workspace. Download anything you need
-          first.
+          This deletes every file and collection stored in this browser’s Workspace. Download
+          anything you need first.
         </p>
         {error && <Message kind="error">{error}</Message>}
         <div className="actions">

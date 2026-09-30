@@ -17,7 +17,7 @@ self.onmessage = async (event: MessageEvent<ArchiveRequest>) => {
           : request.action === 'extract'
             ? await extractArchive(request.file, request.selected)
             : request.action === 'export'
-              ? await exportBackup(request.files)
+              ? await exportBackup(request.files, request.collections)
               : await importBackup(request.file)
     self.postMessage({ result })
   } catch (error) {

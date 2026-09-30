@@ -2,13 +2,15 @@ import { useEffect, useState } from 'react'
 import { Button, Message, Modal } from '../components/ui'
 import { FileOutputPanel, useFileJob } from './FileControls'
 import { workspace } from './workspaceStore'
-import type { FileOutput, WorkspaceFileInfo } from './workspaceTypes'
+import type { FileOutput, WorkspaceFileInfo, WorkspaceCollection } from './workspaceTypes'
 import { downloadFile, fileError, fromDevice } from './workspaceUtils'
 import { runArchive } from '../tools/zip/archiveClient'
-import { ZIP_LIMITS, type BackupInput } from '../lib/archiveTypes'
+import { ZIP_LIMITS, type WorkspaceBackup } from '../lib/archiveTypes'
+import { MoveCollectionModal } from './WorkspaceCollections'
 
 export default function WorkspaceActions({
   files,
+  collections,
   matching,
   selected,
   setSelected,
@@ -18,6 +20,7 @@ export default function WorkspaceActions({
   onBusy,
 }: {
   files: WorkspaceFileInfo[]
+  collections: WorkspaceCollection[]
   matching: WorkspaceFileInfo[]
   selected: string[]
   setSelected: (ids: string[]) => void
@@ -28,7 +31,8 @@ export default function WorkspaceActions({
 }) {
   const selectedFiles = files.filter((file) => selected.includes(file.id))
   const exportJob = useFileJob<FileOutput>(),
-    importJob = useFileJob<BackupInput[]>()
+    importJob = useFileJob<WorkspaceBackup>()
+  const [move, setMove] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false),
     [acting, setActing] = useState(false),
     [error, setError] = useState(''),
@@ -69,10 +73,10 @@ export default function WorkspaceActions({
           {selectionMode ? 'Exit selection' : 'Select files'}
         </Button>
         <Button
-          disabled={disabled || busy || !files.length}
+          disabled={disabled || busy || (!files.length && !collections.length)}
           onClick={() =>
             void exportJob.run(async (signal) =>
-              runArchive({ action: 'export', files: await load(files) }, signal),
+              runArchive({ action: 'export', files: await load(files), collections }, signal),
             )
           }
         >
@@ -118,6 +122,12 @@ export default function WorkspaceActions({
             {selectedFiles.length} files selected. Selection includes files hidden by filters.
           </p>
           <div className="actions">
+            <Button
+              disabled={busy || disabled || !selectedFiles.length}
+              onClick={() => setMove(true)}
+            >
+              Move selected to collection
+            </Button>
             <Button
               disabled={busy || disabled || !matching.length}
               onClick={() =>
@@ -187,6 +197,13 @@ export default function WorkspaceActions({
         <Message kind="error">{error || exportJob.error || importJob.error}</Message>
       )}
       {message && <Message kind="success">{message}</Message>}
+      {move && (
+        <MoveCollectionModal
+          ids={selectedFiles.map((file) => file.id)}
+          collections={collections}
+          onClose={() => setMove(false)}
+        />
+      )}
       {exportJob.output && (
         <>
           <FileOutputPanel output={exportJob.output} />
@@ -233,8 +250,10 @@ export default function WorkspaceActions({
         title="Import Workspace backup?"
       >
         <p>
-          {importJob.output?.length} validated files. Existing files will be kept; duplicate names
-          receive a suffix. Pins and creation dates are restored. Preferences are not imported.
+          {importJob.output?.files.length} validated files and{' '}
+          {importJob.output?.collections.length} collections. Existing files and collections will be
+          kept; duplicate names receive a suffix. Pins, creation dates and collection membership are
+          restored. Preferences are not imported.
         </p>
         {error && <Message kind="error">{error}</Message>}
         <div className="actions">
@@ -246,8 +265,8 @@ export default function WorkspaceActions({
             disabled={acting}
             onClick={() =>
               void act(async () => {
-                const files = importJob.output!
-                await workspace.add(files, { bulk: true, restore: true })
+                const { files, collections } = importJob.output!
+                await workspace.add(files, { bulk: true, restore: true, collections })
                 importJob.reset()
                 setMessage(`${files.length} files imported. Existing files were preserved.`)
               })

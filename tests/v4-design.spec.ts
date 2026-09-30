@@ -14,13 +14,13 @@ const pageRoutes = [
 
 for (const theme of ['dark', 'light'] as const) {
   test(`v4 surfaces, editor columns and mobile controls fit in ${theme}`, async ({ page }) => {
-    // All 35 tools and seven global/category surfaces at eight viewport widths.
+    // All 37 tools and seven global/category surfaces at eight viewport widths.
     test.setTimeout(240_000)
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto('/tools')
-    await expect(page.locator('.tool-card-link')).toHaveCount(35)
+    await expect(page.locator('.tool-card-link')).toHaveCount(37)
     const toolRoutes = await page
       .locator('.tool-card-link')
       .evaluateAll((links) => links.map((link) => link.getAttribute('href')!))

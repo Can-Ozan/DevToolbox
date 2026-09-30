@@ -32,7 +32,7 @@ function Navigation({ close }: { close?: () => void }) {
             <CodeXml size={24} />
           </span>
           <span className="sidebar-label">
-            DevToolbox<span className="version-pill">v4</span>
+            DevToolbox<span className="version-pill">v4.1</span>
           </span>
         </NavLink>
         {close && (
@@ -267,7 +267,7 @@ export default function Layout() {
             Your data stays on your device.
           </span>
           <span>
-            DevToolbox v4 <span aria-hidden="true">·</span> {tools.length} local tools
+            DevToolbox v4.1 <span aria-hidden="true">·</span> {tools.length} local tools
           </span>
         </footer>
       </div>

@@ -1,16 +1,17 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { workspaceDB } from './db'
-import type { WorkspaceFileInfo } from './workspaceTypes'
+import type { WorkspaceFileInfo, WorkspaceCollection } from './workspaceTypes'
 import { fileError } from './workspaceUtils'
 
 interface WorkspaceState {
   files: WorkspaceFileInfo[]
+  collections: WorkspaceCollection[]
   loading: boolean
   error: string
   warning: string
   estimate?: StorageEstimate
 }
-let state: WorkspaceState = { files: [], loading: true, error: '', warning: '' }
+let state: WorkspaceState = { files: [], collections: [], loading: true, error: '', warning: '' }
 const listeners = new Set<() => void>()
 let revision = 0
 let watchers = 0
@@ -26,11 +27,12 @@ export async function refreshWorkspace() {
   const current = ++revision
   publish({ loading: true })
   try {
-    const { files, invalid } = await workspaceDB.list()
+    const { files, collections, invalid } = await workspaceDB.list()
     const estimate = await navigator.storage?.estimate?.().catch(() => undefined)
     if (current === revision)
       publish({
         files,
+        collections,
         estimate,
         loading: false,
         error: '',
@@ -67,6 +69,19 @@ export function useWorkspace() {
 
 export const workspace = {
   get: workspaceDB.get,
+  async saveCollection(name: string, id?: string) {
+    const result = await workspaceDB.saveCollection(name, id)
+    await refreshWorkspace()
+    return result
+  },
+  async deleteCollection(id: string) {
+    await workspaceDB.deleteCollection(id)
+    await refreshWorkspace()
+  },
+  async moveFiles(ids: string[], collectionId?: string) {
+    await workspaceDB.moveFiles(ids, collectionId)
+    await refreshWorkspace()
+  },
   async add(...args: Parameters<typeof workspaceDB.add>) {
     const result = await workspaceDB.add(...args)
     await refreshWorkspace()

@@ -126,8 +126,8 @@ describe('PDF rendering selections and registry integration', () => {
     'rejects invalid range %j',
     (input) => expect(() => parsePageSelection(input, 5)).toThrow(),
   )
-  it('has 35 tools and connects PDF images to every compatible image tool', () => {
-    expect(tools).toHaveLength(35)
+  it('has 37 tools and connects PDF images to every compatible image tool', () => {
+    expect(tools).toHaveLength(37)
     expect(nextTools('pdf-to-images', 'image/png').map((tool) => tool.id)).toEqual(
       expect.arrayContaining([
         'image-cropper',
