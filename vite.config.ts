@@ -39,7 +39,7 @@ export default defineConfig({
         id: base,
         name: 'DevToolbox',
         short_name: 'DevToolbox',
-        description: '35 local-first tools for code, files, images and PDFs.',
+        description: '37 local-first tools for code, files, images, PDFs and developer workflows.',
         start_url: base,
         scope: base,
         display: 'standalone',
