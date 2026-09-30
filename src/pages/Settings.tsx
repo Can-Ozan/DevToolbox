@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Monitor, Moon, ShieldCheck, Sun, Trash2 } from 'lucide-react'
+import { Bug, Github, Lightbulb, Monitor, Moon, ShieldCheck, Star, Sun, Trash2 } from 'lucide-react'
 import { preferences, usePreferences, type Theme } from '../storage/preferences'
 import { Button, Modal, useToast } from '../components/ui'
 
@@ -172,6 +172,51 @@ export default function Settings() {
         <Button disabled={!Object.keys(prefs.toolUsage).length} onClick={() => setConfirm('usage')}>
           Clear usage counts
         </Button>
+      </section>
+      <section className="settings-section">
+        <h2>Support DevToolbox</h2>
+        <p>
+          DevToolbox is open source. Feedback, bug reports and feature ideas help improve the
+          project.
+        </p>
+        <div className="actions">
+          <a
+            className="button"
+            href="https://github.com/Can-Ozan/DevToolbox"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Github size={15} />
+            View on GitHub
+          </a>
+          <a
+            className="button"
+            href="https://github.com/Can-Ozan/DevToolbox/issues/new"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Bug size={15} />
+            Report a bug
+          </a>
+          <a
+            className="button"
+            href="https://github.com/Can-Ozan/DevToolbox/issues/new"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Lightbulb size={15} />
+            Request a tool
+          </a>
+          <a
+            className="button"
+            href="https://github.com/Can-Ozan/DevToolbox"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <Star size={15} />
+            Star DevToolbox
+          </a>
+        </div>
       </section>
       <div className="privacy-note settings-privacy">
         <ShieldCheck size={25} />
