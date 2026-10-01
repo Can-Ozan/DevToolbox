@@ -4,8 +4,21 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { createHash } from 'node:crypto'
+import { getReleaseByVersion } from './src/data/releases.ts'
+import packageInfo from './package.json' with { type: 'json' }
 
 const base = process.env.VITE_BASE_PATH || '/'
+const { version } = packageInfo
+const release = getReleaseByVersion(version)
+if (!release)
+  throw new Error(`Add bundled release notes for DevToolbox ${version} before building.`)
+const releaseScript = `self.addEventListener('message', (event) => {
+  if (event.data?.type === 'DEVTOOLBOX_RELEASE_NOTES') {
+    event.ports[0]?.postMessage(${JSON.stringify(release)});
+  }
+});`
+const releaseFilename = `release-notes-${createHash('sha256').update(releaseScript).digest('hex').slice(0, 12)}.js`
 
 export default defineConfig({
   base,
@@ -13,6 +26,14 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: 'bundled-worker-release-notes',
+      apply: 'build',
+      buildStart() {
+        // Immutable script URLs prevent the active and waiting workers sharing stale notes.
+        this.emitFile({ type: 'asset', fileName: releaseFilename, source: releaseScript })
+      },
+    },
     {
       name: 'local-pdf-renderer-assets',
       apply: 'build',
@@ -57,6 +78,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: [`${base}${releaseFilename}`],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
         navigateFallback: `${base}index.html`,

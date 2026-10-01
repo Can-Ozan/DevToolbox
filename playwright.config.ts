@@ -16,12 +16,22 @@ export default defineConfig({
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     {
       name: 'firefox',
-      testMatch: ['**/cross-browser.spec.ts', '**/v41.spec.ts', '**/growth-seo.spec.ts'],
+      testMatch: [
+        '**/cross-browser.spec.ts',
+        '**/v41.spec.ts',
+        '**/growth-seo.spec.ts',
+        '**/release-notes.spec.ts',
+      ],
       use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
-      testMatch: ['**/cross-browser.spec.ts', '**/v41.spec.ts', '**/growth-seo.spec.ts'],
+      testMatch: [
+        '**/cross-browser.spec.ts',
+        '**/v41.spec.ts',
+        '**/growth-seo.spec.ts',
+        '**/release-notes.spec.ts',
+      ],
       use: { ...devices['Desktop Safari'] },
     },
   ],
