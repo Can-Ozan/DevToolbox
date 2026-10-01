@@ -8,7 +8,6 @@ import Collections from './pages/Collections'
 import Settings from './pages/Settings'
 import ToolPage from './pages/ToolPage'
 import NotFound from './pages/NotFound'
-import { PwaUpdateNotice } from './pwa/PwaControls'
 const WorkspacePage = lazy(() => import('./workspace/WorkspacePage'))
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -37,7 +36,6 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ToastProvider>
-        <PwaUpdateNotice />
         <Routes>
           <Route element={<Layout />}>
             <Route index element={<Dashboard />} />
