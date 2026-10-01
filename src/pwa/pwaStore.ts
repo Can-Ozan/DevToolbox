@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react'
+import type { Release } from '../data/releases'
+import { readWorkerRelease } from './releaseMessage'
 
 interface InstallPrompt extends Event {
   prompt: () => Promise<void>
@@ -8,6 +10,7 @@ let state = {
   ready: false,
   update: false,
   error: '',
+  release: undefined as Release | undefined,
   install: undefined as InstallPrompt | undefined,
 }
 const listeners = new Set<() => void>()
@@ -15,9 +18,20 @@ let registration: ServiceWorkerRegistration | undefined
 let started = false
 let reloadApproved = false
 let updateActivated = false
+let releaseWorker: ServiceWorker | undefined
 function publish(patch: Partial<typeof state>) {
   state = { ...state, ...patch }
   listeners.forEach((listener) => listener())
+}
+function announceUpdate(worker: ServiceWorker | null) {
+  publish({ update: true })
+  if (!worker || worker === releaseWorker) return
+  releaseWorker = worker
+  publish({ release: undefined })
+  void readWorkerRelease(worker).then((release) => {
+    // An older reply must not replace notes for a newer waiting/activated worker.
+    if (releaseWorker === worker) publish({ release })
+  })
 }
 export function supportsPwa() {
   return typeof window !== 'undefined' && window.isSecureContext && 'serviceWorker' in navigator
@@ -38,7 +52,7 @@ export function startPwa() {
     if (controlled) {
       updateActivated = true
       if (reloadApproved) window.location.reload()
-      else publish({ update: true })
+      else announceUpdate(navigator.serviceWorker.controller)
     }
     controlled = true
     publish({ ready: true })
@@ -55,7 +69,7 @@ export function startPwa() {
         if (!worker) return
         const changed = () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller)
-            publish({ update: true })
+            announceUpdate(worker)
           if (worker.state === 'activated') publish({ ready: true })
           if (['activated', 'redundant'].includes(worker.state))
             worker.removeEventListener('statechange', changed)
@@ -63,7 +77,7 @@ export function startPwa() {
         worker.addEventListener('statechange', changed)
         changed()
       }
-      if (value.waiting) publish({ update: true })
+      if (value.waiting) announceUpdate(value.waiting)
       if (value.active && navigator.serviceWorker.controller) publish({ ready: true })
       value.addEventListener('updatefound', watch)
       watch()

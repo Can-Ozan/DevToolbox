@@ -6,6 +6,7 @@ import { Button, Modal, useToast } from '../components/ui'
 import StorageMeter from '../workspace/StorageMeter'
 import ClearWorkspaceButton from '../workspace/ClearWorkspaceButton'
 import { PwaSettings } from '../pwa/PwaControls'
+import { ReleaseNotesSettings } from '../components/ReleaseNotes'
 import { PageHeader } from '../components/ToolLayout'
 
 type ResetAction = 'recent' | 'favorites' | 'all' | 'usage'
@@ -124,6 +125,7 @@ export default function Settings() {
         <ClearWorkspaceButton />
       </section>
       <PwaSettings />
+      <ReleaseNotesSettings />
       <section className="settings-section">
         <h2>Local data</h2>
         <p>

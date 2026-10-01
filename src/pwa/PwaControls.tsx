@@ -3,6 +3,8 @@ import { Button, Modal } from '../components/ui'
 import { useFileActivity } from '../lib/fileActivity'
 import { installApp, updateApp, usePwa } from './pwaStore'
 import ConnectionStatus from './ConnectionStatus'
+import { ReleaseNotesModal, ReleaseSections } from '../components/ReleaseNotes'
+import { releaseSections } from '../data/releases'
 
 export function PwaSettings() {
   const pwa = usePwa()
@@ -30,23 +32,63 @@ export function PwaUpdateNotice() {
   const busy = useFileActivity()
   const [dismissed, setDismissed] = useState(false)
   const [confirm, setConfirm] = useState(false)
+  const [notesOpen, setNotesOpen] = useState(false)
   if (!pwa.update || dismissed) return null
   return (
     <>
-      <section className="pwa-update" aria-label="Application update">
-        <p role="status">
-          A new DevToolbox version is ready.
-          {busy ? ' Finish or cancel processing before updating.' : ''}
-        </p>
+      <section className="pwa-update" aria-labelledby="pwa-update-heading">
+        <h2 id="pwa-update-heading" aria-live="polite">
+          {pwa.release
+            ? `DevToolbox v${pwa.release.version} is ready`
+            : 'A DevToolbox update is ready'}
+        </h2>
+        {pwa.release ? (
+          <div
+            className="pwa-update-notes"
+            role="region"
+            aria-label="Release highlights"
+            tabIndex={0}
+          >
+            <ReleaseSections release={pwa.release} limit={3} />
+          </div>
+        ) : (
+          <p>Release details are unavailable for this update. You can still update safely.</p>
+        )}
+        {busy && <p role="status">Finish or cancel processing before updating.</p>}
+        {pwa.error && <p role="alert">{pwa.error}</p>}
         <div className="actions">
-          <Button disabled={busy} onClick={() => setConfirm(true)}>
-            Update app
+          <Button
+            disabled={busy}
+            onClick={(event) => {
+              event.currentTarget.focus({ preventScroll: true })
+              setConfirm(true)
+            }}
+          >
+            Update now
           </Button>
           <Button variant="ghost" onClick={() => setDismissed(true)}>
             Later
           </Button>
+          {pwa.release && releaseSections(pwa.release).some(({ items }) => items.length > 3) && (
+            <Button
+              variant="ghost"
+              onClick={(event) => {
+                event.currentTarget.focus({ preventScroll: true })
+                setNotesOpen(true)
+              }}
+            >
+              View all changes
+            </Button>
+          )}
         </div>
       </section>
+      {pwa.release && (
+        <ReleaseNotesModal
+          open={notesOpen}
+          onClose={() => setNotesOpen(false)}
+          entries={[pwa.release]}
+        />
+      )}
       <Modal open={confirm} onClose={() => setConfirm(false)} title="Reload to update?">
         <p className="confirmation-copy">
           Reloading clears unsaved inputs and outputs. Download or save anything you want to keep.

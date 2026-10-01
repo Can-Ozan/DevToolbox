@@ -361,6 +361,16 @@ After the first successful online visit:
 - updates are shown through a user-controlled reload prompt
 - active file jobs are not interrupted by forced reloads
 
+Update notices show the incoming version’s bundled release highlights, with **View all changes**
+for longer notes. **Update now** keeps the unsaved-work confirmation before activating the waiting
+worker and reloading; **Later** postpones the notice. **Settings → What’s new** keeps recent release
+notes available offline, without a pending update or any external changelog requests.
+
+Release entries live in `src/data/releases.ts`, newest first. Add the version, title, ISO date,
+features, improvements and fixes there when updating `package.json`; builds require a matching
+entry. The waiting worker ships its own versioned notes so an older tab can describe the incoming
+release. Tabs running versions predating this feature retain their original update UI until reloaded.
+
 The service worker caches application assets only.
 
 **Workspace files remain in IndexedDB and are not stored in the service-worker cache.**
