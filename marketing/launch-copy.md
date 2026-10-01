@@ -9,6 +9,7 @@ I’ve released DevToolbox v4.1 — a local-first developer workspace with 37 to
 The main goal is simple: useful developer utilities without sending your inputs to a backend.
 
 v4.1 adds:
+
 - Workspace Collections
 - Smart File Inspector
 - Package.json Analyzer
@@ -30,10 +31,11 @@ DevToolbox v4.1 is live.
 37 local-first developer tools in one private browser workspace.
 
 New:
-• Workspace Collections
-• Smart File Inspector
-• Package.json Analyzer
-• PWA/offline support
+
+- Workspace Collections
+- Smart File Inspector
+- Package.json Analyzer
+- PWA/offline support
 
 No backend. No analytics. No file uploads.
 
