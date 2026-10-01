@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { PwaUpdateNotice } from '../pwa/PwaControls'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ChevronLeft,
@@ -293,6 +294,7 @@ export default function Layout() {
             </Button>
           </div>
         </header>
+        <PwaUpdateNotice />
         <main id="main-content" className="main-content" tabIndex={-1}>
           {!storageAvailable && (
             <Message kind="warning">
