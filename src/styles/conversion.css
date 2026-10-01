@@ -43,13 +43,63 @@
 .pwa-update {
   position: relative;
   z-index: 45;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
+  display: grid;
   gap: 12px;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
+}
+.pwa-update > * {
+  width: min(100%, 1040px);
+  min-width: 0;
+  margin-inline: auto;
+}
+.pwa-update h2 {
+  font-size: 16px;
+}
+.pwa-update-notes {
+  max-height: min(260px, 35dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.pwa-update .release-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 12px;
+}
+.release-sections,
+.release-entry,
+.pwa-update {
+  overflow-wrap: anywhere;
+}
+.release-sections section {
+  min-width: 0;
+}
+.release-sections h3,
+.release-sections h4 {
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.release-sections ul {
+  list-style: disc;
+  padding-left: 20px;
+}
+.release-sections li + li {
+  margin-top: 4px;
+}
+.release-entry > h3 {
+  font-size: 16px;
+}
+.release-date {
+  color: var(--muted);
+  margin-block: 6px 16px;
+}
+.release-entry .release-sections section + section {
+  margin-top: 16px;
+}
+.release-entry + .release-entry {
+  border-top: 1px solid var(--border);
+  margin-top: 24px;
+  padding-top: 24px;
 }
