@@ -23,6 +23,16 @@ Supported processing runs locally in the browser, while the built-in Workspace k
 
 ---
 
+## Preview
+
+![DevToolbox v4.1 preview](./marketing/devtoolbox-linkedin-1200x627.png)
+
+DevToolbox combines **37 local-first developer tools**, a reusable browser Workspace, Collections, Smart File Inspector and Package.json Analyzer in one private PWA.
+
+**Live:** https://can-ozan.github.io/DevToolbox/
+
+---
+
 ## What's new in v4.1
 
 - **Workspace Collections**: create, rename, filter and organize files with single/bulk moves; deleting a collection retains its files
