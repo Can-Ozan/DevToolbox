@@ -156,7 +156,9 @@ export default function Layout() {
   const { collapsed, theme } = usePreferences()
   const storageAvailable = useStorageAvailable()
   const location = useLocation()
-  const activeTool = tools.find((tool) => tool.path === location.pathname)
+  // React Router accepts trailing slashes; these URLs describe the same page.
+  const pathname = location.pathname.replace(/\/+$/, '') || '/'
+  const activeTool = tools.find((tool) => tool.path === pathname)
   const names: Record<string, string> = {
     '/': 'Dashboard',
     '/tools': 'All Tools',
@@ -165,10 +167,8 @@ export default function Layout() {
     '/recent': 'Recent Tools',
     '/settings': 'Settings',
   }
-  const category = categories.find(
-    (value) => location.pathname === `/category/${value.toLowerCase()}`,
-  )
-  const pageName = activeTool?.name ?? names[location.pathname] ?? category ?? 'Page not found'
+  const category = categories.find((value) => pathname === `/category/${value.toLowerCase()}`)
+  const pageName = activeTool?.name ?? names[pathname] ?? category ?? 'Page not found'
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     function apply() {
@@ -183,14 +183,14 @@ export default function Layout() {
     const isTool = Boolean(activeTool)
     const description = activeTool
       ? `${activeTool.description} Processed locally in your browser with no upload required.`
-      : location.pathname === '/'
+      : pathname === '/'
         ? '37 local-first developer tools in one private browser workspace. No backend, no uploads.'
         : `${pageName} in DevToolbox — a private, local-first developer workspace.`
     const title = isTool
       ? `${pageName} — Free Local Developer Tool | DevToolbox`
       : `${pageName} | DevToolbox`
     const canonicalUrl = new URL(
-      `${import.meta.env.BASE_URL}${location.pathname.replace(/^\//, '')}`,
+      `${import.meta.env.BASE_URL}${pathname.replace(/^\/+/, '')}`,
       window.location.origin,
     ).toString()
 
@@ -223,7 +223,7 @@ export default function Layout() {
 
     window.scrollTo(0, 0)
     setMobileOpen(false)
-  }, [activeTool, pageName, location.pathname])
+  }, [activeTool, pageName, location.pathname, pathname])
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
