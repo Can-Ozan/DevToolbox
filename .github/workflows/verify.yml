@@ -10,7 +10,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    # Allow slow Ubuntu dependency downloads plus the full three-browser test suite.
+    # Allow headroom for slow dependency downloads plus the full three-browser test suite.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
