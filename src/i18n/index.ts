@@ -51,9 +51,22 @@ async function applyLanguage(language: Language, persist: boolean): Promise<bool
     if (request !== revision) return false
     if (typeof document !== 'undefined') document.documentElement.lang = language
     if (scrollPosition && typeof window !== 'undefined') {
-      const restoreScroll = () => window.scrollTo(scrollPosition.left, scrollPosition.top)
+      const restoreScroll = () => {
+        if (typeof window.scrollTo !== 'function') return
+        try {
+          window.scrollTo(scrollPosition.left, scrollPosition.top)
+        } catch {
+          // Scroll restoration is optional and must not fail language changes.
+        }
+      }
       restoreScroll()
-      window.requestAnimationFrame(restoreScroll)
+      if (typeof window.requestAnimationFrame === 'function') {
+        try {
+          window.requestAnimationFrame(restoreScroll)
+        } catch {
+          // Scroll restoration is optional and must not fail language changes.
+        }
+      }
     }
     if (persist) {
       explicitLanguage = language
