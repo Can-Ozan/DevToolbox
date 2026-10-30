@@ -1,3 +1,5 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import { Button, Message } from '../../components/ui'
 import { usePreferences } from '../../storage/preferences'
@@ -9,7 +11,12 @@ import {
   WorkspaceFilePicker,
 } from '../../workspace/FileControls'
 import type { FileInput } from '../../workspace/workspaceTypes'
-import { fileError, formatBytes, IMAGE_TYPES, outputFilename } from '../../workspace/workspaceUtils'
+import {
+  fileMessage,
+  formatBytes,
+  IMAGE_TYPES,
+  outputFilename,
+} from '../../workspace/workspaceUtils'
 import {
   aspectResize,
   imageDimensions,
@@ -19,13 +26,6 @@ import {
 } from '../../lib/imageFiles'
 
 type Mode = 'convert' | 'compress' | 'resize' | 'rotate' | 'metadata'
-const actions: Record<Mode, string> = {
-  convert: 'Convert image',
-  compress: 'Compress image',
-  resize: 'Resize image',
-  rotate: 'Apply rotation / flip',
-  metadata: 'Read metadata',
-}
 const ids: Record<Mode, string> = {
   convert: 'image-converter',
   compress: 'image-compressor',
@@ -35,9 +35,18 @@ const ids: Record<Mode, string> = {
 }
 
 function ImageTool({ mode }: { mode: Mode }) {
+  const { t } = useTranslation()
+  const actions: Record<Mode, string> = {
+    convert: t('fileUi.convert'),
+    compress: t('fileUi.compress'),
+    resize: t('fileUi.resize'),
+    rotate: t('fileUi.rotate'),
+    metadata: t('fileUi.metadata'),
+  }
+
   const [file, setFile] = useState<FileInput>()
   const [info, setInfo] = useState<ImageDimensions>()
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [reading, setReading] = useState(false)
   const [format, setFormat] = useState<ImageFormat>(
     mode === 'compress' ? 'image/jpeg' : 'image/png',
@@ -70,7 +79,7 @@ function ImageTool({ mode }: { mode: Mode }) {
         }
       })
       .catch((reason) => {
-        if (active) setError(fileError(reason))
+        if (active) setError(fileMessage(reason))
       })
       .finally(() => {
         if (active) setReading(false)
@@ -78,7 +87,7 @@ function ImageTool({ mode }: { mode: Mode }) {
     return () => {
       active = false
     }
-  }, [file])
+  }, [file, setError])
   function changeSize(side: 'width' | 'height', value: number) {
     job.reset()
     setError('')
@@ -90,7 +99,7 @@ function ImageTool({ mode }: { mode: Mode }) {
         setWidth(dimensions.width)
         setHeight(dimensions.height)
       } catch (reason) {
-        setError(fileError(reason))
+        setError(fileMessage(reason))
       }
     }
   }
@@ -105,51 +114,45 @@ function ImageTool({ mode }: { mode: Mode }) {
           setFile(next)
         }}
       />
-      <p className="helper-text">
-        PNG, JPEG or still WebP · up to 50 MB, 16 megapixels and 8192 px per side. Output
-        re-encoding removes embedded metadata; animation is not preserved.
-      </p>
-      {reading && <p role="status">Reading image…</p>}
+      <p className="helper-text">{t('fileUi.imageHelp')}</p>
+      {reading && <p role="status">{t('fileUi.readingImage')}</p>}
       {(error || job.error) && <Message kind="error">{error || job.error}</Message>}
       {file && info && (
         <>
           <section className="panel">
-            <h2>Input</h2>
+            <h2>{t('toolUi.input')}</h2>
             <p className="file-name">{file.name}</p>
             <p className="helper-text">
               {formatBytes(file.blob.size)} · {info.width} × {info.height} px
             </p>
-            {preview && <img className="file-preview" src={preview} alt="Input preview" />}
+            {preview && <img className="file-preview" src={preview} alt={t('fileUi.preview')} />}
           </section>
           {mode === 'metadata' ? (
             <section className="panel">
-              <h2>Image metadata</h2>
+              <h2>{t('fileUi.imageMetadata')}</h2>
               <dl className="file-metadata">
-                <dt>Filename</dt>
+                <dt>{t('workspace.filename')}</dt>
                 <dd>{file.name}</dd>
                 <dt>MIME</dt>
                 <dd>{file.blob.type}</dd>
-                <dt>File size</dt>
+                <dt>{t('fileUi.fileSize')}</dt>
                 <dd>{formatBytes(file.blob.size)}</dd>
-                <dt>Width</dt>
+                <dt>{t('fileUi.width')}</dt>
                 <dd>{info.width} px</dd>
-                <dt>Height</dt>
+                <dt>{t('fileUi.height')}</dt>
                 <dd>{info.height} px</dd>
-                <dt>Aspect ratio</dt>
+                <dt>{t('fileUi.ratio')}</dt>
                 <dd>{(info.width / info.height).toFixed(3)}:1</dd>
               </dl>
-              <p className="helper-text">
-                Basic browser-readable metadata only. EXIF, camera, date taken and GPS data are not
-                parsed.
-              </p>
+              <p className="helper-text">{t('fileUi.metadataHelp')}</p>
             </section>
           ) : (
             <>
               <fieldset className="file-options" disabled={job.busy}>
-                <legend>Output options</legend>
+                <legend>{t('fileUi.outputOptions')}</legend>
                 <div className="field-row">
                   <label className="field">
-                    Output format
+                    {t('fileUi.format')}
                     <select
                       value={format}
                       onChange={(event) => {
@@ -164,9 +167,9 @@ function ImageTool({ mode }: { mode: Mode }) {
                   </label>
                   {format !== 'image/png' && (
                     <label className="field">
-                      Quality ({quality}%)
+                      {t('fileUi.qualityValue', { value: quality })}
                       <input
-                        aria-label="Quality"
+                        aria-label={t('fileUi.quality')}
                         type="range"
                         min="10"
                         max="100"
@@ -180,7 +183,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                   )}
                   {format === 'image/jpeg' && (
                     <label className="field">
-                      JPEG background
+                      {t('fileUi.jpegBackground')}
                       <input
                         type="color"
                         value={background}
@@ -192,17 +195,12 @@ function ImageTool({ mode }: { mode: Mode }) {
                     </label>
                   )}
                 </div>
-                {mode === 'compress' && (
-                  <p className="helper-text">
-                    Produces lossy JPEG or WebP. Savings depend on the input; output can be larger.
-                    This is not lossless PNG compression.
-                  </p>
-                )}
+                {mode === 'compress' && <p className="helper-text">{t('fileUi.compressHelp')}</p>}
                 {mode === 'resize' && (
                   <>
                     <div className="field-row">
                       <label className="field">
-                        Width
+                        {t('fileUi.width')}
                         <input
                           type="number"
                           min="1"
@@ -212,7 +210,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                         />
                       </label>
                       <label className="field">
-                        Height
+                        {t('fileUi.height')}
                         <input
                           type="number"
                           min="1"
@@ -222,7 +220,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                         />
                       </label>
                       <label className="field">
-                        Percentage
+                        {t('fileUi.percentage')}
                         <input
                           type="number"
                           min="1"
@@ -252,15 +250,15 @@ function ImageTool({ mode }: { mode: Mode }) {
                               setHeight(size.height)
                               setError('')
                             } catch (reason) {
-                              setError(fileError(reason))
+                              setError(fileMessage(reason))
                             }
                           }
                         }}
                       />
-                      Maintain aspect ratio
+                      {t('fileUi.maintainRatio')}
                     </label>
                     <label className="field">
-                      Common presets
+                      {t('toolUi.presets')}
                       <select
                         defaultValue=""
                         onChange={(event) => {
@@ -273,15 +271,15 @@ function ImageTool({ mode }: { mode: Mode }) {
                             job.reset()
                             setError('')
                           } catch (reason) {
-                            setError(fileError(reason))
+                            setError(fileMessage(reason))
                           }
                           event.target.value = ''
                         }}
                       >
-                        <option value="">Choose a width (keeps aspect ratio)</option>
-                        <option value="320">320 px thumbnail</option>
-                        <option value="1280">1280 px web image</option>
-                        <option value="1920">1920 px full HD width</option>
+                        <option value="">{t('fileUi.chooseWidth')}</option>
+                        <option value="320">{t('fileUi.thumbnail')}</option>
+                        <option value="1280">{t('fileUi.webImage')}</option>
+                        <option value="1920">{t('fileUi.fullHd')}</option>
                       </select>
                     </label>
                   </>
@@ -289,7 +287,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                 {mode === 'rotate' && (
                   <>
                     <label className="field">
-                      Rotation
+                      {t('fileUi.rotation')}
                       <select
                         value={rotation}
                         onChange={(event) => {
@@ -298,9 +296,9 @@ function ImageTool({ mode }: { mode: Mode }) {
                         }}
                       >
                         <option value="0">0°</option>
-                        <option value="90">90° clockwise</option>
+                        <option value="90">{t('fileUi.clockwise90')}</option>
                         <option value="180">180°</option>
-                        <option value="270">270° clockwise</option>
+                        <option value="270">{t('fileUi.clockwise270')}</option>
                       </select>
                     </label>
                     <div className="actions">
@@ -313,7 +311,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                             setFlipX(event.target.checked)
                           }}
                         />
-                        Flip horizontal
+                        {t('fileUi.flipHorizontal')}
                       </label>
                       <label className="checkbox-label">
                         <input
@@ -324,7 +322,7 @@ function ImageTool({ mode }: { mode: Mode }) {
                             setFlipY(event.target.checked)
                           }}
                         />
-                        Flip vertical
+                        {t('fileUi.flipVertical')}
                       </label>
                     </div>
                   </>
@@ -373,9 +371,9 @@ function ImageTool({ mode }: { mode: Mode }) {
                     })
                   }}
                 >
-                  {job.busy ? 'Processing…' : actions[mode]}
+                  {job.busy ? t('fileUi.processing') : actions[mode]}
                 </Button>
-                {job.busy && <Button onClick={job.reset}>Cancel processing</Button>}
+                {job.busy && <Button onClick={job.reset}>{t('fileUi.cancel')}</Button>}
               </div>
             </>
           )}

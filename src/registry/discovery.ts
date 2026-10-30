@@ -2,6 +2,8 @@ import { tools, type ToolDefinition } from './tools'
 import type { Preferences } from '../storage/preferences'
 import { acceptsFile } from '../workspace/workspaceUtils'
 import type { Inspection } from '../tools/file-inspector/inspection'
+import type { Language } from '../i18n/language'
+import { getToolText } from '../i18n/toolLabels'
 
 export function inspectionTools(name: string, result: Inspection) {
   if (!result.valid) return []
@@ -20,13 +22,15 @@ export function sortTools(
   items: ToolDefinition[],
   sort: ToolSort,
   preferences: Pick<Preferences, 'toolUsage' | 'recent' | 'favorites'>,
+  language: Language = 'en',
 ) {
   const rank = (id: string) => {
     const index = preferences.recent.indexOf(id)
     return index < 0 ? Number.MAX_SAFE_INTEGER : index
   }
   return [...items].sort((a, b) => {
-    if (sort === 'name') return a.name.localeCompare(b.name)
+    if (sort === 'name')
+      return getToolText(a, language).name.localeCompare(getToolText(b, language).name, language)
     if (sort === 'usage')
       return (preferences.toolUsage[b.id] ?? 0) - (preferences.toolUsage[a.id] ?? 0)
     if (sort === 'recent') return rank(a.id) - rank(b.id)

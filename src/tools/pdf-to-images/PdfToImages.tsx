@@ -1,3 +1,6 @@
+import { message, messageError } from '../../i18n/messages'
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button, Message } from '../../components/ui'
 import { usePreferences } from '../../storage/preferences'
@@ -7,6 +10,7 @@ import type { FileInput, FileOutput } from '../../workspace/workspaceTypes'
 import { PDF_TYPES } from '../../workspace/workspaceUtils'
 
 export default function PdfToImages() {
+  const { t } = useTranslation()
   const [file, setFile] = useState<FileInput>()
   const [selection, setSelection] = useState('all')
   const [pages, setPages] = useState('1')
@@ -14,7 +18,9 @@ export default function PdfToImages() {
   const [scale, setScale] = useState(1)
   const defaults = usePreferences()
   const [quality, setQuality] = useState(defaults.jpegQuality)
-  const [progress, setProgress] = useState('Loading PDF renderer…')
+  const [progress, setProgress] = useMessageState(
+    message('fileUi.loadingRenderer', 'Loading PDF renderer…'),
+  )
   const job = useFileJob<FileOutput[]>()
   return (
     <>
@@ -26,21 +32,16 @@ export default function PdfToImages() {
           setFile(next)
         }}
       />
-      <p className="helper-text">
-        Local PDF rendering · unencrypted PDFs up to 100 MB / 500 pages. Render up to 30 pages and
-        32 megapixels per batch; each page is limited to 16 megapixels and 8192 px per side. PNG and
-        JPEG use a white page background. Rendering stops after 30 seconds. Additional renderer
-        assets require a network connection the first time they are used.
-      </p>
+      <p className="helper-text">{t('fileUi.renderHelp')}</p>
       {job.error && <Message kind="error">{job.error}</Message>}
       {file && (
         <>
           <p className="file-name">{file.name}</p>
           <fieldset className="file-options" disabled={job.busy}>
-            <legend>Render options</legend>
+            <legend>{t('fileUi.renderOptions')}</legend>
             <div className="field-row">
               <label className="field">
-                Page selection
+                {t('fileUi.pageSelection')}
                 <select
                   value={selection}
                   onChange={(event) => {
@@ -48,13 +49,13 @@ export default function PdfToImages() {
                     job.reset()
                   }}
                 >
-                  <option value="all">All pages</option>
-                  <option value="custom">Custom range</option>
+                  <option value="all">{t('fileUi.allPages')}</option>
+                  <option value="custom">{t('fileUi.customRange')}</option>
                 </select>
               </label>
               {selection === 'custom' && (
                 <label className="field">
-                  Page range
+                  {t('fileUi.pageRange')}
                   <input
                     value={pages}
                     placeholder="1-3,5,8"
@@ -66,7 +67,7 @@ export default function PdfToImages() {
                 </label>
               )}
               <label className="field">
-                Output format
+                {t('fileUi.format')}
                 <select
                   value={format}
                   onChange={(event) => {
@@ -79,7 +80,7 @@ export default function PdfToImages() {
                 </select>
               </label>
               <label className="field">
-                Resolution
+                {t('fileUi.resolution')}
                 <select
                   value={scale}
                   onChange={(event) => {
@@ -94,9 +95,9 @@ export default function PdfToImages() {
               </label>
               {format === 'image/jpeg' && (
                 <label className="field">
-                  JPEG quality ({quality}%)
+                  {t('fileUi.jpegQualityValue', { value: quality })}
                   <input
-                    aria-label="JPEG quality"
+                    aria-label={t('fileUi.jpegQuality')}
                     type="range"
                     min="10"
                     max="100"
@@ -115,10 +116,10 @@ export default function PdfToImages() {
               variant="primary"
               disabled={job.busy}
               onClick={() => {
-                setProgress('Loading PDF renderer…')
+                setProgress(message('fileUi.loadingRenderer', 'Loading PDF renderer…'))
                 void job.run(async (signal, report) => {
                   if (selection === 'custom' && !pages.trim())
-                    throw new Error('Enter a page range, such as 1-3,5.')
+                    throw messageError('fileErrors.pageRange', 'Enter a page range, such as 1-3,5.')
                   const { renderPdfImages } = await import('./pdfRenderer')
                   signal.throwIfAborted()
                   return renderPdfImages(
@@ -138,19 +139,16 @@ export default function PdfToImages() {
                 })
               }}
             >
-              Render images
+              {t('fileUi.render')}
             </Button>
-            {job.busy && <Button onClick={job.reset}>Cancel processing</Button>}
+            {job.busy && <Button onClick={job.reset}>{t('fileUi.cancel')}</Button>}
           </div>
         </>
       )}
       {job.busy && <ProcessingStatus stage={job.stage} detail={progress} />}
       {job.output && (
         <div className="pdf-image-results">
-          <p role="status">
-            {job.output.length} image{job.output.length === 1 ? '' : 's'} ready. Download or save
-            each image below.
-          </p>
+          <p role="status">{t('fileUi.imagesReady', { count: job.output.length })}</p>
           {job.output.map((output) => (
             <FileOutputPanel key={output.name} output={output} image />
           ))}

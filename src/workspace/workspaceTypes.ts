@@ -1,3 +1,4 @@
+import type { DisplayMessage } from '../i18n/messages'
 export interface WorkspaceFileInfo {
   id: string
   name: string
@@ -30,6 +31,6 @@ export interface FileInput {
 }
 
 export interface FileOutput extends FileInput {
-  detail?: string
+  detail?: DisplayMessage
   originalSize?: number
 }

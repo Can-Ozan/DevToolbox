@@ -1,39 +1,47 @@
+import { messageError } from '../i18n/messages'
 export type Delimiter = ',' | ';' | '\t'
 export const CSV_LIMITS = { characters: 200_000, rows: 10_000, columns: 200, cells: 100_000 }
 
 function checkInput(input: string, delimiter: Delimiter) {
-  if (![',', ';', '\t'].includes(delimiter)) throw new Error('Choose comma, semicolon or tab.')
-  if (!input.trim()) throw new Error('Enter data to convert.')
+  if (![',', ';', '\t'].includes(delimiter))
+    throw messageError('toolErrors.delimiter', 'Choose comma, semicolon or tab.')
+  if (!input.trim()) throw messageError('toolErrors.dataEmpty', 'Enter data to convert.')
   if (input.length > CSV_LIMITS.characters)
-    throw new Error('Input is limited to 200,000 characters.')
+    throw messageError('toolErrors.inputSize', 'Input is limited to 200,000 characters.')
 }
 function checkSize(rows: number, columns: number) {
   if (rows > CSV_LIMITS.rows || columns > CSV_LIMITS.columns || rows * columns > CSV_LIMITS.cells)
-    throw new Error('Use at most 10,000 rows, 200 columns and 100,000 cells.')
+    throw messageError(
+      'toolErrors.csvSize',
+      'Use at most 10,000 rows, 200 columns and 100,000 cells.',
+    )
 }
 
 export function jsonToCsv(input: string, delimiter: Delimiter = ',') {
   checkInput(input, delimiter)
   const data: unknown = JSON.parse(input.replace(/^\uFEFF/, ''))
   if (!Array.isArray(data) || !data.length)
-    throw new Error('JSON must be a non-empty array of flat objects.')
+    throw messageError('toolErrors.csvArray', 'JSON must be a non-empty array of flat objects.')
   const columns = new Set<string>()
   for (const row of data) {
     if (!row || typeof row !== 'object' || Array.isArray(row))
-      throw new Error('Each JSON row must be a flat object.')
+      throw messageError('toolErrors.csvObject', 'Each JSON row must be a flat object.')
     for (const [key, value] of Object.entries(row)) {
-      if (!key.trim()) throw new Error('Column names must not be empty.')
+      if (!key.trim()) throw messageError('toolErrors.csvNames', 'Column names must not be empty.')
       if (value !== null && typeof value === 'object')
-        throw new Error(
-          `Nested objects and arrays are not supported (column "${key}"). Flatten them first.`,
+        throw messageError(
+          'toolErrors.csvNested',
+          'Nested objects and arrays are not supported (column "{{name}}"). Flatten them first.',
+          { name: key },
         )
       if (typeof value === 'number' && !Number.isFinite(value))
-        throw new Error('Numbers must be finite.')
+        throw messageError('toolErrors.finite', 'Numbers must be finite.')
       columns.add(key)
     }
     checkSize(data.length, columns.size)
   }
-  if (!columns.size) throw new Error('Include at least one named column.')
+  if (!columns.size)
+    throw messageError('toolErrors.csvColumn', 'Include at least one named column.')
   const headers = [...columns]
   const escape = (value: unknown) => {
     const text = value === null || value === undefined ? '' : String(value)
@@ -63,7 +71,8 @@ export function parseCsv(input: string, delimiter: Delimiter = ','): string[][] 
     row.push(field)
     field = ''
     state = 'plain'
-    if (row.length > CSV_LIMITS.columns) throw new Error('Use at most 200 columns.')
+    if (row.length > CSV_LIMITS.columns)
+      throw messageError('toolErrors.csvColumns', 'Use at most 200 columns.')
   }
   function finishRow() {
     finishField()
@@ -93,12 +102,16 @@ export function parseCsv(input: string, delimiter: Delimiter = ','): string[][] 
       state = 'quoted'
     } else {
       if (state === 'closed' || char === '"')
-        throw new Error('Malformed CSV: quotes must enclose an entire field.')
+        throw messageError(
+          'toolErrors.csvQuotes',
+          'Malformed CSV: quotes must enclose an entire field.',
+        )
       touched = true
       field += char
     }
   }
-  if (state === 'quoted') throw new Error('Malformed CSV: a quoted field is not closed.')
+  if (state === 'quoted')
+    throw messageError('toolErrors.csvUnclosed', 'Malformed CSV: a quoted field is not closed.')
   if (touched || field || row.length) finishRow()
   return rows
 }
@@ -106,12 +119,20 @@ export function parseCsv(input: string, delimiter: Delimiter = ','): string[][] 
 export function csvToJson(input: string, delimiter: Delimiter = ',') {
   const [headers, ...data] = parseCsv(input, delimiter)
   if (!headers?.length || headers.some((header) => !header.trim()))
-    throw new Error('The first row must contain non-empty column headers.')
-  if (new Set(headers).size !== headers.length) throw new Error('Column headers must be unique.')
+    throw messageError(
+      'toolErrors.csvHeaders',
+      'The first row must contain non-empty column headers.',
+    )
+  if (new Set(headers).size !== headers.length)
+    throw messageError('toolErrors.csvUnique', 'Column headers must be unique.')
   checkSize(data.length, headers.length)
   const rows = data.map((row, index) => {
     if (row.length !== headers.length)
-      throw new Error(`Row ${index + 2} has ${row.length} fields; expected ${headers.length}.`)
+      throw messageError(
+        'toolErrors.csvFields',
+        'Row {{row}} has {{actual}} fields; expected {{expected}}.',
+        { row: index + 2, actual: row.length, expected: headers.length },
+      )
     return Object.fromEntries(headers.map((header, i) => [header, row[i]]))
   })
   return { output: JSON.stringify(rows, null, 2), rows: rows.length, columns: headers.length }

@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar } from '../../components/ToolLayout'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { JsonFileInput } from '../../workspace/JsonFileInput'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
+import { renderMessage } from '../../i18n/messages'
 import { analyzePackage, packageSummary, type PackageAnalysis } from './analyzePackage'
 
 export default function PackageJsonTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [result, setResult] = useState<PackageAnalysis>()
   const [error, setError] = useState('')
@@ -21,7 +24,7 @@ export default function PackageJsonTool() {
       setError('')
     } catch (reason) {
       setResult(undefined)
-      setError(errorMessage(reason))
+      setError(renderMessage(errorDescriptor(reason), t))
     }
   }
   return (
@@ -29,10 +32,23 @@ export default function PackageJsonTool() {
       <JsonFileInput onText={analyze} />
       <ToolToolbar>
         <Button variant="primary" onClick={() => analyze(input)}>
-          Analyze package.json
+          {t('inspection.analyze')}
         </Button>
-        <Button onClick={() => change('')}>Clear</Button>
-        <CopyButton text={result ? packageSummary(result) : ''} label="Copy summary" />
+        <Button onClick={() => change('')}>{t('toolUi.clear')}</Button>
+        <CopyButton
+          text={
+            result
+              ? packageSummary(result, {
+                  title: t('inspection.summaryTitle'),
+                  scripts: t('inspection.summaryScripts'),
+                  diagnostics: t('inspection.summaryDiagnostics'),
+                  help: t('inspection.summaryHelp'),
+                  notDeclared: t('inspection.notDeclared'),
+                })
+              : ''
+          }
+          label={t('inspection.copySummary')}
+        />
         <DownloadButton
           text={result ? JSON.stringify(result, null, 2) : ''}
           filename="package-analysis.json"
@@ -40,7 +56,7 @@ export default function PackageJsonTool() {
         />
       </ToolToolbar>
       <Editor
-        label="package.json input"
+        label={t('inspection.packageInput')}
         value={input}
         onChange={change}
         placeholder={'{ "name": "my-project", "version": "1.0.0", "private": true }'}
@@ -49,7 +65,7 @@ export default function PackageJsonTool() {
       {result && (
         <>
           <section className="panel file-output package-analysis" aria-label="Project summary">
-            <h2>Summary</h2>
+            <h2>{t('inspection.summary')}</h2>
             <dl className="result-stats">
               {result.overview.map(([key, value]) => (
                 <div key={key}>
@@ -59,8 +75,11 @@ export default function PackageJsonTool() {
               ))}
             </dl>
           </section>
-          <section className="panel file-output package-analysis" aria-label="Dependencies">
-            <h2>Dependencies</h2>
+          <section
+            className="panel file-output package-analysis"
+            aria-label={t('inspection.dependencies')}
+          >
+            <h2>{t('inspection.dependencies')}</h2>
             {result.dependencies.map(({ group, entries }) => (
               <details key={group}>
                 <summary>
@@ -76,20 +95,23 @@ export default function PackageJsonTool() {
                     ))}
                   </dl>
                 ) : (
-                  <p className="helper-text">No declarations.</p>
+                  <p className="helper-text">{t('inspection.noDeclarations')}</p>
                 )}
               </details>
             ))}
           </section>
-          <section className="panel file-output package-analysis" aria-label="Scripts">
-            <h2>Scripts</h2>
-            {!result.scripts.length && <p className="helper-text">No scripts declared.</p>}
+          <section
+            className="panel file-output package-analysis"
+            aria-label={t('inspection.scripts')}
+          >
+            <h2>{t('inspection.scripts')}</h2>
+            {!result.scripts.length && <p className="helper-text">{t('inspection.noScripts')}</p>}
             <dl className="analysis-entries">
               {result.scripts.map((script) => (
                 <div key={script.name}>
                   <dt>
                     {script.name || '(empty name)'}{' '}
-                    {script.common && <span className="badge">Common script</span>}
+                    {script.common && <span className="badge">{t('inspection.commonScript')}</span>}
                   </dt>
                   <dd>
                     <code>{script.command}</code>
@@ -97,25 +119,25 @@ export default function PackageJsonTool() {
                 </div>
               ))}
             </dl>
-            <p className="helper-text">Commands are displayed as text and are never executed.</p>
+            <p className="helper-text">{t('inspection.commandsHelp')}</p>
           </section>
-          <section className="panel file-output package-analysis" aria-label="Diagnostics">
-            <h2>Diagnostics ({result.diagnostics.length})</h2>
+          <section
+            className="panel file-output package-analysis"
+            aria-label={t('inspection.diagnostics')}
+          >
+            <h2>{t('inspection.diagnosticCount', { count: result.diagnostics.length })}</h2>
             <ul className="analysis-diagnostics">
               {result.diagnostics.map((item, index) => (
                 <li key={index}>
-                  <strong>{item.level.toUpperCase()}</strong> — {item.message}
+                  <strong>{t(`inspection.${item.level}` as const)}</strong> —{' '}
+                  {renderMessage(result.presentation.diagnostics[index], t)}
                 </li>
               ))}
             </ul>
           </section>
         </>
       )}
-      <p className="helper-text">
-        Local structural checks only. No npm lookup, installed-version resolution, freshness or
-        vulnerability claims. Up to 200,000 characters, 1,000 dependency declarations and 200
-        scripts.
-      </p>
+      <p className="helper-text">{t('inspection.packageHelp')}</p>
     </>
   )
 }

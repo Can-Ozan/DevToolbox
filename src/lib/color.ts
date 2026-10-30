@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 export interface Rgb {
   r: number
   g: number
@@ -9,7 +10,10 @@ export function parseColor(value: string, format: ColorFormat): Rgb {
   if (format === 'hex') {
     let hex = value.trim().replace(/^#/, '')
     if (!/^([a-f\d]{3}|[a-f\d]{6})$/i.test(hex))
-      throw new Error('HEX needs 3 or 6 hexadecimal digits, for example #7760D7.')
+      throw messageError(
+        'toolErrors.hex',
+        'HEX needs 3 or 6 hexadecimal digits, for example #7760D7.',
+      )
     if (hex.length === 3) hex = [...hex].map((char) => char + char).join('')
     return {
       r: parseInt(hex.slice(0, 2), 16),
@@ -24,10 +28,10 @@ export function parseColor(value: string, format: ColorFormat): Rgb {
         /^(?:rgb\(\s*)?(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)(?:\s*\))?$/i,
       )
     if (!match || value.includes('(') !== value.includes(')'))
-      throw new Error('Use RGB values such as rgb(119, 96, 215).')
+      throw messageError('toolErrors.rgb', 'Use RGB values such as rgb(119, 96, 215).')
     const [r, g, b] = match.slice(1).map(Number)
     if (![r, g, b].every((number) => inRange(number, 255)))
-      throw new Error('Each RGB channel must be between 0 and 255.')
+      throw messageError('toolErrors.rgbRange', 'Each RGB channel must be between 0 and 255.')
     return { r: Math.round(r), g: Math.round(g), b: Math.round(b) }
   }
   const match = value
@@ -36,10 +40,13 @@ export function parseColor(value: string, format: ColorFormat): Rgb {
       /^(?:hsl\(\s*)?(\d+(?:\.\d+)?)\s*,\s*(\d+(?:\.\d+)?)%\s*,\s*(\d+(?:\.\d+)?)%(?:\s*\))?$/i,
     )
   if (!match || value.includes('(') !== value.includes(')'))
-    throw new Error('Use HSL values such as hsl(252, 60%, 61%).')
+    throw messageError('toolErrors.hsl', 'Use HSL values such as hsl(252, 60%, 61%).')
   const [h, saturation, lightness] = match.slice(1).map(Number)
   if (!inRange(h, 360) || !inRange(saturation, 100) || !inRange(lightness, 100))
-    throw new Error('Hue must be 0–360; saturation and lightness must be 0–100%.')
+    throw messageError(
+      'toolErrors.hslRange',
+      'Hue must be 0–360; saturation and lightness must be 0–100%.',
+    )
   const s = saturation / 100
   const l = lightness / 100
   const a = s * Math.min(l, 1 - l)

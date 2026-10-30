@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from 'react'
+import { isLanguage, type Language } from '../i18n/language'
 
 export type Theme = 'light' | 'dark' | 'system'
 export interface Preferences {
   version: 1
+  language?: Language
   theme: Theme
   favorites: string[]
   recent: string[]
@@ -54,6 +56,7 @@ export function parsePreferences(raw: string | null): Preferences {
     const p = value as Record<string, unknown>
     return {
       version: 1,
+      ...(isLanguage(p.language) ? { language: p.language } : {}),
       theme: p.theme === 'dark' || p.theme === 'light' ? p.theme : 'system',
       favorites: uniqueStrings(p.favorites),
       recent: uniqueStrings(p.recent).slice(0, 10),
@@ -132,6 +135,14 @@ export function useStorageAvailable() {
   )
 }
 export const preferences = {
+  getSnapshot: () => state,
+  subscribe: (listener: () => void) => {
+    listeners.add(listener)
+    return () => {
+      listeners.delete(listener)
+    }
+  },
+  setLanguage: (language: Language | undefined) => update({ language }),
   setTheme: (theme: Theme) => update({ theme }),
   toggleSidebar: () => update({ collapsed: !state.collapsed }),
   toggleFavorite: (id: string) =>
@@ -161,5 +172,5 @@ export const preferences = {
   clearUsage: () => update({ toolUsage: {} }),
   clearRecent: () => update({ recent: [] }),
   clearFavorites: () => update({ favorites: [] }),
-  reset: () => update({ ...defaults }),
+  reset: () => update({ ...defaults, language: undefined }),
 }

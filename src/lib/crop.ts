@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 import { validateDimensions, type ImageDimensions } from './imageFiles'
 
 export interface CropRect extends ImageDimensions {
@@ -11,7 +12,10 @@ export function normalizeCrop(rect: CropRect, bounds: ImageDimensions, ratio?: n
     !Object.values(rect).every(Number.isFinite) ||
     (ratio !== undefined && (!Number.isFinite(ratio) || ratio <= 0))
   )
-    throw new Error('Enter finite crop coordinates and a positive aspect ratio.')
+    throw messageError(
+      'fileErrors.cropCoordinates',
+      'Enter finite crop coordinates and a positive aspect ratio.',
+    )
   const x = clamp(Math.round(rect.x), 0, bounds.width - 1)
   const y = clamp(Math.round(rect.y), 0, bounds.height - 1)
   let width = clamp(Math.round(rect.width), 1, bounds.width - x)

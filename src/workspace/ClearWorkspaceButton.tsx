@@ -1,13 +1,16 @@
+import { useTranslation } from 'react-i18next'
+import { useMessageState } from '../i18n/useMessageState'
 import { useState } from 'react'
 import { Button, Message, Modal } from '../components/ui'
 import { useWorkspace, workspace } from './workspaceStore'
-import { fileError } from './workspaceUtils'
+import { fileMessage } from './workspaceUtils'
 
 export default function ClearWorkspaceButton({ disabled = false }: { disabled?: boolean }) {
+  const { t } = useTranslation()
   const { files, collections, warning } = useWorkspace()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   return (
     <>
       <Button
@@ -18,23 +21,20 @@ export default function ClearWorkspaceButton({ disabled = false }: { disabled?: 
           setOpen(true)
         }}
       >
-        Clear Workspace
+        {t('workspace.clear')}
       </Button>
       <Modal
         open={open}
         onClose={() => {
           if (!busy) setOpen(false)
         }}
-        title="Clear Workspace?"
+        title={t('workspace.clearTitle')}
       >
-        <p>
-          This deletes every file and collection stored in this browser’s Workspace. Download
-          anything you need first.
-        </p>
+        <p>{t('workspace.clearHelp')}</p>
         {error && <Message kind="error">{error}</Message>}
         <div className="actions">
           <Button autoFocus disabled={busy} onClick={() => setOpen(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="danger"
@@ -45,13 +45,13 @@ export default function ClearWorkspaceButton({ disabled = false }: { disabled?: 
                 await workspace.clear()
                 setOpen(false)
               } catch (reason) {
-                setError(fileError(reason))
+                setError(fileMessage(reason))
               } finally {
                 setBusy(false)
               }
             }}
           >
-            {busy ? 'Clearing…' : 'Confirm clear'}
+            {busy ? t('workspace.clearing') : t('workspace.confirmClear')}
           </Button>
         </div>
       </Modal>

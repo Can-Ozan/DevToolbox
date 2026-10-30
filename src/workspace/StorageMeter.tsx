@@ -1,37 +1,39 @@
+import { useTranslation } from 'react-i18next'
 import { useWorkspace } from './workspaceStore'
 import { formatBytes } from './workspaceUtils'
 
 export default function StorageMeter() {
+  const { t } = useTranslation()
   const { files, estimate, error, loading } = useWorkspace()
   const quota = estimate?.quota
   const usage = estimate?.usage
   return (
-    <section className="storage-meter" aria-label="Browser storage">
+    <section className="storage-meter" aria-label={t('workspace.storage')}>
       <div>
         <strong>
-          Browser storage <span className="helper-text">(approximate, whole origin)</span>
+          {t('workspace.storage')} <span className="helper-text">{t('workspace.approximate')}</span>
         </strong>
         <span>
           {quota !== undefined && usage !== undefined
             ? `${formatBytes(usage)} / ${formatBytes(quota)}`
-            : 'Estimate unavailable'}
+            : t('workspace.estimateUnavailable')}
         </span>
       </div>
       {quota !== undefined && quota > 0 && usage !== undefined && (
         <meter
-          aria-label="Approximate browser storage used"
+          aria-label={t('workspace.storageUsed')}
           min={0}
           max={quota}
           value={Math.min(usage, quota)}
         />
       )}
       <p className="helper-text">
-        Workspace ·{' '}
+        {t('shell.workspace')} ·{' '}
         {error
-          ? 'Storage unavailable'
+          ? t('workspace.storageUnavailable')
           : loading
-            ? 'Loading…'
-            : `${files.length} ${files.length === 1 ? 'file' : 'files'} · ${formatBytes(files.reduce((sum, file) => sum + file.size, 0))}`}
+            ? t('common.loading')
+            : `${t('workspace.files', { count: files.length })} · ${formatBytes(files.reduce((sum, file) => sum + file.size, 0))}`}
       </p>
     </section>
   )

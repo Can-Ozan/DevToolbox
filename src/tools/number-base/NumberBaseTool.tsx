@@ -1,9 +1,18 @@
+import { renderMessage } from '../../i18n/messages'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button, CopyButton, Message } from '../../components/ui'
 import { bases, convertNumberBase, type NumberBase } from '../../lib/numberBase'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 
 export default function NumberBaseTool() {
+  const { t } = useTranslation()
+  const names: Record<NumberBase, string> = {
+    2: t('toolUi.binary'),
+    8: t('toolUi.octal'),
+    10: t('toolUi.decimal'),
+    16: t('toolUi.hexadecimal'),
+  }
   const [source, setSource] = useState<{ base: NumberBase; text: string }>({ base: 10, text: '' })
   const [uppercase, setUppercase] = useState(true)
   let values: Record<NumberBase, string> = { 2: '', 8: '', 10: '', 16: '' }
@@ -12,20 +21,18 @@ export default function NumberBaseTool() {
     try {
       values = convertNumberBase(source.text, source.base, uppercase)
     } catch (reason) {
-      error = errorMessage(reason)
+      error = renderMessage(errorDescriptor(reason), t)
     }
   }
   return (
     <>
       <div className="panel">
-        <p className="panel-subtitle">
-          Edit any base to update the others. Values use BigInt for exact integer conversion.
-        </p>
+        <p className="panel-subtitle">{t('toolUi.numberIntro')}</p>
         <div className="color-fields">
-          {bases.map(({ base, name }) => (
+          {bases.map(({ base }) => (
             <div className="field" key={base}>
               <label htmlFor={`base-${base}`}>
-                {name} · base {base}
+                {t('toolUi.baseLabel', { name: names[base], base })}
               </label>
               <div className="color-field-row">
                 <input
@@ -42,7 +49,7 @@ export default function NumberBaseTool() {
                 <CopyButton
                   text={values[base]}
                   disabled={!!error}
-                  label={`Copy ${name.toLowerCase()}`}
+                  label={t('toolUi.copyNamed', { name: names[base].toLowerCase() })}
                 />
               </div>
             </div>
@@ -58,16 +65,13 @@ export default function NumberBaseTool() {
                 if (source.base === 16 && !error) setSource({ base: 10, text: values[10] })
               }}
             />
-            Uppercase hexadecimal
+            {t('toolUi.uppercaseHex')}
           </label>
-          <Button onClick={() => setSource({ base: 10, text: '' })}>Clear</Button>
+          <Button onClick={() => setSource({ base: 10, text: '' })}>{t('toolUi.clear')}</Button>
         </div>
       </div>
       {error && <Message kind="error">{error}</Message>}
-      <p className="helper-text">
-        Signed integers only. Optional 0b, 0o, and 0x prefixes are accepted in their matching
-        fields. No floating-point conversion or precision loss. Maximum input: 4,096 digits.
-      </p>
+      <p className="helper-text">{t('toolUi.numberHelp')}</p>
     </>
   )
 }

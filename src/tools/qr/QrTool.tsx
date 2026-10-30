@@ -1,15 +1,19 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import QRCode from 'qrcode'
+import { message } from '../../i18n/messages'
 import { Download } from 'lucide-react'
 import { Button, CopyButton, Editor, Message, useToast } from '../../components/ui'
 
 export default function QrTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [mode, setMode] = useState('text')
   const [size, setSize] = useState(384)
   const [level, setLevel] = useState<'L' | 'M' | 'Q' | 'H'>('M')
   const [image, setImage] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [busy, setBusy] = useState(false)
   const toast = useToast()
   useEffect(() => {
@@ -30,8 +34,11 @@ export default function QrTool() {
       } catch {
         setError(
           mode === 'url'
-            ? 'Enter a valid HTTP(S) URL within QR capacity.'
-            : 'Text exceeds the maximum QR byte capacity. Shorten it.',
+            ? message('toolErrors.qrUrl', 'Enter a valid HTTP(S) URL within QR capacity.')
+            : message(
+                'toolErrors.qrCapacity',
+                'Text exceeds the maximum QR byte capacity. Shorten it.',
+              ),
         )
         return
       }
@@ -48,7 +55,10 @@ export default function QrTool() {
         .catch(() => {
           if (!cancelled)
             setError(
-              'This input is too long for the selected correction level. Shorten it or choose a lower level.',
+              message(
+                'toolErrors.qrLevel',
+                'This input is too long for the selected correction level. Shorten it or choose a lower level.',
+              ),
             )
         })
         .finally(() => {
@@ -59,19 +69,19 @@ export default function QrTool() {
       cancelled = true
       clearTimeout(timer)
     }
-  }, [input, mode, size, level])
+  }, [input, mode, size, level, setError])
   return (
     <>
       <div className="field-row">
         <label className="field">
-          Input type
+          {t('toolUi.inputType')}
           <select value={mode} onChange={(event) => setMode(event.target.value)}>
-            <option value="text">Plain text</option>
+            <option value="text">{t('toolUi.plainText')}</option>
             <option value="url">URL</option>
           </select>
         </label>
         <label className="field">
-          Image size
+          {t('toolUi.imageSize')}
           <select value={size} onChange={(event) => setSize(Number(event.target.value))}>
             {[256, 384, 512, 768, 1024].map((n) => (
               <option value={n} key={n}>
@@ -81,7 +91,7 @@ export default function QrTool() {
           </select>
         </label>
         <label className="field">
-          Error correction
+          {t('toolUi.errorCorrection')}
           <select
             value={level}
             onChange={(event) => {
@@ -89,35 +99,35 @@ export default function QrTool() {
               if (value === 'L' || value === 'M' || value === 'Q' || value === 'H') setLevel(value)
             }}
           >
-            <option value="L">Low · L</option>
-            <option value="M">Medium · M</option>
-            <option value="Q">Quartile · Q</option>
-            <option value="H">High · H</option>
+            <option value="L">{t('toolUi.qrLow')}</option>
+            <option value="M">{t('toolUi.qrMedium')}</option>
+            <option value="Q">{t('toolUi.qrQuartile')}</option>
+            <option value="H">{t('toolUi.qrHigh')}</option>
           </select>
         </label>
       </div>
       <div className="editor-grid">
         <Editor
-          label="QR input"
+          label={t('toolUi.qrInput')}
           minHeight={290}
           value={input}
           onChange={setInput}
-          placeholder={mode === 'url' ? 'https://example.com' : 'Text to encode…'}
+          placeholder={mode === 'url' ? 'https://example.com' : t('toolUi.qrHint')}
         />
         <section className="panel">
-          <h2>QR preview</h2>
+          <h2>{t('toolUi.qrPreview')}</h2>
           <div className="flex min-h-64 items-center justify-center">
             {image ? (
               <img
                 src={image}
-                alt="Generated QR code"
+                alt={t('toolUi.generatedQr')}
                 width={size}
                 height={size}
                 style={{ width: Math.min(size, 320), maxWidth: '100%', height: 'auto' }}
               />
             ) : (
               <p className="helper-text" role="status">
-                {busy ? 'Generating…' : 'Enter text to generate a QR code.'}
+                {busy ? t('toolUi.generating') : t('toolUi.qrEmpty')}
               </p>
             )}
           </div>
@@ -125,7 +135,7 @@ export default function QrTool() {
       </div>
       {error && <Message kind="error">{error}</Message>}
       <div className="actions">
-        <CopyButton text={input} label="Copy input" />
+        <CopyButton text={input} label={t('toolUi.copyInput')} />
         <Button
           disabled={!image}
           onClick={() => {
@@ -133,18 +143,15 @@ export default function QrTool() {
             anchor.href = image
             anchor.download = 'qrcode.png'
             anchor.click()
-            toast('Download started')
+            toast(t('common.downloadStarted'))
           }}
         >
           <Download size={15} />
-          Download PNG
+          {t('toolUi.downloadPng')}
         </Button>
-        <Button onClick={() => setInput('')}>Clear</Button>
+        <Button onClick={() => setInput('')}>{t('toolUi.clear')}</Button>
       </div>
-      <p className="helper-text">
-        QR generation happens entirely in your browser. Higher error correction reduces available
-        capacity. The image keeps a white quiet zone for reliable scanning.
-      </p>
+      <p className="helper-text">{t('toolUi.qrHelp')}</p>
     </>
   )
 }

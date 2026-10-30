@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { beforeEach, expect, it, vi } from 'vitest'
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from 'vitest'
+import { changeAppLanguage, disposeI18n, initializeI18n } from '../i18n'
 import { releases, type Release } from '../data/releases'
 import { PwaUpdateNotice } from './PwaControls'
 
@@ -13,7 +14,10 @@ const state = vi.hoisted(() => ({
 vi.mock('./pwaStore', () => ({ usePwa: () => state, updateApp: vi.fn(), installApp: vi.fn() }))
 vi.mock('../lib/fileActivity', () => ({ useFileActivity: () => state.busy }))
 
-beforeEach(() => {
+beforeAll(initializeI18n)
+afterAll(disposeI18n)
+beforeEach(async () => {
+  await changeAppLanguage('en')
   Object.assign(state, { update: true, release: releases[0], busy: false, error: '' })
 })
 

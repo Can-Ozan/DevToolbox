@@ -1,9 +1,14 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { changeAppLanguage, disposeI18n, initializeI18n } from '../i18n'
 import { ReleaseSections } from '../components/ReleaseNotes'
 import { getReleaseByVersion, isRelease, releases, releaseSections } from './releases'
 import { version } from '../../package.json'
+
+beforeAll(initializeI18n)
+afterAll(disposeI18n)
+beforeAll(() => changeAppLanguage('en'))
 
 describe('bundled releases', () => {
   it('looks up exact versions and includes the published package version', () => {

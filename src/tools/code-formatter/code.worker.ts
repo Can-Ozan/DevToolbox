@@ -1,4 +1,6 @@
 import { formatCode, type CodeLanguage } from '../../lib/codeFormat'
+import { errorDescriptor } from '../../lib/encoding'
+import { message } from '../../i18n/messages'
 self.onmessage = async (
   event: MessageEvent<{ input: string; language: CodeLanguage; indent: string }>,
 ) => {
@@ -7,6 +9,11 @@ self.onmessage = async (
       result: await formatCode(event.data.input, event.data.language, event.data.indent),
     })
   } catch (error) {
-    self.postMessage({ error: error instanceof Error ? error.message : 'Formatting failed.' })
+    self.postMessage({
+      error:
+        error instanceof Error
+          ? errorDescriptor(error)
+          : message('toolErrors.codeFailed', 'Formatting failed.'),
+    })
   }
 }

@@ -17,6 +17,8 @@ import { preferences, usePreferences } from '../storage/preferences'
 import { Modal } from '../components/ui'
 import { useWorkspace } from '../workspace/workspaceStore'
 import { formatBytes } from '../workspace/workspaceUtils'
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getToolText, getCategoryLabel } from '../i18n/toolLabels'
 
 type Result = {
   id: string
@@ -29,13 +31,36 @@ type Result = {
   action?: () => void
 }
 export default function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
+  const language = currentLanguage()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
   const { favorites } = usePreferences()
   const snapshot = useWorkspace()
-  const search = query.trim().toLowerCase()
+  const search = query.trim().toLocaleLowerCase(language)
+  const actionLabels: Record<string, string> = {
+    workspace: t('discovery.openWorkspace'),
+    settings: t('discovery.openSettings'),
+    favorites: t('discovery.openFavorites'),
+    recent: t('discovery.openRecent'),
+    all: t('discovery.openAll'),
+    theme: t('discovery.toggleTheme'),
+  }
+  const actionShortcuts: Record<string, string> = {
+    workspace: t('shell.workspace'),
+    settings: t('shell.settings'),
+    favorites: t('shell.favorites'),
+    recent: t('shell.recent'),
+    all: t('shell.allTools'),
+    theme: t('discovery.toggleTheme'),
+  }
+  const groupLabels = {
+    Tools: t('discovery.groupTools'),
+    Files: t('discovery.groupFiles'),
+    Actions: t('discovery.groupActions'),
+  }
   const actions = [
     {
       id: 'workspace',
@@ -69,18 +94,31 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
         preferences.setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'),
     },
   ]
+  // Exact navigation commands outrank incidental words in tool descriptions.
+  const exactAction =
+    search &&
+    actions.some((action) =>
+      [action.id, action.name, actionLabels[action.id], actionShortcuts[action.id]].some(
+        (label) => label.toLocaleLowerCase(language) === search,
+      ),
+    )
+  const groups: Result['group'][] = exactAction
+    ? ['Actions', 'Tools', 'Files']
+    : ['Tools', 'Files', 'Actions']
   const results: Result[] = [
-    ...searchTools(query).map((tool) => ({
+    ...searchTools(query, undefined, language).map((tool) => ({
       id: tool.id,
-      name: tool.name,
-      detail: tool.category,
+      name: getToolText(tool, language).name,
+      detail: getCategoryLabel(tool.category, language),
       icon: tool.icon,
       color: tool.color,
       path: tool.path,
       group: 'Tools' as const,
     })),
     ...snapshot.files
-      .filter((file) => `${file.name} ${file.mimeType}`.toLowerCase().includes(search))
+      .filter((file) =>
+        `${file.name} ${file.mimeType}`.toLocaleLowerCase(language).includes(search),
+      )
       .slice(0, 8)
       .map((file) => ({
         id: `file-${file.id}`,
@@ -92,15 +130,22 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
         group: 'Files' as const,
       })),
     ...actions
-      .filter((action) => `${action.name} ${action.keywords}`.toLowerCase().includes(search))
+      .filter((action) =>
+        `${action.name} ${action.keywords} ${actionLabels[action.id]} ${actionShortcuts[action.id]}`
+          .toLocaleLowerCase(language)
+          .includes(search),
+      )
       .map((action) => ({
         ...action,
+        name: actionLabels[action.id],
         id: `action-${action.id}`,
-        detail: 'Action',
+        detail: t('discovery.action'),
         color: 'purple',
         group: 'Actions' as const,
       })),
   ]
+  // Use the same group order for both rendering and keyboard navigation.
+  results.sort((a, b) => groups.indexOf(a.group) - groups.indexOf(b.group))
   const active = Math.min(selected, Math.max(0, results.length - 1))
   useEffect(() => {
     if (!open) return
@@ -121,15 +166,15 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
     <Modal
       open={open}
       onClose={onClose}
-      title="Search tools, files and actions"
+      title={t('discovery.commandTitle')}
       className="command-modal"
     >
       <div className="command-input">
         <Search size={21} />
         <input
           ref={inputRef}
-          aria-label="Search tools, files and actions"
-          placeholder="Search tools, files, or actions…"
+          aria-label={t('discovery.commandTitle')}
+          placeholder={t('discovery.commandPlaceholder')}
           role="combobox"
           aria-expanded="true"
           aria-controls="command-results"
@@ -162,16 +207,16 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
         className="command-results"
         id="command-results"
         role="listbox"
-        aria-label="Search results"
+        aria-label={t('discovery.resultsLabel')}
       >
-        {(['Tools', 'Files', 'Actions'] as const).map((group) => {
+        {groups.map((group) => {
           const items = results
             .map((result, index) => ({ result, index }))
             .filter((item) => item.result.group === group)
           return items.length ? (
-            <div role="group" aria-label={group} key={group}>
+            <div role="group" aria-label={groupLabels[group]} key={group}>
               <div className="command-group-label" aria-hidden="true">
-                {group}
+                {groupLabels[group]}
               </div>
               {items.map(({ result, index }) => {
                 const Icon = result.icon
@@ -206,24 +251,22 @@ export default function CommandPalette({ open, onClose }: { open: boolean; onClo
       {!results.length && (
         <div className="empty-state compact">
           <Search size={25} />
-          <h3>No results found</h3>
-          <p>Try a tool, filename, or “settings”.</p>
+          <h3>{t('discovery.noResults')}</h3>
+          <p>{t('discovery.noResultsHelp')}</p>
         </div>
       )}
       {snapshot.error && (
-        <p className="helper-text command-notice">
-          Workspace files are unavailable. Tools and actions still work.
-        </p>
+        <p className="helper-text command-notice">{t('discovery.filesUnavailable')}</p>
       )}
       <div className="command-footer">
         <span>
           <kbd>↑</kbd>
-          <kbd>↓</kbd> to navigate
+          <kbd>↓</kbd> {t('discovery.navigate')}
         </span>
         <span>
-          <kbd>↵</kbd> to open
+          <kbd>↵</kbd> {t('discovery.open')}
         </span>
-        <span>{results.length} results</span>
+        <span>{t('discovery.results', { count: results.length })}</span>
       </div>
     </Modal>
   )

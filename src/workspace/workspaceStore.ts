@@ -1,14 +1,16 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { workspaceDB } from './db'
 import type { WorkspaceFileInfo, WorkspaceCollection } from './workspaceTypes'
-import { fileError } from './workspaceUtils'
+import { fileMessage } from './workspaceUtils'
+import { message, renderMessage, type DisplayMessage } from '../i18n/messages'
+import { useTranslation } from 'react-i18next'
 
 interface WorkspaceState {
   files: WorkspaceFileInfo[]
   collections: WorkspaceCollection[]
   loading: boolean
-  error: string
-  warning: string
+  error: DisplayMessage
+  warning: DisplayMessage
   estimate?: StorageEstimate
 }
 let state: WorkspaceState = { files: [], collections: [], loading: true, error: '', warning: '' }
@@ -37,15 +39,20 @@ export async function refreshWorkspace() {
         loading: false,
         error: '',
         warning: invalid
-          ? `${invalid} damaged metadata record(s) could not be listed. They have not been deleted. Re-import originals, or clear the Workspace after downloading remaining files.`
+          ? message(
+              'workspace.damaged',
+              '{{count}} damaged metadata record(s) could not be listed. They have not been deleted. Re-import originals, or clear the Workspace after downloading remaining files.',
+              { count: invalid },
+            )
           : '',
       })
   } catch (error) {
-    if (current === revision) publish({ loading: false, error: fileError(error) })
+    if (current === revision) publish({ loading: false, error: fileMessage(error) })
   }
 }
 
 export function useWorkspace() {
+  const { t } = useTranslation()
   const snapshot = useSyncExternalStore(
     (listener) => {
       listeners.add(listener)
@@ -64,7 +71,11 @@ export function useWorkspace() {
       if (--watchers === 0) window.removeEventListener('focus', refreshOnFocus)
     }
   }, [])
-  return snapshot
+  return {
+    ...snapshot,
+    error: renderMessage(snapshot.error, t),
+    warning: renderMessage(snapshot.warning, t),
+  }
 }
 
 export const workspace = {

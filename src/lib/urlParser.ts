@@ -1,10 +1,13 @@
+import { messageError } from '../i18n/messages'
 export function parseUrl(input: string) {
-  if (!input.trim()) throw new Error('Enter an absolute URL, including its protocol.')
+  if (!input.trim())
+    throw messageError('toolErrors.urlEmpty', 'Enter an absolute URL, including its protocol.')
   let url: URL
   try {
     url = new URL(input.trim())
   } catch {
-    throw new Error(
+    throw messageError(
+      'toolErrors.urlInvalid',
       'Enter a valid absolute URL, such as https://example.com:8080/path?q=hello#section.',
     )
   }

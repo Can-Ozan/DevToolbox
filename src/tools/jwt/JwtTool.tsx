@@ -1,20 +1,21 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button, CopyButton, Editor, Message } from '../../components/ui'
-import { decodeJwt, errorMessage } from '../../lib/encoding'
+import { decodeJwt, errorDescriptor } from '../../lib/encoding'
 export default function JwtTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [result, setResult] = useState<ReturnType<typeof decodeJwt> | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const claims = result
     ? ['iss', 'sub', 'aud', 'exp', 'iat', 'nbf'].filter((key) => key in result.payload)
     : []
   return (
     <>
-      <Message kind="warning">
-        Decoding a JWT does not verify its signature or authenticity.
-      </Message>
+      <Message kind="warning">{t('toolUi.jwtWarning')}</Message>
       <Editor
-        label="JWT token"
+        label={t('toolUi.jwtToken')}
         minHeight={130}
         value={input}
         onChange={(value) => {
@@ -33,11 +34,11 @@ export default function JwtTool() {
               setError('')
             } catch (error) {
               setResult(null)
-              setError(errorMessage(error))
+              setError(errorDescriptor(error))
             }
           }}
         >
-          Decode token
+          {t('toolUi.decodeToken')}
         </Button>
         <Button
           onClick={() => {
@@ -46,7 +47,7 @@ export default function JwtTool() {
             setError('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
       </div>
       {error && <Message kind="error">{error}</Message>}
@@ -56,8 +57,11 @@ export default function JwtTool() {
             {(['header', 'payload'] as const).map((key) => (
               <div key={key}>
                 <div className="output-title">
-                  <h2>{key === 'header' ? 'Header' : 'Payload'}</h2>
-                  <CopyButton text={JSON.stringify(result[key], null, 2)} label={`Copy ${key}`} />
+                  <h2>{key === 'header' ? t('toolUi.header') : t('toolUi.payload')}</h2>
+                  <CopyButton
+                    text={JSON.stringify(result[key], null, 2)}
+                    label={t('toolUi.copyNamed', { name: t(`toolUi.${key}`).toLowerCase() })}
+                  />
                 </div>
                 <pre className="code-output">{JSON.stringify(result[key], null, 2)}</pre>
               </div>
@@ -66,7 +70,7 @@ export default function JwtTool() {
           {claims.length > 0 && (
             <>
               <div className="output-title">
-                <h2>Standard claims</h2>
+                <h2>{t('toolUi.claims')}</h2>
               </div>
               <dl className="data-table">
                 {claims.map((key) => {
@@ -84,7 +88,7 @@ export default function JwtTool() {
                             ·{' '}
                             {date && Number.isFinite(date.getTime())
                               ? date.toLocaleString()
-                              : 'Invalid numeric timestamp'}
+                              : t('toolUi.invalidTimestamp')}
                           </span>
                         )}
                       </dd>
@@ -95,10 +99,10 @@ export default function JwtTool() {
             </>
           )}
           <div className="output-title">
-            <h2>Signature · not verified</h2>
-            <CopyButton text={result.signature} label="Copy signature" />
+            <h2>{t('toolUi.signature')}</h2>
+            <CopyButton text={result.signature} label={t('toolUi.copySignature')} />
           </div>
-          <pre className="code-output">{result.signature || '(empty signature)'}</pre>
+          <pre className="code-output">{result.signature || t('toolUi.emptySignature')}</pre>
         </>
       )}
     </>

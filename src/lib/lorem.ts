@@ -12,7 +12,10 @@ export type LoremUnit = 'paragraphs' | 'sentences' | 'words'
 export function generateLorem(unit: LoremUnit, count: number) {
   const max = unit === 'paragraphs' ? 100 : unit === 'sentences' ? 500 : 10000
   if (!Number.isInteger(count) || count < 1 || count > max)
-    throw new Error(`Choose between 1 and ${max.toLocaleString()} ${unit}.`)
+    throw messageError('toolErrors.loremCount', 'Choose between 1 and {{max}} {{unit}}.', {
+      max: max.toLocaleString(),
+      unit: message(`toolUi.${unit}`, unit),
+    })
   if (unit === 'sentences')
     return Array.from({ length: count }, (_, i) => sentences[i % sentences.length]).join(' ')
   if (unit === 'paragraphs')
@@ -23,3 +26,4 @@ export function generateLorem(unit: LoremUnit, count: number) {
   const result = Array.from({ length: count }, (_, i) => words[i % words.length]).join(' ')
   return result[0].toUpperCase() + result.slice(1) + '.'
 }
+import { message, messageError } from '../i18n/messages'

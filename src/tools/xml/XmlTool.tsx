@@ -1,13 +1,16 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { formatXml, type XmlMode } from '../../lib/xml'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 
 export default function XmlTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState(''),
     [output, setOutput] = useState(''),
-    [error, setError] = useState('')
+    [error, setError] = useMessageState()
   const [indent, setIndent] = useState('2'),
     [valid, setValid] = useState(false)
   function change(value: string) {
@@ -23,7 +26,7 @@ export default function XmlTool() {
       setError('')
       setValid(true)
     } catch (reason) {
-      setError(errorMessage(reason))
+      setError(errorDescriptor(reason))
       setOutput('')
       setValid(false)
     }
@@ -32,38 +35,42 @@ export default function XmlTool() {
     <>
       <ToolToolbar>
         <Button variant="primary" onClick={() => run('format')}>
-          Format XML
+          {t('toolUi.formatXml')}
         </Button>
-        <Button onClick={() => run('minify')}>Minify XML</Button>
-        <Button onClick={() => run('validate')}>Validate XML</Button>
+        <Button onClick={() => run('minify')}>{t('toolUi.minifyXml')}</Button>
+        <Button onClick={() => run('validate')}>{t('toolUi.validateXml')}</Button>
         <label className="toolbar-field">
-          Indentation
+          {t('toolUi.indentation')}
           <select value={indent} onChange={(e) => setIndent(e.target.value)}>
-            <option value="2">2 spaces</option>
-            <option value="4">4 spaces</option>
-            <option value="tab">Tabs</option>
+            <option value="2">{t('toolUi.spaces2')}</option>
+            <option value="4">{t('toolUi.spaces4')}</option>
+            <option value="tab">{t('toolUi.tabs')}</option>
           </select>
         </label>
-        <Button onClick={() => change('')}>Clear</Button>
+        <Button onClick={() => change('')}>{t('toolUi.clear')}</Button>
       </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
-      {valid && <Message kind="success">Valid XML.</Message>}
+      {valid && <Message kind="success">{t('toolUi.validXml')}</Message>}
       <div className="editor-grid">
         <Editor
           minHeight={360}
-          label="XML input"
+          label={t('toolUi.xmlInput')}
           value={input}
           onChange={change}
           placeholder={'<project><name>DevToolbox</name></project>'}
         />
         <Editor
           minHeight={360}
-          label="XML output"
-          placeholder="Formatted XML will appear here…"
+          label={t('toolUi.xmlOutput')}
+          placeholder={t('toolUi.xmlHint')}
           value={output}
           actions={
-            <ToolActions label="Output actions">
-              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+            <ToolActions label={t('toolUi.outputActions')}>
+              <CopyButton
+                text={output}
+                label={t('toolUi.copyOutput')}
+                visibleLabel={t('common.copy')}
+              />
               <DownloadButton
                 text={output}
                 filename="formatted.xml"
@@ -75,11 +82,7 @@ export default function XmlTool() {
         />
       </div>
 
-      <p className="helper-text">
-        Local parsing only. DTD/entity declarations are rejected; no external resources are fetched.
-        Mixed text and xml:space content are preserved. Up to 200,000 characters and 100 nesting
-        levels.
-      </p>
+      <p className="helper-text">{t('toolUi.xmlHelp')}</p>
     </>
   )
 }

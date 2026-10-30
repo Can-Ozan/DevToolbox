@@ -8,7 +8,21 @@ import Collections from './pages/Collections'
 import Settings from './pages/Settings'
 import ToolPage from './pages/ToolPage'
 import NotFound from './pages/NotFound'
+import { useTranslation } from 'react-i18next'
 const WorkspacePage = lazy(() => import('./workspace/WorkspacePage'))
+
+function ErrorScreen() {
+  const { t } = useTranslation()
+  return (
+    <main className="fatal-error">
+      <h1>{t('common.errorTitle')}</h1>
+      <p>{t('common.errorBody')}</p>
+      <button className="button button-primary" onClick={() => window.location.reload()}>
+        {t('common.reload')}
+      </button>
+    </main>
+  )
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false }
@@ -19,20 +33,11 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean
     console.error('Application error', error.message, info.componentStack)
   }
   render() {
-    return this.state.failed ? (
-      <main className="fatal-error">
-        <h1>Something went wrong</h1>
-        <p>Your inputs have stayed in this browser. Reload to start again.</p>
-        <button className="button button-primary" onClick={() => window.location.reload()}>
-          Reload application
-        </button>
-      </main>
-    ) : (
-      this.props.children
-    )
+    return this.state.failed ? <ErrorScreen /> : this.props.children
   }
 }
 export default function App() {
+  const { t } = useTranslation()
   return (
     <ErrorBoundary>
       <ToastProvider>
@@ -43,7 +48,7 @@ export default function App() {
             <Route
               path="workspace"
               element={
-                <Suspense fallback={<p role="status">Loading Workspace…</p>}>
+                <Suspense fallback={<p role="status">{t('common.loadingWorkspace')}</p>}>
                   <WorkspacePage />
                 </Suspense>
               }

@@ -10,7 +10,13 @@ export default function OverflowMenu({
 }: {
   label: string
   disabled?: boolean
-  items: { label: string; name?: string; action: () => void | Promise<void>; danger?: boolean }[]
+  items: {
+    id?: string
+    label: string
+    name?: string
+    action: () => void | Promise<void>
+    danger?: boolean
+  }[]
 }) {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -116,7 +122,7 @@ export default function OverflowMenu({
                 role="menuitem"
                 aria-label={item.name ?? item.label}
                 tabIndex={-1}
-                key={item.label}
+                key={item.id ?? item.label}
                 disabled={busy}
                 variant={item.danger ? 'danger' : 'ghost'}
                 onClick={async () => {

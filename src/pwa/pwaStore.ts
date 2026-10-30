@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { Release } from '../data/releases'
 import { readWorkerRelease } from './releaseMessage'
+import { message, type DisplayMessage } from '../i18n/messages'
 
 interface InstallPrompt extends Event {
   prompt: () => Promise<void>
@@ -9,7 +10,7 @@ interface InstallPrompt extends Event {
 let state = {
   ready: false,
   update: false,
-  error: '',
+  error: '' as DisplayMessage,
   release: undefined as Release | undefined,
   install: undefined as InstallPrompt | undefined,
 }
@@ -85,7 +86,14 @@ export function startPwa() {
         if (navigator.onLine) void value.update().catch(() => {})
       })
     })
-    .catch(() => publish({ error: 'Offline setup is unavailable. The app remains usable online.' }))
+    .catch(() =>
+      publish({
+        error: message(
+          'pwa.setupUnavailable',
+          'Offline setup is unavailable. The app remains usable online.',
+        ),
+      }),
+    )
 }
 export function usePwa() {
   return useSyncExternalStore(
@@ -107,7 +115,10 @@ export async function installApp() {
     await prompt.userChoice
   } catch {
     publish({
-      error: 'Installation was not completed. You can keep using DevToolbox in this browser.',
+      error: message(
+        'pwa.installFailed',
+        'Installation was not completed. You can keep using DevToolbox in this browser.',
+      ),
     })
   }
 }
@@ -118,11 +129,14 @@ export async function updateApp() {
     else if (registration?.waiting) registration.waiting.postMessage({ type: 'SKIP_WAITING' })
     else {
       reloadApproved = false
-      publish({ error: 'The update is not ready yet. Please retry.' })
+      publish({ error: message('pwa.notReady', 'The update is not ready yet. Please retry.') })
     }
   } catch {
     publish({
-      error: 'The update could not be applied. Download unsaved outputs, then reload when ready.',
+      error: message(
+        'pwa.updateFailed',
+        'The update could not be applied. Download unsaved outputs, then reload when ready.',
+      ),
     })
   }
 }

@@ -1,14 +1,22 @@
+import { messageError } from '../i18n/messages'
 export function parseTimestamp(value: string, unit: 'seconds' | 'milliseconds') {
   if (!/^-?\d+(?:\.\d+)?$/.test(value.trim()))
-    throw new Error('Enter a numeric Unix timestamp, such as 1700000000.')
+    throw messageError(
+      'toolErrors.numericTimestamp',
+      'Enter a numeric Unix timestamp, such as 1700000000.',
+    )
   const milliseconds = Number(value) * (unit === 'seconds' ? 1000 : 1)
   const date = new Date(milliseconds)
   if (!Number.isFinite(date.getTime()))
-    throw new Error('This timestamp is outside the supported date range.')
+    throw messageError(
+      'toolErrors.timestampRange',
+      'This timestamp is outside the supported date range.',
+    )
   return date
 }
 export function dateDetails(date: Date) {
-  if (!Number.isFinite(date.getTime())) throw new Error('Enter a valid date and time.')
+  if (!Number.isFinite(date.getTime()))
+    throw messageError('toolErrors.dateValid', 'Enter a valid date and time.')
   return {
     'Local time': date.toLocaleString(),
     UTC: date.toUTCString(),

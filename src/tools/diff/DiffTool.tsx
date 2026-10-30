@@ -1,9 +1,12 @@
+import { renderMessage } from '../../i18n/messages'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar } from '../../components/ToolLayout'
 import { Fragment, useMemo, useState } from 'react'
 import { Button, Editor, Message } from '../../components/ui'
 import { compareText } from '../../lib/diff'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 export default function DiffTool() {
+  const { t } = useTranslation()
   const [original, setOriginal] = useState('')
   const [modified, setModified] = useState('')
   const [mode, setMode] = useState('side')
@@ -11,7 +14,7 @@ export default function DiffTool() {
     try {
       return { changes: compareText(original, modified), error: '' }
     } catch (error) {
-      return { changes: [], error: errorMessage(error) }
+      return { changes: [], error: errorDescriptor(error) }
     }
   }, [original, modified])
   const lines = result.changes.flatMap((part) => {
@@ -55,17 +58,17 @@ export default function DiffTool() {
     <>
       <div className="editor-grid">
         <Editor
-          label="Original text"
+          label={t('toolUi.originalText')}
           value={original}
           onChange={setOriginal}
-          placeholder="Paste the original text…"
+          placeholder={t('toolUi.originalHint')}
           minHeight={210}
         />
         <Editor
-          label="Modified text"
+          label={t('toolUi.modifiedText')}
           value={modified}
           onChange={setModified}
-          placeholder="Paste the updated text…"
+          placeholder={t('toolUi.modifiedHint')}
           minHeight={210}
         />
       </div>
@@ -78,7 +81,7 @@ export default function DiffTool() {
             )
           }}
         >
-          Load sample
+          {t('toolUi.loadSample')}
         </Button>
         <Button
           variant="ghost"
@@ -87,34 +90,34 @@ export default function DiffTool() {
             setModified('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
         <label className="field push-right">
           <select
-            aria-label="Diff view"
+            aria-label={t('toolUi.diffView')}
             value={mode}
             onChange={(event) => setMode(event.target.value)}
           >
-            <option value="side">Side by side</option>
-            <option value="unified">Unified view</option>
+            <option value="side">{t('toolUi.sideBySide')}</option>
+            <option value="unified">{t('toolUi.unified')}</option>
           </select>
         </label>
       </ToolToolbar>
-      {result.error && <Message kind="error">{result.error}</Message>}
+      {result.error && <Message kind="error">{renderMessage(result.error, t)}</Message>}
       {(original || modified) && !result.error && (
         <>
           <Message kind={additions || removals ? 'info' : 'success'}>
             {additions || removals
-              ? `${additions} added lines · ${removals} removed lines. Changed lines appear as a removal and an addition.`
-              : 'Both texts are identical.'}
+              ? t('toolUi.diffChanges', { added: additions, removed: removals })
+              : t('toolUi.identical')}
           </Message>
           <div className="diff-preview">
             {mode === 'unified' ? (
               lines.map(lineView)
             ) : (
               <div className="diff-side">
-                <h3>Original · − removed</h3>
-                <h3>Modified · + added</h3>
+                <h3>{t('toolUi.originalRemoved')}</h3>
+                <h3>{t('toolUi.modifiedAdded')}</h3>
                 {left.map((line, index) => (
                   <Fragment key={index}>
                     {lineView(line, index * 2)}
@@ -124,21 +127,21 @@ export default function DiffTool() {
               </div>
             )}
           </div>
-          <p className="helper-text">
-            Comparison includes whitespace and final newline differences.
-          </p>
+          <p className="helper-text">{t('toolUi.diffWhitespace')}</p>
           {original.endsWith('\n') !== modified.endsWith('\n') && (
             <p className="helper-text">
-              Final newline: original {original.endsWith('\n') ? 'present' : 'absent'} · modified{' '}
-              {modified.endsWith('\n') ? 'present' : 'absent'}.
+              {t('toolUi.newline', {
+                original: original.endsWith('\n') ? t('toolUi.present') : t('toolUi.absent'),
+                modified: modified.endsWith('\n') ? t('toolUi.present') : t('toolUi.absent'),
+              })}
             </p>
           )}
         </>
       )}
       {!original && !modified && (
         <div className="empty-state compact">
-          <h3>See what changed</h3>
-          <p>Paste both versions to compare them as you type, or load the sample.</p>
+          <h3>{t('toolUi.diffEmpty')}</h3>
+          <p>{t('toolUi.diffEmptyHelp')}</p>
         </div>
       )}
     </>

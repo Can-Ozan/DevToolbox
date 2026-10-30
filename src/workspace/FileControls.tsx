@@ -1,3 +1,7 @@
+import { useTranslation } from 'react-i18next'
+import { messageError, renderMessage } from '../i18n/messages'
+import { currentLanguage, getToolText } from '../i18n/toolLabels'
+import { useMessageState } from '../i18n/useMessageState'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Check, Download, FolderOpen, Plus, Save, Upload } from 'lucide-react'
@@ -10,7 +14,7 @@ import type { FileInput, FileOutput } from './workspaceTypes'
 import {
   acceptsFile,
   downloadFile,
-  fileError,
+  fileMessage,
   formatBytes,
   fromDevice,
   validateBatch,
@@ -39,7 +43,7 @@ export function WorkspaceFilePicker({
   multiple = false,
   disabled = false,
   onSelect,
-  deviceLabel = 'Upload from device',
+  deviceLabel,
   includeWorkspace = true,
 }: {
   accepted?: readonly string[]
@@ -49,9 +53,10 @@ export function WorkspaceFilePicker({
   deviceLabel?: string
   includeWorkspace?: boolean
 }) {
+  const { t } = useTranslation()
   const input = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [loading, setLoading] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [drag, setDrag] = useState<'valid' | 'invalid' | ''>('')
@@ -77,7 +82,7 @@ export function WorkspaceFilePicker({
         }
       })
       .catch((reason) => {
-        if (active) setError(fileError(reason))
+        if (active) setError(fileMessage(reason))
       })
       .finally(() => {
         if (active) setLoading(false)
@@ -85,18 +90,19 @@ export function WorkspaceFilePicker({
     return () => {
       active = false
     }
-  }, [requested, acceptedKey])
+  }, [requested, acceptedKey, setError])
 
   function choose(files: FileInput[]) {
     try {
-      if (!multiple && files.length !== 1) throw new Error('Choose one file for this tool.')
+      if (!multiple && files.length !== 1)
+        throw messageError('workspace.errors.oneFile', 'Choose one file for this tool.')
       validateBatch(files, accepted)
       onSelect(files)
       setError('')
       setOpen(false)
       setSelected([])
     } catch (reason) {
-      setError(fileError(reason))
+      setError(fileMessage(reason))
     }
   }
   async function fromWorkspace(ids: string[]) {
@@ -104,7 +110,7 @@ export function WorkspaceFilePicker({
     try {
       choose(await Promise.all(ids.map((id) => workspace.get(id))))
     } catch (reason) {
-      setError(fileError(reason))
+      setError(fileMessage(reason))
     } finally {
       setLoading(false)
     }
@@ -113,7 +119,7 @@ export function WorkspaceFilePicker({
   return (
     <section
       className={`file-picker ${drag ? `drop-${drag}` : ''}`}
-      aria-label="Input source"
+      aria-label={t('workspace.inputSource')}
       onDragOver={(event) => {
         event.preventDefault()
         if (disabled || loading) return
@@ -135,24 +141,20 @@ export function WorkspaceFilePicker({
     >
       <div className="drop-prompt">
         <Upload size={25} />
-        <strong>{multiple ? 'Drop your files here' : 'Drop your file here'}</strong>
+        <strong>{multiple ? t('workspace.dropFiles') : t('workspace.dropFile')}</strong>
         <span className="helper-text">
           {(accepted?.includes('*/*')
             ? undefined
             : accepted?.map((type) => type.split('/')[1].toUpperCase()).join(', ')) ??
-            'Files stay on this device'}
+            t('workspace.stayDevice')}
         </span>
       </div>
-      {drag === 'invalid' && (
-        <Message kind="error">
-          This file type or number of files is not supported here. Your current input is unchanged.
-        </Message>
-      )}
+      {drag === 'invalid' && <Message kind="error">{t('workspace.invalidDrop')}</Message>}
       <div className="actions">
         <input
           ref={input}
           type="file"
-          aria-label={deviceLabel}
+          aria-label={deviceLabel ?? t('workspace.upload')}
           hidden
           accept={accepted?.join(',')}
           multiple={multiple}
@@ -169,7 +171,7 @@ export function WorkspaceFilePicker({
           onClick={() => input.current?.click()}
         >
           <Plus size={16} />
-          {deviceLabel}
+          {deviceLabel ?? t('workspace.upload')}
         </Button>
         {includeWorkspace && (
           <Button
@@ -181,27 +183,23 @@ export function WorkspaceFilePicker({
             }}
           >
             <FolderOpen size={16} />
-            Choose from Workspace
+            {t('workspace.chooseWorkspace')}
           </Button>
         )}
       </div>
       <p className="helper-text">
-        {loading ? 'Opening file…' : 'Processed on this device. Nothing is uploaded.'}
+        {loading ? t('workspace.openingFile') : t('workspace.localProcessing')}
       </p>
       {error && !open && <Message kind="error">{error}</Message>}
       {includeWorkspace && (
-        <Modal open={open} onClose={() => setOpen(false)} title="Choose from Workspace">
-          <p className="helper-text">
-            Only compatible files are shown. Files stay in this browser.
-          </p>
+        <Modal open={open} onClose={() => setOpen(false)} title={t('workspace.chooseWorkspace')}>
+          <p className="helper-text">{t('workspace.compatibleHelp')}</p>
           {(error || snapshot.error) && <Message kind="error">{error || snapshot.error}</Message>}
           {snapshot.warning && <Message kind="warning">{snapshot.warning}</Message>}
           {snapshot.loading ? (
-            <p role="status">Loading files…</p>
+            <p role="status">{t('workspace.loadingFiles')}</p>
           ) : (
-            !matching.length && (
-              <p>No compatible files yet. Import a file or save an output first.</p>
-            )
+            !matching.length && <p>{t('workspace.noCompatible')}</p>
           )}
           <div className="workspace-picker-list">
             {matching.map((file) => (
@@ -231,7 +229,7 @@ export function WorkspaceFilePicker({
                       void fromWorkspace([file.id])
                     }}
                   >
-                    Use {file.name} · {formatBytes(file.size)}
+                    {t('workspace.useFile', { name: file.name, size: formatBytes(file.size) })}
                   </Button>
                 )}
               </div>
@@ -246,7 +244,7 @@ export function WorkspaceFilePicker({
                   void fromWorkspace(selected)
                 }}
               >
-                Use selected files
+                {t('workspace.useSelected')}
               </Button>
             )}
             <Button
@@ -254,9 +252,9 @@ export function WorkspaceFilePicker({
                 void refreshWorkspace()
               }}
             >
-              Refresh files
+              {t('workspace.refresh')}
             </Button>
-            <Button onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={() => setOpen(false)}>{t('common.cancel')}</Button>
           </div>
         </Modal>
       )}
@@ -271,8 +269,9 @@ export function FileOutputPanel({
   output: FileOutput
   image?: boolean
 }) {
+  const { t } = useTranslation()
   const url = useObjectURL(image ? output.blob : undefined)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState<{ id: string; name: string }>()
   const navigate = useNavigate()
@@ -286,7 +285,7 @@ export function FileOutputPanel({
     return () => {
       current.current = undefined
     }
-  }, [output])
+  }, [output, setError])
   async function save(path?: string) {
     if (savingRef.current) return
     if (saved) {
@@ -304,43 +303,43 @@ export function FileOutputPanel({
         if (path) navigate(`${path}?file=${encodeURIComponent(file.id)}`)
       }
     } catch (reason) {
-      if (current.current === version) setError(fileError(reason))
+      if (current.current === version) setError(fileMessage(reason))
     } finally {
       savingRef.current = false
       setSaving(false)
     }
   }
   return (
-    <section className="panel file-output" aria-label="File output">
+    <section className="panel file-output" aria-label={t('workspace.output')}>
       <h2 className="result-heading">
-        <Check size={22} /> Completed
+        <Check size={22} /> {t('workspace.completed')}
       </h2>
       <p className="file-name">{output.name}</p>
       <p className="helper-text">
         {formatBytes(output.blob.size)} · {output.blob.type}
-        {output.detail ? ` · ${output.detail}` : ''}
+        {output.detail ? ` · ${renderMessage(output.detail, t)}` : ''}
       </p>
-      {url && <img className="file-preview" src={url} alt="Output preview" />}
+      {url && <img className="file-preview" src={url} alt={t('workspace.outputPreview')} />}
       {output.originalSize !== undefined && (
         <dl className="result-stats">
           <div>
-            <dt>Original</dt>
+            <dt>{t('workspace.original')}</dt>
             <dd>{formatBytes(output.originalSize)}</dd>
           </div>
           <div>
-            <dt>Output</dt>
+            <dt>{t('workspace.outputLabel')}</dt>
             <dd>{formatBytes(output.blob.size)}</dd>
           </div>
           {output.originalSize > 0 && (
             <div>
-              <dt>Difference</dt>
+              <dt>{t('workspace.difference')}</dt>
               <dd>
                 {((output.blob.size / output.originalSize - 1) * 100).toFixed(1)}%{' '}
                 {output.blob.size === output.originalSize
-                  ? '(unchanged)'
+                  ? t('workspace.unchanged')
                   : output.blob.size > output.originalSize
-                    ? '(larger)'
-                    : '(smaller)'}
+                    ? t('workspace.larger')
+                    : t('workspace.smaller')}
               </dd>
             </div>
           )}
@@ -352,12 +351,12 @@ export function FileOutputPanel({
             try {
               downloadFile(output)
             } catch (reason) {
-              setError(fileError(reason))
+              setError(fileMessage(reason))
             }
           }}
         >
           <Download size={16} />
-          Download
+          {t('common.download')}
         </Button>
         <Button
           disabled={saving || !!saved}
@@ -366,25 +365,22 @@ export function FileOutputPanel({
           }}
         >
           {saved ? <Check size={16} /> : <Save size={16} />}
-          {saving ? 'Saving…' : saved ? 'Saved to Workspace' : 'Save to Workspace'}
+          {saving ? t('workspace.saving') : saved ? t('workspace.saved') : t('workspace.save')}
         </Button>
       </div>
       {error && <Message kind="error">{error}</Message>}
       {saved && (
         <>
           <Message kind="success">
-            Saved as {saved.name}. <Link to="/workspace">Open Workspace</Link>
+            {t('workspace.savedAs', { name: saved.name })}{' '}
+            <Link to="/workspace">{t('workspace.open')}</Link>
           </Message>
         </>
       )}
       {!!following.length && (
         <div className="continue-output">
-          <h3>Continue with</h3>
-          {!saved && (
-            <p className="helper-text">
-              Save a copy to Workspace and open it in a compatible tool.
-            </p>
-          )}
+          <h3>{t('workspace.continue')}</h3>
+          {!saved && <p className="helper-text">{t('workspace.continueHelp')}</p>}
           <div className="actions">
             {following.map((tool) =>
               saved ? (
@@ -393,7 +389,7 @@ export function FileOutputPanel({
                   key={tool.id}
                   to={`${tool.path}?file=${encodeURIComponent(saved.id)}`}
                 >
-                  Use in {tool.name}
+                  {t('workspace.useIn', { name: getToolText(tool, currentLanguage()).name })}
                 </Link>
               ) : (
                 <Button
@@ -403,7 +399,7 @@ export function FileOutputPanel({
                     void save(tool.path)
                   }}
                 >
-                  Save &amp; open {tool.name}
+                  {t('workspace.saveOpen', { name: getToolText(tool, currentLanguage()).name })}
                 </Button>
               ),
             )}
@@ -416,7 +412,7 @@ export function FileOutputPanel({
 
 export function useFileJob<T = FileOutput>() {
   const [output, setOutput] = useState<T>()
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [busy, setBusy] = useState(false)
   const [stage, setStage] = useState<ProcessingStage>('validating')
   const controller = useRef<AbortController | undefined>(undefined)
@@ -442,7 +438,7 @@ export function useFileJob<T = FileOutput>() {
       })
       if (!current.signal.aborted) setOutput(result)
     } catch (reason) {
-      if (!current.signal.aborted) setError(fileError(reason))
+      if (!current.signal.aborted) setError(fileMessage(reason))
     } finally {
       finish()
       current.signal.removeEventListener('abort', finish)

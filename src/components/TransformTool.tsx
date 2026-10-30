@@ -1,8 +1,10 @@
+import { useMessageState } from '../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar } from './ToolLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowLeftRight, Eraser, Play } from 'lucide-react'
 import { Button, CopyButton, Editor, Message } from './ui'
-import { errorMessage } from '../lib/encoding'
+import { errorDescriptor } from '../lib/encoding'
 
 export default function TransformTool({
   encode,
@@ -15,19 +17,20 @@ export default function TransformTool({
   inputHint: string
   children?: ReactNode
 }) {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   useEffect(() => {
     setOutput('')
     setError('')
-  }, [encode, decode])
+  }, [encode, decode, setError])
   function run(transform: (value: string) => string) {
     try {
       setOutput(transform(input))
       setError('')
     } catch (error) {
-      setError(errorMessage(error))
+      setError(errorDescriptor(error))
       setOutput('')
     }
   }
@@ -37,9 +40,9 @@ export default function TransformTool({
       <ToolToolbar>
         <Button variant="primary" onClick={() => run(encode)}>
           <Play size={14} />
-          Encode
+          {t('toolUi.encode')}
         </Button>
-        <Button onClick={() => run(decode)}>Decode</Button>
+        <Button onClick={() => run(decode)}>{t('toolUi.decode')}</Button>
         <Button
           disabled={!input && !output}
           onClick={() => {
@@ -49,7 +52,7 @@ export default function TransformTool({
           }}
         >
           <ArrowLeftRight size={15} />
-          Swap
+          {t('toolUi.swap')}
         </Button>
         <Button
           variant="ghost"
@@ -60,13 +63,13 @@ export default function TransformTool({
           }}
         >
           <Eraser size={15} />
-          Clear
+          {t('toolUi.clear')}
         </Button>
       </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
-          label="Input"
+          label={t('toolUi.input')}
           value={input}
           onChange={(value) => {
             setInput(value)
@@ -76,11 +79,17 @@ export default function TransformTool({
           placeholder={inputHint}
         />
         <Editor
-          label="Output"
+          label={t('toolUi.output')}
           value={output}
-          actions={<CopyButton text={output} label="Copy output" visibleLabel="Copy" />}
+          actions={
+            <CopyButton
+              text={output}
+              label={t('toolUi.copyOutput')}
+              visibleLabel={t('common.copy')}
+            />
+          }
           readOnly
-          placeholder="Your result will appear here…"
+          placeholder={t('toolUi.resultHint')}
         />
       </div>
     </>

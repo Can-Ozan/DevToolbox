@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 import { parseDocument, stringify } from 'yaml'
 
 function jsonCompatible(
@@ -7,25 +8,34 @@ function jsonCompatible(
   budget = { nodes: 0 },
 ): unknown {
   if (++budget.nodes > 20000 || depth > 80)
-    throw new Error('This document is too large or deeply nested. Use a smaller section.')
+    throw messageError(
+      'toolErrors.yamlDepth',
+      'This document is too large or deeply nested. Use a smaller section.',
+    )
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return value
   if (typeof value === 'bigint') {
     if (value > BigInt(Number.MAX_SAFE_INTEGER) || value < BigInt(Number.MIN_SAFE_INTEGER))
-      throw new Error(
+      throw messageError(
+        'toolErrors.yamlInteger',
         'An integer exceeds JSON’s safe numeric range. Quote it as a string to preserve its value.',
       )
     return Number(value)
   }
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || (Number.isInteger(value) && !Number.isSafeInteger(value)))
-      throw new Error(
+      throw messageError(
+        'toolErrors.yamlFinite',
         'Non-finite or unsafe integer values cannot be converted without losing information. Use strings instead.',
       )
     return value
   }
   if (typeof value !== 'object' || !value)
-    throw new Error('This YAML value cannot be represented in JSON.')
-  if (seen.has(value)) throw new Error('Circular YAML aliases cannot be represented in JSON.')
+    throw messageError('toolErrors.yamlValue', 'This YAML value cannot be represented in JSON.')
+  if (seen.has(value))
+    throw messageError(
+      'toolErrors.yamlCircular',
+      'Circular YAML aliases cannot be represented in JSON.',
+    )
   seen.add(value)
   const convert = (item: unknown) => jsonCompatible(item, seen, depth + 1, budget)
   let result: unknown
@@ -34,7 +44,10 @@ function jsonCompatible(
     const entries: [unknown, unknown][] =
       value instanceof Map ? [...value.entries()] : Object.entries(value)
     if (entries.some(([key]) => typeof key !== 'string'))
-      throw new Error('JSON object keys must be strings. Quote numeric or boolean YAML keys.')
+      throw messageError(
+        'toolErrors.yamlKeys',
+        'JSON object keys must be strings. Quote numeric or boolean YAML keys.',
+      )
     result = Object.fromEntries(entries.map(([key, item]) => [key, convert(item)]))
   }
   seen.delete(value)
@@ -42,8 +55,9 @@ function jsonCompatible(
 }
 
 export function convertJsonYaml(input: string, direction: 'json-yaml' | 'yaml-json') {
-  if (!input.trim()) throw new Error('Enter a document to convert.')
-  if (input.length > 200000) throw new Error('Input is limited to 200,000 characters.')
+  if (!input.trim()) throw messageError('toolErrors.documentEmpty', 'Enter a document to convert.')
+  if (input.length > 200000)
+    throw messageError('toolErrors.inputSize', 'Input is limited to 200,000 characters.')
   if (direction === 'json-yaml')
     return stringify(jsonCompatible(JSON.parse(input)), { lineWidth: 0 })
   const document = parseDocument(input, { schema: 'core', intAsBigInt: true, uniqueKeys: true })

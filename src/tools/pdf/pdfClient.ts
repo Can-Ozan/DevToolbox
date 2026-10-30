@@ -1,3 +1,4 @@
+import { messageError, MessageError, type DisplayMessage } from '../../i18n/messages'
 import type { ProcessingStage, ReportStage } from '../../lib/processing'
 import { FILE_LIMITS } from '../../workspace/workspaceUtils'
 import type { PdfRequest, PdfResult } from './pdfTypes'
@@ -22,7 +23,8 @@ export function runPdf(
       () =>
         finish(
           undefined,
-          new Error(
+          messageError(
+            'fileErrors.pdfTimeout',
             'PDF processing exceeded 30 seconds and was stopped. Try smaller files or fewer pages.',
           ),
         ),
@@ -30,21 +32,40 @@ export function runPdf(
     )
     signal.addEventListener('abort', abort, { once: true })
     worker.onmessage = (
-      event: MessageEvent<{ result?: PdfResult; error?: string; stage?: ProcessingStage }>,
+      event: MessageEvent<{ result?: PdfResult; error?: DisplayMessage; stage?: ProcessingStage }>,
     ) => {
       if (event.data.stage) report?.(event.data.stage)
-      else finish(event.data.result, event.data.error ? new Error(event.data.error) : undefined)
+      else {
+        const error = event.data.error
+        finish(
+          event.data.result,
+          error
+            ? typeof error === 'string'
+              ? new Error(error)
+              : new MessageError(error)
+            : undefined,
+        )
+      }
     }
     worker.onerror = (event) => {
       event.preventDefault()
-      finish(undefined, new Error('PDF processing could not start. Refresh the page and retry.'))
+      finish(
+        undefined,
+        messageError(
+          'fileErrors.pdfStart',
+          'PDF processing could not start. Refresh the page and retry.',
+        ),
+      )
     }
     try {
       worker.postMessage(request)
     } catch {
       finish(
         undefined,
-        new Error('Unable to send this file to the local PDF worker. Try a smaller file.'),
+        messageError(
+          'fileErrors.pdfSend',
+          'Unable to send this file to the local PDF worker. Try a smaller file.',
+        ),
       )
     }
   })

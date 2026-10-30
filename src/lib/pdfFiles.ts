@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 import type { ReportStage } from './processing'
 import {
   PDFDocument,
@@ -16,7 +17,8 @@ export { parsePageSelection } from './pdfPages'
 
 async function loadPdf(blob: Blob) {
   const header = new TextDecoder('latin1').decode(await blob.slice(0, 1024).arrayBuffer())
-  if (!header.includes('%PDF-')) throw new Error('This file is not a valid PDF.')
+  if (!header.includes('%PDF-'))
+    throw messageError('fileErrors.invalidPdf', 'This file is not a valid PDF.')
   try {
     const document = await PDFDocument.load(await blob.arrayBuffer(), {
       updateMetadata: false,
@@ -28,13 +30,25 @@ async function loadPdf(blob: Blob) {
     return document
   } catch (error) {
     if (error instanceof Error && /encrypt/i.test(error.message))
-      throw new Error(
+      throw messageError(
+        'fileErrors.encrypted',
         'Password-protected or encrypted PDFs are not supported. Use an unencrypted copy.',
+        {},
         { cause: error },
       )
     if (error instanceof Error && error.message === 'page limit')
-      throw new Error(`Choose a PDF containing 1–${FILE_LIMITS.pdfPages} pages.`, { cause: error })
-    throw new Error('This PDF is damaged or unsupported. Try another PDF.', { cause: error })
+      throw messageError(
+        'fileErrors.pdfContaining',
+        'Choose a PDF containing 1–{{max}} pages.',
+        { max: FILE_LIMITS.pdfPages },
+        { cause: error },
+      )
+    throw messageError(
+      'fileErrors.damagedPdf',
+      'This PDF is damaged or unsupported. Try another PDF.',
+      {},
+      { cause: error },
+    )
   }
 }
 
@@ -51,7 +65,7 @@ export async function processPdf(request: PdfRequest, report?: ReportStage): Pro
   if (request.operation === 'images') {
     const margin = request.margin ?? 24
     if (!Number.isFinite(margin) || margin < 0 || margin > 100)
-      throw new Error('Margins must be between 0 and 100 points.')
+      throw messageError('fileErrors.margin', 'Margins must be between 0 and 100 points.')
     for (const blob of request.files) {
       report?.('reading')
       const bytes = await blob.arrayBuffer()
@@ -83,9 +97,9 @@ export async function processPdf(request: PdfRequest, report?: ReportStage): Pro
     }
   } else {
     if (request.operation !== 'merge' && request.files.length !== 1)
-      throw new Error('Choose one PDF.')
+      throw messageError('fileErrors.onePdf', 'Choose one PDF.')
     if (request.operation === 'merge' && request.files.length < 2)
-      throw new Error('Choose at least two PDFs to merge.')
+      throw messageError('fileErrors.twoPdfs', 'Choose at least two PDFs to merge.')
     for (const file of request.files) {
       report?.('reading')
       const source = await loadPdf(file)
@@ -99,7 +113,9 @@ export async function processPdf(request: PdfRequest, report?: ReportStage): Pro
               request.operation === 'extract',
             )
       if (output.getPageCount() + indices.length > FILE_LIMITS.pdfPages)
-        throw new Error(`Output is limited to ${FILE_LIMITS.pdfPages} pages.`)
+        throw messageError('fileErrors.outputPages', 'Output is limited to {{max}} pages.', {
+          max: FILE_LIMITS.pdfPages,
+        })
       for (const page of await output.copyPages(source, indices)) output.addPage(page)
     }
   }

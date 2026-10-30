@@ -1,3 +1,4 @@
+import { message, messageError, type DisplayMessage } from '../../i18n/messages'
 import { getDocument, GlobalWorkerOptions, type RenderTask } from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { validateDimensions } from '../../lib/imageFiles'
@@ -43,19 +44,36 @@ export async function inspectPdf(file: FileInput, signal: AbortSignal) {
     signal.throwIfAborted()
     const metadata = await pdf.getMetadata()
     signal.throwIfAborted()
-    if (timedOut) throw new Error('PDF inspection exceeded 30 seconds.')
+    if (timedOut)
+      throw messageError('fileErrors.inspectTimeout', 'PDF inspection exceeded 30 seconds.')
     if ((metadata.info as { EncryptFilterName?: string }).EncryptFilterName)
-      throw new Error('Encrypted PDFs are not supported. Use an unencrypted copy.')
+      throw messageError(
+        'fileErrors.encryptedShort',
+        'Encrypted PDFs are not supported. Use an unencrypted copy.',
+      )
     if (!pdf.numPages || pdf.numPages > FILE_LIMITS.pdfPages)
-      throw new Error(`Choose a PDF with 1–${FILE_LIMITS.pdfPages} pages.`)
+      throw messageError('fileErrors.pdfWith', 'Choose a PDF with 1–{{max}} pages.', {
+        max: FILE_LIMITS.pdfPages,
+      })
     return pdf.numPages
   } catch (error) {
     signal.throwIfAborted()
     if (encrypted)
-      throw new Error('Encrypted PDFs are not supported. Use an unencrypted copy.', {
-        cause: error,
-      })
-    if (timedOut) throw new Error('PDF inspection exceeded 30 seconds.', { cause: error })
+      throw messageError(
+        'fileErrors.encryptedShort',
+        'Encrypted PDFs are not supported. Use an unencrypted copy.',
+        {},
+        {
+          cause: error,
+        },
+      )
+    if (timedOut)
+      throw messageError(
+        'fileErrors.inspectTimeout',
+        'PDF inspection exceeded 30 seconds.',
+        {},
+        { cause: error },
+      )
     throw error
   } finally {
     clearTimeout(timer)
@@ -74,7 +92,7 @@ export async function renderPdfImages(
   options: RenderOptions,
   signal: AbortSignal,
   report: ReportStage,
-  progress: (text: string) => void,
+  progress: (text: DisplayMessage) => void,
 ): Promise<FileOutput[]> {
   report('validating')
   validateFile(file, PDF_TYPES)
@@ -85,12 +103,13 @@ export async function renderPdfImages(
     options.quality < 0.1 ||
     options.quality > 1
   )
-    throw new Error('Choose valid image output settings.')
+    throw messageError('fileErrors.validSettings', 'Choose valid image output settings.')
   const header = new TextDecoder('latin1').decode(await file.blob.slice(0, 1024).arrayBuffer())
-  if (!header.includes('%PDF-')) throw new Error('This file is not a valid PDF.')
+  if (!header.includes('%PDF-'))
+    throw messageError('fileErrors.invalidPdf', 'This file is not a valid PDF.')
   signal.throwIfAborted()
   report('reading')
-  progress('Loading PDF…')
+  progress(message('fileUi.loadingPdf', 'Loading PDF…'))
   const data = new Uint8Array(await file.blob.arrayBuffer())
   signal.throwIfAborted()
   const assets = new URL(
@@ -128,27 +147,42 @@ export async function renderPdfImages(
     const pdf = await loading.promise
     signal.throwIfAborted()
     if (!pdf.numPages || pdf.numPages > FILE_LIMITS.pdfPages)
-      throw new Error(`Choose a PDF with 1–${FILE_LIMITS.pdfPages} pages.`)
+      throw messageError('fileErrors.pdfWith', 'Choose a PDF with 1–{{max}} pages.', {
+        max: FILE_LIMITS.pdfPages,
+      })
     // Even PDFs with an empty password are encrypted; keep the same policy as the PDF editors.
     const metadata = await pdf.getMetadata()
     if ((metadata.info as { EncryptFilterName?: string }).EncryptFilterName)
-      throw new Error('Encrypted PDFs are not supported. Use an unencrypted copy.')
+      throw messageError(
+        'fileErrors.encryptedShort',
+        'Encrypted PDFs are not supported. Use an unencrypted copy.',
+      )
     const selected = parsePageSelection(options.pages || `1-${pdf.numPages}`, pdf.numPages)
     if (selected.length > FILE_LIMITS.batchCount)
-      throw new Error('Render at most 30 pages at a time. Choose a smaller page range.')
+      throw messageError(
+        'fileErrors.batchPages',
+        'Render at most 30 pages at a time. Choose a smaller page range.',
+      )
     const outputs: FileOutput[] = []
     let pixels = 0,
       bytes = 0
     for (const [index, pageIndex] of selected.entries()) {
       signal.throwIfAborted()
       report('generating')
-      progress(`Rendering page ${pageIndex + 1} (${index + 1} of ${selected.length})…`)
+      progress(
+        message('fileUi.renderPage', 'Rendering page {{page}} ({{index}} of {{total}})…', {
+          page: pageIndex + 1,
+          index: index + 1,
+          total: selected.length,
+        }),
+      )
       const page = await pdf.getPage(pageIndex + 1)
       const viewport = page.getViewport({ scale: options.scale })
       const size = validateDimensions(Math.ceil(viewport.width), Math.ceil(viewport.height))
       pixels += size.width * size.height
       if (pixels > 32_000_000)
-        throw new Error(
+        throw messageError(
+          'fileErrors.pixelLimit',
           'Output exceeds 32 megapixels in total. Reduce the scale or select fewer pages.',
         )
       const canvas = document.createElement('canvas')
@@ -165,22 +199,28 @@ export async function renderPdfImages(
         await render.promise
         signal.throwIfAborted()
         report('preparing')
-        progress(`Encoding page ${pageIndex + 1}…`)
+        progress(message('fileUi.encodePage', 'Encoding page {{page}}…', { page: pageIndex + 1 }))
         const blob = await new Promise<Blob>((resolve, reject) =>
           canvas.toBlob(
             (value) =>
               value?.type === options.format
                 ? resolve(value)
-                : reject(new Error('This browser could not encode the image.')),
+                : reject(
+                    messageError(
+                      'fileErrors.browserEncode',
+                      'This browser could not encode the image.',
+                    ),
+                  ),
             options.format,
             options.quality,
           ),
         )
         signal.throwIfAborted()
-        if (timedOut) throw new Error('Rendering timed out.')
+        if (timedOut) throw messageError('fileErrors.renderTimeoutShort', 'Rendering timed out.')
         bytes += blob.size
         if (bytes > FILE_LIMITS.batchBytes || blob.size > FILE_LIMITS.imageBytes)
-          throw new Error(
+          throw messageError(
+            'fileErrors.renderSize',
             'Rendered images exceed the file size limit. Select fewer pages or a lower scale.',
           )
         outputs.push({
@@ -192,7 +232,10 @@ export async function renderPdfImages(
           blob,
           sourceTool: 'pdf-to-images',
           originalName: file.originalName ?? file.name,
-          detail: `${size.width} × ${size.height} px · page ${pageIndex + 1}`,
+          detail: message('fileUi.pageDetail', '{{size}} px · page {{page}}', {
+            size: `${size.width} × ${size.height}`,
+            page: pageIndex + 1,
+          }),
         })
       } finally {
         render = undefined
@@ -208,20 +251,29 @@ export async function renderPdfImages(
   } catch (error) {
     if (signal.aborted) signal.throwIfAborted()
     if (encrypted || (error instanceof Error && error.name === 'PasswordException'))
-      throw new Error(
+      throw messageError(
+        'fileErrors.encrypted',
         'Password-protected or encrypted PDFs are not supported. Use an unencrypted copy.',
+        {},
         { cause: error },
       )
     if (timedOut)
-      throw new Error(
+      throw messageError(
+        'fileErrors.renderTimeout',
         'PDF rendering exceeded 30 seconds. Reduce the scale or select fewer pages.',
+        {},
         { cause: error },
       )
     if (
       error instanceof Error &&
       ['InvalidPDFException', 'UnknownErrorException'].includes(error.name)
     )
-      throw new Error('This PDF is damaged or unsupported. Try another PDF.', { cause: error })
+      throw messageError(
+        'fileErrors.damagedPdf',
+        'This PDF is damaged or unsupported. Try another PDF.',
+        {},
+        { cause: error },
+      )
     throw error
   } finally {
     clearTimeout(timer)

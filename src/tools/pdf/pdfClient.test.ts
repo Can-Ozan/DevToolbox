@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { runPdf } from './pdfClient'
+import { message, MessageError } from '../../i18n/messages'
 
 class TestWorker {
   static last: TestWorker
@@ -16,6 +17,19 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 describe('PDF worker lifecycle', () => {
+  it('preserves translated worker errors and terminates after failure', async () => {
+    vi.stubGlobal('Worker', TestWorker)
+    const descriptor = message('fileErrors.invalidPdf', 'This file is not a valid PDF.')
+    const result = runPdf({ operation: 'inspect', files: [] }, new AbortController().signal).catch(
+      (error: unknown) => error,
+    )
+    TestWorker.last.onmessage?.({ data: { error: structuredClone(descriptor) } })
+    const error = await result
+    expect(error).toBeInstanceOf(MessageError)
+    expect((error as MessageError).descriptor).toEqual(descriptor)
+    expect((error as Error).message).toBe('This file is not a valid PDF.')
+    expect(TestWorker.last.terminate).toHaveBeenCalledOnce()
+  })
   it('reports lifecycle stages without terminating before the result', async () => {
     vi.stubGlobal('Worker', TestWorker)
     const report = vi.fn()

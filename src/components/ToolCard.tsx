@@ -2,16 +2,20 @@ import { ArrowUpRight, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { ToolDefinition } from '../registry/tools'
 import { preferences, usePreferences } from '../storage/preferences'
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getToolText, getCategoryLabel } from '../i18n/toolLabels'
 
 export function FavoriteButton({ tool }: { tool: ToolDefinition }) {
+  const { t } = useTranslation()
+  const name = getToolText(tool, currentLanguage()).name
   const active = usePreferences().favorites.includes(tool.id)
   return (
     <button
       type="button"
       className={`favorite-button ${active ? 'is-favorite' : ''}`}
-      aria-label={`${active ? 'Remove' : 'Add'} ${tool.name} ${active ? 'from' : 'to'} favorites`}
+      aria-label={t(active ? 'discovery.removeFavorite' : 'discovery.addFavorite', { name })}
       aria-pressed={active}
-      title={active ? 'Remove favorite' : 'Add favorite'}
+      title={t(active ? 'discovery.removeFavoriteTitle' : 'discovery.addFavoriteTitle')}
       onClick={() => preferences.toggleFavorite(tool.id)}
     >
       <Star size={17} fill={active ? 'currentColor' : 'none'} />
@@ -19,6 +23,8 @@ export function FavoriteButton({ tool }: { tool: ToolDefinition }) {
   )
 }
 export function ToolCard({ tool }: { tool: ToolDefinition }) {
+  const { t } = useTranslation()
+  const text = getToolText(tool, currentLanguage())
   const Icon = tool.icon
   return (
     <article className="tool-card">
@@ -28,12 +34,14 @@ export function ToolCard({ tool }: { tool: ToolDefinition }) {
           <span className={`tool-icon ${tool.color}`}>
             <Icon size={20} strokeWidth={1.7} />
           </span>
-          <h3>{tool.name}</h3>
+          <h3>{text.name}</h3>
         </div>
-        <p>{tool.description}</p>
+        <p>{text.description}</p>
         <div className="card-bottom">
-          <span className="category-tag">{tool.category}</span>
-          {tool.workspaceCompatible && <span className="capability-label">File workflow</span>}
+          <span className="category-tag">{getCategoryLabel(tool.category, currentLanguage())}</span>
+          {tool.workspaceCompatible && (
+            <span className="capability-label">{t('discovery.fileWorkflow')}</span>
+          )}
           <ArrowUpRight size={16} />
         </div>
       </Link>

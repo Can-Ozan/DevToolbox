@@ -20,6 +20,7 @@
   "dependencies": {
     "diff": "^9.0.0",
     "fflate": "^0.8.3",
+    "i18next": "26.4.2",
     "lucide-react": "^1.46.0",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.3.289",
@@ -27,6 +28,7 @@
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "react-i18next": "17.0.15",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.18.3",
     "remark-gfm": "^4.0.1",

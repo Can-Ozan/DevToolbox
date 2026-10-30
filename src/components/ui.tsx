@@ -21,6 +21,7 @@ import {
   AlignLeft,
 } from 'lucide-react'
 import { downloadFile } from '../workspace/workspaceUtils'
+import { useTranslation } from 'react-i18next'
 
 export function Button({
   children,
@@ -71,7 +72,7 @@ export async function copyText(text: string) {
 }
 export function CopyButton({
   text,
-  label = 'Copy',
+  label,
   visibleLabel,
   disabled = false,
   iconOnly = false,
@@ -82,19 +83,20 @@ export function CopyButton({
   disabled?: boolean
   iconOnly?: boolean
 }) {
+  const { t } = useTranslation()
   const toast = useToast()
   return (
     <Button
       disabled={disabled || !text}
-      aria-label={label}
+      aria-label={label ?? t('common.copy')}
       onClick={() => {
         void copyText(text)
-          .then(() => toast('Copied to clipboard'))
-          .catch(() => toast('Clipboard unavailable. Select and copy the output manually.'))
+          .then(() => toast(t('common.copied')))
+          .catch(() => toast(t('common.clipboardUnavailable')))
       }}
     >
       <Copy size={15} />
-      {!iconOnly && (visibleLabel ?? label)}
+      {!iconOnly && (visibleLabel ?? label ?? t('common.copy'))}
     </Button>
   )
 }
@@ -107,6 +109,7 @@ export function DownloadButton({
   filename: string
   mimeType?: string
 }) {
+  const { t } = useTranslation()
   const toast = useToast()
   return (
     <Button
@@ -114,14 +117,14 @@ export function DownloadButton({
       onClick={() => {
         try {
           downloadFile({ name: filename, blob: new Blob([text], { type: mimeType }) })
-          toast('Download started')
+          toast(t('common.downloadStarted'))
         } catch {
-          toast('The download could not start. Please retry.')
+          toast(t('common.downloadFailed'))
         }
       }}
     >
       <Download size={15} />
-      Download
+      {t('common.download')}
     </Button>
   )
 }
@@ -164,6 +167,7 @@ export function Editor({
   actions?: ReactNode
   minHeight?: number
 }) {
+  const { t } = useTranslation()
   return (
     <section className={`editor ${readOnly ? 'editor-output' : 'editor-input'}`}>
       <div className="editor-heading">
@@ -173,7 +177,7 @@ export function Editor({
         </span>
         <div className="editor-heading-actions">
           {actions}
-          {readOnly && !actions && <span className="tiny-label">READ ONLY</span>}
+          {readOnly && !actions && <span className="tiny-label">{t('common.readOnly')}</span>}
         </div>
       </div>
       <textarea
@@ -188,8 +192,8 @@ export function Editor({
         readOnly={readOnly}
       />
       <div className="editor-footer">
-        <span>{value.length.toLocaleString()} characters</span>
-        <span>{value ? value.split('\n').length : 0} lines</span>
+        <span>{t('common.characters', { count: value.length })}</span>
+        <span>{t('common.lines', { count: value ? value.split('\n').length : 0 })}</span>
       </div>
     </section>
   )
@@ -210,6 +214,7 @@ export function Modal({
   children: ReactNode
   className?: string
 }) {
+  const { t } = useTranslation()
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const dialog = ref.current
@@ -258,7 +263,7 @@ export function Modal({
       <div className="modal-inner">
         <div className="modal-heading">
           <h2>{title}</h2>
-          <Button variant="ghost" aria-label="Close dialog" onClick={onClose}>
+          <Button variant="ghost" aria-label={t('common.closeDialog')} onClick={onClose}>
             <X size={19} />
           </Button>
         </div>

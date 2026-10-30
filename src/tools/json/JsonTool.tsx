@@ -1,27 +1,32 @@
+import { messageError } from '../../i18n/messages'
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Braces, CheckCheck, Eraser, Minimize2 } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 import { usePreferences } from '../../storage/preferences'
 import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [valid, setValid] = useState(false)
   const { jsonIndent } = usePreferences()
   const [indent, setIndent] = useState<string>(jsonIndent)
   function run(mode: 'format' | 'minify' | 'validate') {
     try {
-      if (!input.trim()) throw new Error('Paste some JSON to get started.')
+      if (!input.trim())
+        throw messageError('toolErrors.jsonEmpty', 'Paste some JSON to get started.')
       const parsed: unknown = JSON.parse(input)
       setOutput(JSON.stringify(parsed, null, mode === 'minify' ? 0 : Number(indent)))
       setValid(true)
       setError('')
     } catch (error) {
-      setError(errorMessage(error))
+      setError(errorDescriptor(error))
       setValid(false)
       setOutput('')
     }
@@ -38,30 +43,30 @@ export default function JsonTool() {
       <ToolToolbar>
         <Button variant="primary" onClick={() => run('format')}>
           <Braces size={15} />
-          Format JSON
+          {t('toolUi.formatJson')}
         </Button>
         <Button onClick={() => run('minify')}>
           <Minimize2 size={15} />
-          Minify
+          {t('toolUi.minify')}
         </Button>
         <Button onClick={() => run('validate')}>
           <CheckCheck size={15} />
-          Validate
+          {t('toolUi.validate')}
         </Button>
         <label className="toolbar-field">
-          Indent
+          {t('toolUi.indent')}
           <select
-            aria-label="Indentation"
+            aria-label={t('toolUi.indentation')}
             value={indent}
             onChange={(event) => setIndent(event.target.value)}
           >
-            <option value="2">2 spaces</option>
-            <option value="4">4 spaces</option>
+            <option value="2">{t('toolUi.spaces2')}</option>
+            <option value="4">{t('toolUi.spaces4')}</option>
           </select>
         </label>
         <Button variant="ghost" onClick={() => change('')}>
           <Eraser size={15} />
-          Clear
+          {t('toolUi.clear')}
         </Button>
         <Button
           variant="ghost"
@@ -69,38 +74,39 @@ export default function JsonTool() {
             change('{"project":"DevToolbox","private":true,"tools":["JSON","Base64","UUID"]}')
           }
         >
-          Load sample
+          {t('toolUi.loadSample')}
         </Button>
       </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
-      {valid && <Message kind="success">Valid JSON. Your data is ready to use.</Message>}
+      {valid && <Message kind="success">{t('toolUi.validJson')}</Message>}
       <div className="editor-grid">
         <Editor
           minHeight={360}
-          label="JSON input"
+          label={t('toolUi.jsonInput')}
           value={input}
           onChange={change}
           placeholder={'{\n  "hello": "world"\n}'}
         />
         <Editor
           minHeight={360}
-          label="JSON output"
+          label={t('toolUi.jsonOutput')}
           value={output}
           actions={
-            <ToolActions label="Output actions">
-              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+            <ToolActions label={t('toolUi.outputActions')}>
+              <CopyButton
+                text={output}
+                label={t('toolUi.copyOutput')}
+                visibleLabel={t('common.copy')}
+              />
               <DownloadButton text={output} filename="formatted.json" />
             </ToolActions>
           }
           readOnly
-          placeholder="Formatted JSON will appear here…"
+          placeholder={t('toolUi.jsonHint')}
         />
       </div>
 
-      <p className="helper-text">
-        JSON uses double-quoted keys and strings. Comments and trailing commas are not supported.
-        JavaScript number precision applies to very large integers.
-      </p>
+      <p className="helper-text">{t('toolUi.jsonHelp')}</p>
     </>
   )
 }

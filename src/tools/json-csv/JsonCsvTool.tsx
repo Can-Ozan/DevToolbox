@@ -1,17 +1,20 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { csvToJson, jsonToCsv, type Delimiter } from '../../lib/jsonCsv'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonCsvTool() {
+  const { t } = useTranslation()
   const [toCsv, setToCsv] = useState(true)
   const [input, setInput] = useState('')
   const [result, setResult] = useState<ReturnType<typeof jsonToCsv>>()
   const [delimiter, setDelimiter] = useState<Delimiter>(',')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   function clearResult() {
     setResult(undefined)
     setError('')
@@ -34,11 +37,11 @@ export default function JsonCsvTool() {
               setError('')
             } catch (reason) {
               setResult(undefined)
-              setError(errorMessage(reason))
+              setError(errorDescriptor(reason))
             }
           }}
         >
-          Convert {toCsv ? 'JSON to CSV' : 'CSV to JSON'}
+          {t(toCsv ? 'toolUi.toCsv' : 'toolUi.toJsonCsv')}
         </Button>
         <Button
           onClick={() => {
@@ -48,7 +51,7 @@ export default function JsonCsvTool() {
           }}
         >
           <ArrowLeftRight size={15} />
-          Swap direction
+          {t('toolUi.swapDirection')}
         </Button>
         <Button
           onClick={() => {
@@ -56,10 +59,10 @@ export default function JsonCsvTool() {
             clearResult()
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
         <label className="toolbar-field">
-          Delimiter
+          {t('toolUi.delimiter')}
           <select
             value={delimiter}
             onChange={(event) => {
@@ -67,16 +70,16 @@ export default function JsonCsvTool() {
               clearResult()
             }}
           >
-            <option value=",">Comma</option>
-            <option value=";">Semicolon</option>
-            <option value={'\t'}>Tab</option>
+            <option value=",">{t('toolUi.comma')}</option>
+            <option value=";">{t('toolUi.semicolon')}</option>
+            <option value={'\t'}>{t('toolUi.tab')}</option>
           </select>
         </label>
       </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
-          label={toCsv ? 'JSON input' : 'CSV input'}
+          label={toCsv ? t('toolUi.jsonInput') : t('toolUi.csvInput')}
           value={input}
           onChange={(value) => {
             setInput(value)
@@ -85,11 +88,15 @@ export default function JsonCsvTool() {
           placeholder={toCsv ? '[{"name":"Can","age":20}]' : 'name,age\nCan,20'}
         />
         <Editor
-          label={toCsv ? 'CSV output' : 'JSON output'}
+          label={toCsv ? t('toolUi.csvOutput') : t('toolUi.jsonOutput')}
           value={result?.output ?? ''}
           actions={
-            <ToolActions label="Output actions">
-              <CopyButton text={result?.output ?? ''} label="Copy output" visibleLabel="Copy" />
+            <ToolActions label={t('toolUi.outputActions')}>
+              <CopyButton
+                text={result?.output ?? ''}
+                label={t('toolUi.copyOutput')}
+                visibleLabel={t('common.copy')}
+              />
               <DownloadButton
                 text={result?.output ?? ''}
                 filename={toCsv ? 'data.csv' : 'data.json'}
@@ -98,21 +105,16 @@ export default function JsonCsvTool() {
             </ToolActions>
           }
           readOnly
-          placeholder="Converted data will appear here…"
+          placeholder={t('toolUi.dataHint')}
         />
       </div>
       {result && (
         <p role="status">
-          {result.rows} rows · {result.columns} columns
+          {t('toolUi.rowsColumns', { rows: result.rows, columns: result.columns })}
         </p>
       )}
 
-      <p className="helper-text">
-        JSON accepts flat objects only. Columns follow their first appearance; missing values and
-        null become empty cells. CSV uses the first row as unique headers and keeps values as
-        strings, including numbers. Blank lines are skipped; nested values are rejected. Up to
-        200,000 input characters, 10,000 rows, 200 columns and 100,000 cells. Inputs stay in memory.
-      </p>
+      <p className="helper-text">{t('toolUi.csvHelp')}</p>
     </>
   )
 }
