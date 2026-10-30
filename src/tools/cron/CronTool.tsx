@@ -1,3 +1,5 @@
+import { renderMessage } from '../../i18n/messages'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button, CopyButton, Message } from '../../components/ui'
 import {
@@ -8,9 +10,10 @@ import {
   describeCron,
   type CronKey,
 } from '../../lib/cron'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 
 export default function CronTool() {
+  const { t } = useTranslation()
   const [values, setValues] = useState(() => cronValues('0 9 * * *'))
   const [modes, setModes] = useState<Partial<Record<CronKey, string>>>({})
   let expression = ''
@@ -18,15 +21,15 @@ export default function CronTool() {
   try {
     expression = buildCron(values)
   } catch (reason) {
-    error = errorMessage(reason)
+    error = renderMessage(errorDescriptor(reason), t)
   }
   return (
     <>
       <div className="panel">
         <label className="field">
-          Common presets
+          {t('toolUi.presets')}
           <select
-            aria-label="Common presets"
+            aria-label={t('toolUi.presets')}
             value={cronPresets.some((p) => p.expression === expression) ? expression : ''}
             onChange={(event) => {
               if (event.target.value) {
@@ -36,11 +39,23 @@ export default function CronTool() {
             }}
           >
             <option value="" disabled>
-              Custom expression
+              {t('toolUi.customExpression')}
             </option>
-            {cronPresets.map((preset) => (
+            {cronPresets.map((preset, index) => (
               <option key={preset.expression} value={preset.expression}>
-                {preset.label}
+                {t(
+                  (
+                    [
+                      'toolUi.everyMinute',
+                      'toolUi.every5',
+                      'toolUi.everyHour',
+                      'toolUi.everyDay',
+                      'toolUi.everyWeekday',
+                      'toolUi.everyWeek',
+                      'toolUi.everyMonth',
+                    ] as const
+                  )[index],
+                )}
               </option>
             ))}
           </select>
@@ -60,9 +75,9 @@ export default function CronTool() {
             return (
               <div className="field" key={field.key}>
                 <label className="field">
-                  {field.label}
+                  {t(`toolUi.${field.key}`)}
                   <select
-                    aria-label={`${field.label} mode`}
+                    aria-label={t('toolUi.fieldMode', { field: t(`toolUi.${field.key}`) })}
                     value={mode}
                     onChange={(event) => {
                       const mode = event.target.value
@@ -74,16 +89,16 @@ export default function CronTool() {
                       })
                     }}
                   >
-                    <option value="every">Every value</option>
-                    <option value="specific">Specific value</option>
-                    <option value="interval">Interval</option>
-                    <option value="custom">List / range</option>
+                    <option value="every">{t('toolUi.everyValue')}</option>
+                    <option value="specific">{t('toolUi.specificValue')}</option>
+                    <option value="interval">{t('toolUi.interval')}</option>
+                    <option value="custom">{t('toolUi.listRange')}</option>
                   </select>
                 </label>
                 {mode !== 'every' && (
                   <input
                     type="text"
-                    aria-label={`${field.label} value`}
+                    aria-label={t('toolUi.fieldValue', { field: t(`toolUi.${field.key}`) })}
                     value={mode === 'interval' ? value.replace(/^\*\//, '') : value}
                     onChange={(event) =>
                       setValues({
@@ -97,7 +112,7 @@ export default function CronTool() {
                 )}
                 <span>
                   {field.min}–{field.max}
-                  {field.key === 'weekday' ? ' · 0 = Sunday' : ''}
+                  {field.key === 'weekday' ? t('toolUi.sundayZero') : ''}
                 </span>
               </div>
             )
@@ -106,13 +121,15 @@ export default function CronTool() {
       </div>
       {error && <Message kind="error">{error}</Message>}
       <div className="output-title">
-        <h2>Cron expression</h2>
-        <CopyButton text={expression} label="Copy cron expression" />
+        <h2>{t('toolUi.cronExpression')}</h2>
+        <CopyButton text={expression} label={t('toolUi.copyCron')} />
       </div>
-      <pre className="code-output" aria-label="Cron expression">
-        {expression || 'Fix the fields above to create an expression.'}
+      <pre className="code-output" aria-label={t('toolUi.cronExpression')}>
+        {expression || t('toolUi.fixCron')}
       </pre>
-      {expression && <Message>{describeCron(expression)}</Message>}
+      {expression && (
+        <Message>{describeCron(expression, (value) => renderMessage(value, t))}</Message>
+      )}
       <div className="actions">
         <Button
           onClick={() => {
@@ -120,18 +137,11 @@ export default function CronTool() {
             setModes({})
           }}
         >
-          Reset
+          {t('toolUi.reset')}
         </Button>
       </div>
-      <p className="helper-text">
-        Order: minute · hour · day of month · month · day of week. Intervals restart within each
-        field. Dates that do not exist are skipped. When both day fields are restricted, common cron
-        implementations match either field.
-      </p>
-      <Message kind="warning">
-        Cron behavior, time zones, and daylight saving handling may vary between platforms. Check
-        your scheduler’s documentation. This tool builds expressions; it does not schedule jobs.
-      </Message>
+      <p className="helper-text">{t('toolUi.cronHelp')}</p>
+      <Message kind="warning">{t('toolUi.cronWarning')}</Message>
     </>
   )
 }

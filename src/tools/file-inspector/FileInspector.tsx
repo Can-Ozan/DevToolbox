@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { Button, Message } from '../../components/ui'
 import { WorkspaceFilePicker, useFileJob } from '../../workspace/FileControls'
 import type { FileInput } from '../../workspace/workspaceTypes'
 import { workspace } from '../../workspace/workspaceStore'
-import { fileError, formatBytes } from '../../workspace/workspaceUtils'
+import { formatBytes } from '../../workspace/workspaceUtils'
+import { errorDescriptor } from '../../lib/encoding'
+import { renderMessage } from '../../i18n/messages'
+import { currentLanguage, getToolText } from '../../i18n/toolLabels'
 import { inspectFile, type Inspection } from './inspection'
 import { inspectionTools } from '../../registry/discovery'
 
 export default function FileInspector() {
+  const { t } = useTranslation()
   const [file, setFile] = useState<FileInput>()
   const job = useFileJob<Inspection>()
   const [saving, setSaving] = useState(false)
@@ -47,13 +52,22 @@ export default function FileInspector() {
       }
       if (current.current === version) navigate(`${path}?file=${encodeURIComponent(id)}`)
     } catch (reason) {
-      if (current.current === version) setError(fileError(reason))
+      if (current.current === version) setError(renderMessage(errorDescriptor(reason), t))
     } finally {
       setSaving(false)
     }
   }
   const result = job.output
-  const recommendations = file && result ? inspectionTools(file.name, result) : []
+  const recommendations =
+    file && result
+      ? inspectionTools(file.name, result).map(({ tool }) => ({
+          tool,
+          reason: t('inspection.accepts', {
+            mime: result.mimeType,
+            description: getToolText(tool, currentLanguage()).description,
+          }),
+        }))
+      : []
   return (
     <>
       <WorkspaceFilePicker
@@ -68,24 +82,30 @@ export default function FileInspector() {
       {file && (
         <div className="actions">
           <Button disabled={saving} onClick={clear}>
-            {job.busy ? 'Cancel inspection' : 'Clear file'}
+            {job.busy ? t('inspection.cancelInspect') : t('inspection.clearFile')}
           </Button>
         </div>
       )}
-      {job.busy && <p role="status">Inspecting locally…</p>}
+      {job.busy && <p role="status">{t('inspection.inspecting')}</p>}
       {(error || job.error) && <Message kind="error">{error || job.error}</Message>}
       {file && (
-        <section className="panel file-output" aria-label="File inspection">
-          <h2>File details</h2>
+        <section className="panel file-output" aria-label={t('inspection.fileInspection')}>
+          <h2>{t('inspection.fileDetails')}</h2>
           <dl className="result-stats">
             {(
               [
-                ['Filename', file.name],
-                ['Extension', /\.([^.]+)$/.exec(file.name)?.[1].toLowerCase() ?? 'None'],
-                ['Reported MIME', file.blob.type || 'Not provided'],
+                [t('workspace.filename'), file.name],
+                [
+                  t('inspection.extension'),
+                  /\.([^.]+)$/.exec(file.name)?.[1].toLowerCase() ?? 'None',
+                ],
+                [t('inspection.reportedMime'), file.blob.type || t('inspection.notProvided')],
                 [
                   'Size',
-                  `${formatBytes(file.blob.size)} (${file.blob.size.toLocaleString()} bytes)`,
+                  t('inspection.byteSize', {
+                    size: formatBytes(file.blob.size),
+                    count: file.blob.size,
+                  }),
                 ],
                 [
                   'Last modified',
@@ -93,9 +113,29 @@ export default function FileInspector() {
                   Number.isFinite(file.lastModified) &&
                   file.lastModified <= 8.64e15
                     ? new Date(file.lastModified).toLocaleString()
-                    : 'Not available',
+                    : t('inspection.notAvailable'),
                 ],
-                ...(result ? [['Detected type', result.mimeType], ...result.details] : []),
+                ...(result
+                  ? [
+                      [t('inspection.detected'), result.mimeType],
+                      ...result.details.map(([label, value]) => [
+                        label === 'Dimensions'
+                          ? t('inspection.dimensions')
+                          : label === 'Pages'
+                            ? t('inspection.pages')
+                            : label === 'ZIP entries'
+                              ? t('inspection.zipEntries')
+                              : label === 'Files'
+                                ? t('inspection.files')
+                                : label === 'JSON structure'
+                                  ? t('inspection.jsonStructure')
+                                  : label === 'Top-level entries'
+                                    ? t('inspection.topEntries')
+                                    : label,
+                        value,
+                      ]),
+                    ]
+                  : []),
               ] as [string, string][]
             ).map(([label, value]) => (
               <div key={label}>
@@ -104,19 +144,23 @@ export default function FileInspector() {
               </div>
             ))}
           </dl>
-          {result && <p className="helper-text">{result.detection}</p>}
-          {result?.warning && <Message kind="warning">{result.warning}</Message>}
-          {result?.valid && (
-            <Message kind="success">Inspection complete. Your file stays on this device.</Message>
+          {result && (
+            <p className="helper-text">
+              {result.detection === 'JSON filename/MIME hint; validated below'
+                ? t('inspection.jsonHint')
+                : result.detection === 'Binary file signature; validated below'
+                  ? t('inspection.signatureHint')
+                  : t('inspection.unsupportedHint')}
+            </p>
           )}
+          {result?.warning && <Message kind="warning">{result.warning}</Message>}
+          {result?.valid && <Message kind="success">{t('inspection.complete')}</Message>}
         </section>
       )}
       {!!recommendations.length && (
-        <section className="panel file-output" aria-label="Recommended tools">
-          <h2>Continue with a compatible tool</h2>
-          <p className="helper-text">
-            Workspace files are reused. Device inputs are saved to Workspace when you choose a tool.
-          </p>
+        <section className="panel file-output" aria-label={t('inspection.recommended')}>
+          <h2>{t('inspection.continueTool')}</h2>
+          <p className="helper-text">{t('inspection.handoffHelp')}</p>
           {recommendations.map(({ tool, reason }) => (
             <div className="inspection-recommendation" key={tool.id}>
               <Button
@@ -125,18 +169,14 @@ export default function FileInspector() {
                   void open(tool.path)
                 }}
               >
-                Open {tool.name}
+                {t('inspection.openTool', { name: tool.name })}
               </Button>
               <p className="helper-text">{reason}</p>
             </div>
           ))}
         </section>
       )}
-      <p className="helper-text">
-        Signature and format checks are deterministic, not a security scan. PNG, JPEG, WebP, PDF,
-        JSON and ZIP are inspected within the existing file limits. Other formats show metadata
-        only. No uploads or network lookups.
-      </p>
+      <p className="helper-text">{t('inspection.inspectHelp')}</p>
     </>
   )
 }

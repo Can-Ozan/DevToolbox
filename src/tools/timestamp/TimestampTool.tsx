@@ -1,31 +1,34 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Clock3 } from 'lucide-react'
 import { Button, CopyButton, Message } from '../../components/ui'
 import { dateDetails, parseTimestamp } from '../../lib/timestamp'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 export default function TimestampTool() {
+  const { t } = useTranslation()
   const [timestamp, setTimestamp] = useState('')
   const [unit, setUnit] = useState<'seconds' | 'milliseconds'>('seconds')
   const [dateInput, setDateInput] = useState('')
   const [result, setResult] = useState<ReturnType<typeof dateDetails> | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   function show(date: Date) {
     try {
       setResult(dateDetails(date))
       setError('')
     } catch (error) {
       setResult(null)
-      setError(errorMessage(error))
+      setError(errorDescriptor(error))
     }
   }
   return (
     <>
       <div className="editor-grid">
         <section className="panel">
-          <h2>Timestamp → date</h2>
+          <h2>{t('toolUi.timestampToDate')}</h2>
           <div className="field-row">
             <label className="field">
-              Unix timestamp
+              {t('toolUi.unixTimestamp')}
               <input
                 type="text"
                 inputMode="decimal"
@@ -35,15 +38,15 @@ export default function TimestampTool() {
               />
             </label>
             <label className="field">
-              Unit
+              {t('toolUi.unit')}
               <select
                 value={unit}
                 onChange={(event) =>
                   setUnit(event.target.value === 'seconds' ? 'seconds' : 'milliseconds')
                 }
               >
-                <option value="seconds">Seconds</option>
-                <option value="milliseconds">Milliseconds</option>
+                <option value="seconds">{t('toolUi.seconds')}</option>
+                <option value="milliseconds">{t('toolUi.milliseconds')}</option>
               </select>
             </label>
           </div>
@@ -54,17 +57,17 @@ export default function TimestampTool() {
                 show(parseTimestamp(timestamp, unit))
               } catch (error) {
                 setResult(null)
-                setError(errorMessage(error))
+                setError(errorDescriptor(error))
               }
             }}
           >
-            Convert timestamp
+            {t('toolUi.convertTimestamp')}
           </Button>
         </section>
         <section className="panel">
-          <h2>Date → timestamp</h2>
+          <h2>{t('toolUi.dateToTimestamp')}</h2>
           <label className="field">
-            Local date and time
+            {t('toolUi.localDate')}
             <input
               type="datetime-local"
               step="0.001"
@@ -74,7 +77,7 @@ export default function TimestampTool() {
           </label>
           <div className="actions">
             <Button variant="primary" onClick={() => show(new Date(dateInput))}>
-              Convert date
+              {t('toolUi.convertDate')}
             </Button>
           </div>
         </section>
@@ -90,7 +93,7 @@ export default function TimestampTool() {
           }}
         >
           <Clock3 size={15} />
-          Use current time
+          {t('toolUi.currentTime')}
         </Button>
         <Button
           variant="ghost"
@@ -101,35 +104,38 @@ export default function TimestampTool() {
             setError('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
       </div>
       {error && <Message kind="error">{error}</Message>}
       {result && (
         <section className="panel">
           <div className="output-title">
-            <h2>Converted date</h2>
+            <h2>{t('toolUi.convertedDate')}</h2>
             <CopyButton
               text={Object.entries(result)
                 .map(([key, value]) => `${key}: ${value}`)
                 .join('\n')}
-              label="Copy results"
+              label={t('toolUi.copyResults')}
             />
           </div>
           <dl className="data-table">
             {Object.entries(result).map(([key, value]) => (
               <div key={key}>
-                <dt>{key}</dt>
+                <dt>
+                  {{
+                    'Local time': t('toolUi.localTime'),
+                    'Unix seconds': t('toolUi.unixSeconds'),
+                    'Unix milliseconds': t('toolUi.unixMilliseconds'),
+                  }[key] ?? key}
+                </dt>
                 <dd>{value}</dd>
               </div>
             ))}
           </dl>
         </section>
       )}
-      <p className="helper-text">
-        Date input uses your device’s local time zone. Daylight saving transitions follow your
-        browser’s date rules.
-      </p>
+      <p className="helper-text">{t('toolUi.timestampHelp')}</p>
     </>
   )
 }

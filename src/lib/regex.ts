@@ -1,3 +1,5 @@
+import { messageError } from '../i18n/messages'
+import type { DisplayMessage } from '../i18n/messages'
 export interface RegexMatch {
   value: string
   index: number
@@ -7,13 +9,19 @@ export interface RegexMatch {
 export interface RegexResult {
   matches: RegexMatch[]
   limited: boolean
-  error?: string
+  error?: DisplayMessage
 }
 export function matchRegex(pattern: string, flags: string, text: string): RegexResult {
   if (!/^[gimsuy]*$/.test(flags) || new Set(flags).size !== flags.length)
-    throw new Error('Use each supported flag at most once: g, i, m, s, u, y.')
+    throw messageError(
+      'toolErrors.regexFlags',
+      'Use each supported flag at most once: g, i, m, s, u, y.',
+    )
   if (text.length > 100000)
-    throw new Error('Test text is limited to 100,000 characters to keep the interface responsive.')
+    throw messageError(
+      'toolErrors.regexSize',
+      'Test text is limited to 100,000 characters to keep the interface responsive.',
+    )
   const regex = new RegExp(pattern, flags)
   const matches: RegexMatch[] = []
   let result: RegExpExecArray | null

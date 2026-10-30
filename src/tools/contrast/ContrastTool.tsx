@@ -1,11 +1,14 @@
+import { renderMessage } from '../../i18n/messages'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { ArrowLeftRight, Check, X } from 'lucide-react'
 import { Button, CopyButton, Message } from '../../components/ui'
 import { contrastChecks, contrastColor, contrastRatio } from '../../lib/contrast'
 import { formatColor } from '../../lib/color'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 
 export default function ContrastTool() {
+  const { t } = useTranslation()
   const [foreground, setForeground] = useState('#292834')
   const [background, setBackground] = useState('#FFFFFF')
   let result: { ratio: number; foreground: string; background: string } | null = null
@@ -19,23 +22,23 @@ export default function ContrastTool() {
       background: formatColor(bg).hex,
     }
   } catch (reason) {
-    error = errorMessage(reason)
+    error = renderMessage(errorDescriptor(reason), t)
   }
   return (
     <>
       <div className="field-row">
         <label className="field">
-          Foreground color
+          {t('toolUi.foreground')}
           <input
             type="text"
             value={foreground}
             onChange={(event) => setForeground(event.target.value)}
             spellCheck={false}
-            placeholder="#292834 or rgb(41, 40, 52)"
+            placeholder={t('toolUi.foregroundHint')}
           />
         </label>
         <label className="field">
-          Background color
+          {t('toolUi.background')}
           <input
             type="text"
             value={background}
@@ -51,7 +54,7 @@ export default function ContrastTool() {
           }}
         >
           <ArrowLeftRight size={15} />
-          Swap
+          {t('toolUi.swap')}
         </Button>
       </div>
       {error && <Message kind="error">{error}</Message>}
@@ -61,25 +64,23 @@ export default function ContrastTool() {
             <section
               className="panel"
               style={{ color: result.foreground, backgroundColor: result.background }}
-              aria-label="Color combination preview"
+              aria-label={t('toolUi.colorPreview')}
             >
-              <h2 style={{ fontSize: 26 }}>A clear point of view.</h2>
-              <p style={{ fontSize: 16 }}>
-                This sample uses your chosen foreground and background colors.
-              </p>
+              <h2 style={{ fontSize: 26 }}>{t('toolUi.contrastSample')}</h2>
+              <p style={{ fontSize: 16 }}>{t('toolUi.contrastSampleHelp')}</p>
               <p style={{ fontSize: 14, marginTop: 30 }}>
-                Foreground {result.foreground}
+                {t('toolUi.foregroundValue', { value: result.foreground })}
                 <br />
-                Background {result.background}
+                {t('toolUi.backgroundValue', { value: result.background })}
               </p>
             </section>
             <section className="panel">
-              <h2>Contrast ratio</h2>
-              <p className="password-result" aria-label="Contrast ratio">
+              <h2>{t('toolUi.contrastRatio')}</h2>
+              <p className="password-result" aria-label={t('toolUi.contrastRatio')}>
                 {result.ratio.toFixed(2)}:1
               </p>
               <div className="actions">
-                <CopyButton text={`${result.ratio.toFixed(2)}:1`} label="Copy ratio" />
+                <CopyButton text={`${result.ratio.toFixed(2)}:1`} label={t('toolUi.copyRatio')} />
               </div>
             </section>
           </div>
@@ -87,27 +88,37 @@ export default function ContrastTool() {
             {contrastChecks(result.ratio).map((check) => (
               <div className="result-row" key={check.label}>
                 {check.passes ? <Check size={18} /> : <X size={18} />}
-                <strong className="text-xs">{check.label}</strong>
-                <span style={{ flex: 1, fontSize: 12 }}>{check.minimum}:1 minimum</span>
-                <strong className="text-xs">{check.passes ? 'Pass' : 'Fail'}</strong>
+                <strong className="text-xs">
+                  {
+                    {
+                      'AA normal text': t('toolUi.aaNormal'),
+                      'AA large text': t('toolUi.aaLarge'),
+                      'AAA normal text': t('toolUi.aaaNormal'),
+                      'AAA large text': t('toolUi.aaaLarge'),
+                    }[check.label]
+                  }
+                </strong>
+                <span style={{ flex: 1, fontSize: 12 }}>
+                  {t('toolUi.minimum', { value: check.minimum })}
+                </span>
+                <strong className="text-xs">
+                  {check.passes ? t('toolUi.pass') : t('toolUi.fail')}
+                </strong>
               </div>
             ))}
           </div>
         </>
       )}
+      <p className="helper-text">{t('toolUi.contrastHelp')}</p>
       <p className="helper-text">
-        Large text means at least 24px regular or about 18.67px bold. Pass/fail uses the unrounded
-        ratio. Opaque sRGB colors only; transparency is not supported.
-      </p>
-      <p className="helper-text">
-        Calculated using the{' '}
+        {t('toolUi.calculatedUsing')}{' '}
         <a
           className="underline"
           href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
           target="_blank"
           rel="noopener noreferrer"
         >
-          WCAG relative luminance and contrast definitions
+          {t('toolUi.wcagDefinitions')}
         </a>
         .
       </p>

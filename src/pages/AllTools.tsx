@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getCategoryLabel } from '../i18n/toolLabels'
 import { useState } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { useParams } from 'react-router-dom'
@@ -9,6 +11,8 @@ import { sortTools, type ToolSort } from '../registry/discovery'
 import { PageHeader } from '../components/ToolLayout'
 
 export default function AllTools() {
+  const { t } = useTranslation()
+  const language = currentLanguage()
   const { category: routeCategory } = useParams()
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('')
@@ -16,48 +20,50 @@ export default function AllTools() {
   const prefs = usePreferences()
   const category = categories.find((item) => item.toLowerCase() === routeCategory)
   if (routeCategory && !category) return <NotFound />
-  const results = sortTools(searchTools(query, category ?? filter), sort, prefs)
+  const results = sortTools(searchTools(query, category ?? filter, language), sort, prefs, language)
   return (
     <div className="catalog-page page-enter">
       <PageHeader
-        eyebrow="TOOL LIBRARY"
-        title={category ?? 'All tools'}
-        description="Small tasks, sorted. Every tool runs right here in your browser."
-        actions={<span className="count-pill">{tools.length} local tools</span>}
+        eyebrow={t('discovery.library')}
+        title={category ? getCategoryLabel(category, language) : t('common.allTools')}
+        description={t('discovery.catalogDescription')}
+        actions={
+          <span className="count-pill">{t('shell.localTools', { count: tools.length })}</span>
+        }
       />
       <div className="catalog-toolbar">
         <div className="input-with-icon">
           <Search size={18} />
           <input
-            aria-label="Search all tools"
-            placeholder="Search by name, keyword, or category…"
+            aria-label={t('discovery.searchAll')}
+            placeholder={t('discovery.searchPlaceholder')}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
         <span className="catalog-count" role="status">
           <SlidersHorizontal size={16} />
-          {results.length} tools
+          {t('discovery.tools', { count: results.length })}
         </span>
         <label className="catalog-sort">
-          Sort tools
+          {t('discovery.sort')}
           <select value={sort} onChange={(event) => setSort(event.target.value as ToolSort)}>
-            <option value="recommended">Recommended</option>
-            <option value="name">A → Z</option>
-            <option value="usage">Most used</option>
-            <option value="recent">Recently used</option>
-            <option value="favorites">Favorites first</option>
+            <option value="recommended">{t('discovery.recommended')}</option>
+            <option value="name">{t('discovery.alphabetical')}</option>
+            <option value="usage">{t('discovery.mostUsed')}</option>
+            <option value="recent">{t('discovery.recentlyUsed')}</option>
+            <option value="favorites">{t('discovery.favoritesFirst')}</option>
           </select>
         </label>
       </div>
       {!category && (
-        <div className="filter-tabs" aria-label="Filter tools by category">
+        <div className="filter-tabs" aria-label={t('discovery.filter')}>
           <button
             className={!filter ? 'active' : ''}
             aria-pressed={!filter}
             onClick={() => setFilter('')}
           >
-            All tools
+            {t('common.allTools')}
           </button>
           {categories
             .filter((item) => tools.some((tool) => tool.category === item))
@@ -68,7 +74,7 @@ export default function AllTools() {
                 aria-pressed={filter === item}
                 onClick={() => setFilter(item)}
               >
-                {item}
+                {getCategoryLabel(item, language)}
               </button>
             ))}
         </div>
@@ -77,8 +83,8 @@ export default function AllTools() {
       {!results.length && (
         <div className="empty-state">
           <Search size={30} />
-          <h2>No matching tools</h2>
-          <p>Try a shorter search or choose another category.</p>
+          <h2>{t('discovery.noTools')}</h2>
+          <p>{t('discovery.noToolsHelp')}</p>
           <button
             className="button button-secondary"
             onClick={() => {
@@ -86,7 +92,7 @@ export default function AllTools() {
               setFilter('')
             }}
           >
-            Clear filters
+            {t('discovery.clearFilters')}
           </button>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 export const bases = [
   { base: 2, name: 'Binary' },
   { base: 8, name: 'Octal' },
@@ -16,10 +17,13 @@ export function convertNumberBase(
   let digits = text.replace(/^[+-]/, '')
   if (base !== 10 && digits.toLowerCase().startsWith(prefix[base])) digits = digits.slice(2)
   if (!patterns[base].test(digits))
-    throw new Error(
-      `Enter a valid base-${base} integer. Fractions and exponents are not supported.`,
+    throw messageError(
+      'toolErrors.numberInvalid',
+      'Enter a valid base-{{base}} integer. Fractions and exponents are not supported.',
+      { base },
     )
-  if (digits.length > 4096) throw new Error('Input is limited to 4,096 digits.')
+  if (digits.length > 4096)
+    throw messageError('toolErrors.numberSize', 'Input is limited to 4,096 digits.')
   const value = BigInt(prefix[base] + digits) * (text.startsWith('-') ? -1n : 1n)
   const hex = value.toString(16)
   return {

@@ -1,16 +1,19 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { CopyButton, Message } from '../../components/ui'
 import { formatColor, parseColor, type ColorFormat } from '../../lib/color'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 import { usePreferences } from '../../storage/preferences'
 const initial = formatColor({ r: 119, g: 96, b: 215 })
 export default function ColorTool() {
+  const { t } = useTranslation()
   const { hexCase } = usePreferences()
   const letterCase = (value: string) =>
     hexCase === 'lower' ? value.toLowerCase() : value.toUpperCase()
   const [values, setValues] = useState({ ...initial, hex: letterCase(initial.hex) })
   const [preview, setPreview] = useState(initial.hex)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   function change(format: ColorFormat, value: string) {
     try {
       const converted = formatColor(parseColor(value, format))
@@ -20,7 +23,7 @@ export default function ColorTool() {
       setError('')
     } catch (error) {
       setValues((current) => ({ ...current, [format]: value }))
-      setError(errorMessage(error))
+      setError(errorDescriptor(error))
     }
   }
   return (
@@ -30,11 +33,11 @@ export default function ColorTool() {
           <label className="color-picker-label">
             <input
               type="color"
-              aria-label="Pick a color"
+              aria-label={t('toolUi.pickColor')}
               value={preview}
               onChange={(event) => change('hex', letterCase(event.target.value))}
             />
-            Choose a color
+            {t('toolUi.chooseColor')}
           </label>
         </div>
         <div className="color-fields">
@@ -52,25 +55,26 @@ export default function ColorTool() {
                 <CopyButton
                   disabled={!!error}
                   text={values[format]}
-                  label={`Copy ${format.toUpperCase()}`}
+                  label={t('toolUi.copyNamed', { name: format.toUpperCase() })}
                 />
               </div>
               <span>
                 {format === 'hex'
-                  ? '3 or 6 hexadecimal digits'
+                  ? t('toolUi.hexHelp')
                   : format === 'rgb'
-                    ? 'Red, green, blue · each 0–255'
-                    : 'Hue 0–360 · saturation and lightness 0–100%'}
+                    ? t('toolUi.rgbHelp')
+                    : t('toolUi.hslHelp')}
               </span>
             </label>
           ))}
         </div>
       </div>
-      {error && <Message kind="error">{error} The preview keeps the last valid color.</Message>}
-      <p className="helper-text">
-        Edit any format to update the others. This converter uses opaque sRGB colors; RGB channels
-        are rounded to whole numbers.
-      </p>
+      {error && (
+        <Message kind="error">
+          {error} {t('toolUi.lastColor')}
+        </Message>
+      )}
+      <p className="helper-text">{t('toolUi.colorHelp')}</p>
     </>
   )
 }

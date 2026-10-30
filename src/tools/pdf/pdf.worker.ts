@@ -1,5 +1,7 @@
 import { processPdf } from '../../lib/pdfFiles'
 import type { PdfRequest } from './pdfTypes'
+import { errorDescriptor } from '../../lib/encoding'
+import { message } from '../../i18n/messages'
 
 self.onmessage = async (event: MessageEvent<PdfRequest>) => {
   try {
@@ -8,7 +10,10 @@ self.onmessage = async (event: MessageEvent<PdfRequest>) => {
     })
   } catch (error) {
     self.postMessage({
-      error: error instanceof Error ? error.message : 'PDF processing failed. Try another file.',
+      error:
+        error instanceof Error
+          ? errorDescriptor(error)
+          : message('fileErrors.pdfFailed', 'PDF processing failed. Try another file.'),
     })
   }
 }

@@ -7,6 +7,7 @@ import {
 } from '../workspace/workspaceUtils'
 import type { FileInput, FileOutput, WorkspaceCollection } from '../workspace/workspaceTypes'
 import { validateCollections } from '../workspace/collections'
+import { messageError } from '../i18n/messages'
 import {
   ZIP_LIMITS,
   ZIP_TYPES,
@@ -21,7 +22,8 @@ interface Entry extends ArchiveEntry {
   crc: number
 }
 const invalid = () => {
-  throw new Error(
+  throw messageError(
+    'toolErrors.archiveInvalid',
     'Invalid or unsupported ZIP. Use an unencrypted, single-disk ZIP with stored or deflated entries (no ZIP64).',
   )
 }
@@ -36,18 +38,23 @@ export function safeArchivePath(path: string) {
     normalized.split('/').some((part) => part === '..' || part === '.') ||
     normalized.split('/').length > 20
   )
-    throw new Error(
+    throw messageError(
+      'toolErrors.archivePath',
       'Unsafe ZIP path. Absolute paths, drive prefixes and traversal are not allowed.',
     )
   return normalized
 }
 const decodeName = (bytes: Uint8Array, flags: number) => {
   if (!(flags & 2048) && bytes.some((byte) => byte > 127))
-    throw new Error('Non-UTF-8 ZIP filenames are unsupported. Re-export using UTF-8.')
+    throw messageError(
+      'toolErrors.archiveEncoding',
+      'Non-UTF-8 ZIP filenames are unsupported. Re-export using UTF-8.',
+    )
   return safeArchivePath(new TextDecoder('utf-8', { fatal: true }).decode(bytes))
 }
 export function inspectZip(bytes: Uint8Array): Entry[] {
-  if (bytes.length > ZIP_LIMITS.archiveBytes) throw new Error('ZIP input is limited to 100 MB.')
+  if (bytes.length > ZIP_LIMITS.archiveBytes)
+    throw messageError('toolErrors.archiveInputLimit', 'ZIP input is limited to 100 MB.')
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
   let end = -1
   for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65557); i--) {
@@ -70,7 +77,8 @@ export function inspectZip(bytes: Uint8Array): Entry[] {
     start + length !== end
   )
     return invalid()
-  if (count > ZIP_LIMITS.entries) throw new Error('ZIP is limited to 1,000 entries.')
+  if (count > ZIP_LIMITS.entries)
+    throw messageError('toolErrors.archiveEntriesLimit', 'ZIP is limited to 1,000 entries.')
   const entries: Entry[] = [],
     names = new Set<string>(),
     ranges: [number, number][] = []
@@ -138,7 +146,8 @@ export function inspectZip(bytes: Uint8Array): Entry[] {
       size > FILE_LIMITS.fileBytes ||
       size > Math.max(1, compressedSize) * ZIP_LIMITS.ratio
     )
-      throw new Error(
+      throw messageError(
+        'toolErrors.archiveSafetyLimit',
         'ZIP safety limit exceeded: 500 files (+ backup manifest), 150 MB total, 100 MB per file, 200:1 expansion.',
       )
     ranges.push([local, dataStart + compressedSize])
@@ -162,7 +171,10 @@ function readEntry(bytes: Uint8Array, entry: Entry) {
   const append = (chunk: Uint8Array) => {
     size += chunk.length
     if (size > entry.size || size > FILE_LIMITS.fileBytes)
-      throw new Error('ZIP entry expands beyond its declared size.')
+      throw messageError(
+        'toolErrors.archiveEntrySize',
+        'ZIP entry expands beyond its declared size.',
+      )
     for (const value of chunk) crc = crcTable[(crc ^ value) & 255] ^ (crc >>> 8)
     parts.push(new Uint8Array(chunk))
   }
@@ -176,7 +188,7 @@ function readEntry(bytes: Uint8Array, entry: Entry) {
     if (!data.length) stream.push(data, true)
   }
   if (size !== entry.size || (crc ^ 0xffffffff) >>> 0 !== entry.crc)
-    throw new Error('ZIP integrity check failed (size or CRC).')
+    throw messageError('toolErrors.archiveIntegrity', 'ZIP integrity check failed (size or CRC).')
   return new Blob(parts)
 }
 export function mimeForName(name: string) {
@@ -215,7 +227,7 @@ export async function extractArchive(file: FileInput, selected: number[]): Promi
     new Set(selected).size !== selected.length ||
     selected.some((id) => !entries[id] || entries[id].directory)
   )
-    throw new Error('Choose valid file entries to extract.')
+    throw messageError('toolErrors.archiveSelection', 'Choose valid file entries to extract.')
   const names = new Set<string>()
   return selected.map((id) => {
     const entry = entries[id],

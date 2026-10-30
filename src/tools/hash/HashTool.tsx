@@ -1,11 +1,15 @@
+import { messageError } from '../../i18n/messages'
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useRef, useState } from 'react'
 import { Button, CopyButton, Editor, Message } from '../../components/ui'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 const algorithms = ['SHA-1', 'SHA-256', 'SHA-384', 'SHA-512'] as const
 export default function HashTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const [results, setResults] = useState<{ algorithm: string; hash: string }[]>([])
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [busy, setBusy] = useState(false)
   const generation = useRef(0)
   function change(value: string) {
@@ -21,7 +25,10 @@ export default function HashTool() {
     setError('')
     try {
       if (!crypto.subtle)
-        throw new Error('Web Crypto requires HTTPS or localhost in a modern browser.')
+        throw messageError(
+          'toolErrors.webCrypto',
+          'Web Crypto requires HTTPS or localhost in a modern browser.',
+        )
       const data = new TextEncoder().encode(input)
       const hashes = await Promise.all(
         algorithms.map(async (algorithm) => {
@@ -36,7 +43,7 @@ export default function HashTool() {
       )
       if (generation.current === current) setResults(hashes)
     } catch (error) {
-      if (generation.current === current) setError(errorMessage(error))
+      if (generation.current === current) setError(errorDescriptor(error))
     } finally {
       if (generation.current === current) setBusy(false)
     }
@@ -44,32 +51,29 @@ export default function HashTool() {
   return (
     <>
       <Editor
-        label="Text to hash"
+        label={t('toolUi.textToHash')}
         value={input}
         onChange={change}
         minHeight={180}
-        placeholder="Enter text to generate its SHA hashes. Empty text is also valid."
+        placeholder={t('toolUi.hashHint')}
       />
       <div className="actions">
         <Button variant="primary" disabled={busy} onClick={() => void generate()}>
-          {busy ? 'Generating…' : 'Generate hashes'}
+          {busy ? t('toolUi.generating') : t('toolUi.generateHashes')}
         </Button>
-        <Button onClick={() => change('')}>Clear</Button>
+        <Button onClick={() => change('')}>{t('toolUi.clear')}</Button>
       </div>
       {error && <Message kind="error">{error}</Message>}
       {results.map(({ algorithm, hash }) => (
         <section key={algorithm}>
           <div className="output-title">
             <h2>{algorithm}</h2>
-            <CopyButton text={hash} label={`Copy ${algorithm}`} />
+            <CopyButton text={hash} label={t('toolUi.copyNamed', { name: algorithm })} />
           </div>
           <pre className="code-output">{hash}</pre>
         </section>
       ))}
-      <Message>
-        Hashes are one-way fingerprints. SHA-1 is provided for legacy compatibility and is
-        unsuitable for security-sensitive use. These plain hashes are not password storage.
-      </Message>
+      <Message>{t('toolUi.hashHelp')}</Message>
     </>
   )
 }

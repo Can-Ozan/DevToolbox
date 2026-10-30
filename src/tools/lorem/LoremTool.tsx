@@ -1,18 +1,21 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Button, CopyButton, Editor, Message } from '../../components/ui'
 import { generateLorem, type LoremUnit } from '../../lib/lorem'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 export default function LoremTool() {
+  const { t } = useTranslation()
   const [unit, setUnit] = useState<LoremUnit>('paragraphs')
   const [quantity, setQuantity] = useState(3)
   const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   return (
     <>
       <div className="panel">
         <div className="field-row">
           <label className="field">
-            Generate by
+            {t('toolUi.generateBy')}
             <select
               value={unit}
               onChange={(event) => {
@@ -21,13 +24,13 @@ export default function LoremTool() {
                   setUnit(value)
               }}
             >
-              <option value="paragraphs">Paragraphs</option>
-              <option value="sentences">Sentences</option>
-              <option value="words">Words</option>
+              <option value="paragraphs">{t('toolUi.paragraphs')}</option>
+              <option value="sentences">{t('toolUi.sentences')}</option>
+              <option value="words">{t('toolUi.words')}</option>
             </select>
           </label>
           <label className="field">
-            Quantity
+            {t('toolUi.quantity')}
             <input
               type="number"
               min="1"
@@ -43,15 +46,15 @@ export default function LoremTool() {
                 setOutput(generateLorem(unit, quantity))
                 setError('')
               } catch (error) {
-                setError(errorMessage(error))
+                setError(errorDescriptor(error))
                 setOutput('')
               }
             }}
           >
-            Generate text
+            {t('toolUi.generateText')}
           </Button>
         </div>
-        <p className="helper-text">Up to 100 paragraphs, 500 sentences, or 10,000 words.</p>
+        <p className="helper-text">{t('toolUi.loremLimit')}</p>
       </div>
       {error && <Message kind="error">{error}</Message>}
       <div className="actions justify-end">
@@ -61,15 +64,15 @@ export default function LoremTool() {
             setError('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
-        <CopyButton text={output} label="Copy text" />
+        <CopyButton text={output} label={t('toolUi.copyText')} />
       </div>
       <Editor
-        label="Generated text"
+        label={t('toolUi.generatedText')}
         value={output}
         readOnly
-        placeholder="A little placeholder text for your next big idea…"
+        placeholder={t('toolUi.loremHint')}
       />
     </>
   )

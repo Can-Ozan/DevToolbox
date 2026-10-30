@@ -1,10 +1,14 @@
+import { messageError } from '../i18n/messages'
 import type { WorkspaceCollection } from './workspaceTypes'
 
 export const COLLECTION_LIMIT = 100
 export function collectionName(value: string) {
   const name = value.trim()
   if (!name || name.length > 80 || /[\p{Cc}]/u.test(name))
-    throw new Error('Collection names must contain 1–80 characters without control characters.')
+    throw messageError(
+      'workspace.errors.collectionName',
+      'Collection names must contain 1–80 characters without control characters.',
+    )
   return name
 }
 export function validCollection(value: unknown): value is WorkspaceCollection {
@@ -34,7 +38,8 @@ export function validateCollections(items: unknown): asserts items is WorkspaceC
     new Set(items.map((item) => item.id)).size !== items.length ||
     new Set(items.map((item) => item.name.toLowerCase())).size !== items.length
   )
-    throw new Error(
+    throw messageError(
+      'workspace.errors.collectionMetadata',
       'Invalid collection metadata. Use up to 100 collections with unique names and IDs.',
     )
 }

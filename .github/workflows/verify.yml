@@ -10,7 +10,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    # Allow headroom for occasional slow Playwright OS dependency downloads on GitHub-hosted runners.
+    # Allow headroom for slow dependency downloads plus the full three-browser test suite.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4

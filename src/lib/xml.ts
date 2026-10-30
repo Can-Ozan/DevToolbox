@@ -1,12 +1,16 @@
+import { messageError } from '../i18n/messages'
 export type XmlMode = 'format' | 'minify' | 'validate'
 export function formatXml(input: string, mode: XmlMode = 'format', indent = '2') {
-  if (!input.trim()) throw new Error('Enter XML to get started.')
-  if (input.length > 200_000) throw new Error('XML is limited to 200,000 characters.')
+  if (!input.trim()) throw messageError('toolErrors.xmlEmpty', 'Enter XML to get started.')
+  if (input.length > 200_000)
+    throw messageError('toolErrors.xmlSize', 'XML is limited to 200,000 characters.')
   if (/<!\s*(?:DOCTYPE|ENTITY)\b/i.test(input))
-    throw new Error(
+    throw messageError(
+      'toolErrors.xmlDtd',
       'DTD and entity declarations are disabled. External resources are never resolved.',
     )
-  if (!['2', '4', 'tab'].includes(indent)) throw new Error('Choose a supported indentation.')
+  if (!['2', '4', 'tab'].includes(indent))
+    throw messageError('toolErrors.indent', 'Choose a supported indentation.')
   const doc = new DOMParser().parseFromString(input, 'application/xml')
   const error =
     doc.getElementsByTagNameNS(
@@ -14,7 +18,9 @@ export function formatXml(input: string, mode: XmlMode = 'format', indent = '2')
       'parsererror',
     )[0] ?? doc.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'parsererror')[0]
   if (error || !doc.documentElement)
-    throw new Error(error?.textContent?.trim() || 'Invalid XML document.')
+    throw error?.textContent?.trim()
+      ? new Error(error.textContent.trim())
+      : messageError('toolErrors.xmlInvalid', 'Invalid XML document.')
   const serializer = new XMLSerializer()
   const unit = indent === 'tab' ? '\t' : ' '.repeat(Number(indent))
   const declaration = input.match(/^\uFEFF?(<\?xml\s[\s\S]*?\?>)/)?.[1] ?? ''
@@ -27,7 +33,8 @@ export function formatXml(input: string, mode: XmlMode = 'format', indent = '2')
       .replaceAll('\n', '&#10;')
       .replaceAll('\t', '&#9;')
   function render(node: Node, depth: number, inherited = false): string {
-    if (depth > 100) throw new Error('XML nesting is limited to 100 levels.')
+    if (depth > 100)
+      throw messageError('toolErrors.xmlDepth', 'XML nesting is limited to 100 levels.')
     if (node.nodeType !== 1) return serializer.serializeToString(node)
     const element = node as Element
     const children = Array.from(element.childNodes)
@@ -58,7 +65,8 @@ export function formatXml(input: string, mode: XmlMode = 'format', indent = '2')
   const stack: [Node, number][] = [[doc.documentElement, 0]]
   while (stack.length) {
     const [node, depth] = stack.pop()!
-    if (depth > 100) throw new Error('XML nesting is limited to 100 levels.')
+    if (depth > 100)
+      throw messageError('toolErrors.xmlDepth', 'XML nesting is limited to 100 levels.')
     for (const child of Array.from(node.childNodes))
       if (child.nodeType === 1) stack.push([child, depth + 1])
   }

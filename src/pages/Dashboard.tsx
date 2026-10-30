@@ -16,7 +16,12 @@ import { compatibleTools, dashboardDiscovery } from '../registry/discovery'
 import { useWorkspace } from '../workspace/workspaceStore'
 import { formatBytes } from '../workspace/workspaceUtils'
 
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getToolText, getCategoryLabel } from '../i18n/toolLabels'
+
 export default function Dashboard() {
+  const { t } = useTranslation()
+  const language = currentLanguage()
   const { openSearch, shortcut } = useOutletContext<{ openSearch: () => void; shortcut: string }>()
   const prefs = usePreferences()
   const snapshot = useWorkspace()
@@ -33,29 +38,29 @@ export default function Dashboard() {
     <div className="dashboard page-enter">
       <header className="dashboard-header">
         <div>
-          <div className="eyebrow">YOUR LOCAL WORKSPACE</div>
-          <h1>Less friction. More flow.</h1>
-          <p className="page-description">{tools.length} tools for the work between the work.</p>
+          <div className="eyebrow">{t('discovery.eyebrow')}</div>
+          <h1>{t('discovery.title')}</h1>
+          <p className="page-description">{t('discovery.description', { count: tools.length })}</p>
         </div>
         <span className="local-badge">
-          <ShieldCheck size={14} /> Private by design
+          <ShieldCheck size={14} /> {t('shell.private')}
         </span>
       </header>
       <button className="dashboard-search" onClick={openSearch}>
         <Search size={21} />
         <span>
-          <strong>Find a tool. Pick up a file.</strong>
-          <span>Search tools, Workspace files, and actions</span>
+          <strong>{t('discovery.findTitle')}</strong>
+          <span>{t('discovery.findDescription')}</span>
         </span>
         <kbd>{shortcut} K</kbd>
       </button>
       <div className="dashboard-columns">
         <div className="dashboard-primary">
-          <section className="dashboard-section" aria-label="Continue working">
+          <section className="dashboard-section" aria-label={t('discovery.continue')}>
             <div className="section-heading">
-              <h2>Continue working</h2>
+              <h2>{t('discovery.continue')}</h2>
               <Link to="/workspace">
-                Open Workspace <ArrowRight size={14} />
+                {t('discovery.openWorkspace')} <ArrowRight size={14} />
               </Link>
             </div>
             {!snapshot.error && !!recentFiles.length ? (
@@ -70,11 +75,17 @@ export default function Dashboard() {
                       </h3>
                       <p className="helper-text">
                         {file.mimeType} · {formatBytes(file.size)} ·{' '}
-                        {tools.find((tool) => tool.id === file.sourceTool)?.name ??
-                          'Imported from device'}
+                        {tools.find((tool) => tool.id === file.sourceTool)
+                          ? getToolText(
+                              tools.find((tool) => tool.id === file.sourceTool)!,
+                              language,
+                            ).name
+                          : t('discovery.imported')}
                       </p>
                       <div className="related-links">
-                        <Link to={`/workspace?file=${encodeURIComponent(file.id)}`}>Open file</Link>
+                        <Link to={`/workspace?file=${encodeURIComponent(file.id)}`}>
+                          {t('discovery.openFile')}
+                        </Link>
                         {compatibleTools(file.mimeType)
                           .slice(0, 2)
                           .map((tool) => (
@@ -82,7 +93,7 @@ export default function Dashboard() {
                               key={tool.id}
                               to={`${tool.path}?file=${encodeURIComponent(file.id)}`}
                             >
-                              {tool.name}
+                              {getToolText(tool, language).name}
                               <ArrowUpRight size={13} />
                             </Link>
                           ))}
@@ -95,26 +106,20 @@ export default function Dashboard() {
               <div className="dashboard-empty">
                 <FolderOpen size={23} />
                 <div>
-                  <h3>
-                    {snapshot.error ? 'Workspace is unavailable' : 'A place for your next project'}
-                  </h3>
-                  <p>
-                    {snapshot.error
-                      ? 'Open Workspace to review the storage error.'
-                      : 'Import a file or save a tool result. Continue from here.'}
-                  </p>
+                  <h3>{t(snapshot.error ? 'discovery.unavailable' : 'discovery.nextProject')}</h3>
+                  <p>{snapshot.error ? t('discovery.storageError') : t('discovery.importHelp')}</p>
                 </div>
                 <Link to="/workspace" className="button button-secondary">
-                  Open Workspace
+                  {t('discovery.openWorkspace')}
                 </Link>
               </div>
             )}
           </section>
-          <section className="dashboard-section" aria-label="Recent tools">
+          <section className="dashboard-section" aria-label={t('discovery.recentLabel')}>
             <div className="section-heading">
-              <h2>Recently used</h2>
+              <h2>{t('discovery.recentlyUsed')}</h2>
               <Link to="/recent">
-                View history <ArrowRight size={14} />
+                {t('discovery.viewHistory')} <ArrowRight size={14} />
               </Link>
             </div>
             {recentTools.length ? (
@@ -127,8 +132,8 @@ export default function Dashboard() {
                         <Icon size={18} />
                       </span>
                       <div>
-                        <strong>{tool.name}</strong>
-                        <span>{tool.category}</span>
+                        <strong>{getToolText(tool, language).name}</strong>
+                        <span>{getCategoryLabel(tool.category, language)}</span>
                       </div>
                       <ArrowUpRight size={14} />
                     </Link>
@@ -138,17 +143,18 @@ export default function Dashboard() {
             ) : (
               <div className="recent-empty">
                 <Clock3 size={18} />
-                <p>The tools you open will appear here.</p>
+                <p>{t('discovery.recentEmpty')}</p>
               </div>
             )}
           </section>
-          <section className="dashboard-section" aria-label="Favorite tools">
+          <section className="dashboard-section" aria-label={t('settings.favoriteTools')}>
             <div className="section-heading">
               <h2>
-                Your favorites <span className="count-pill">{favoriteTools.length}</span>
+                {t('discovery.favorites')}{' '}
+                <span className="count-pill">{favoriteTools.length}</span>
               </h2>
               <Link to="/favorites">
-                View favorites <ArrowRight size={14} />
+                {t('discovery.viewFavorites')} <ArrowRight size={14} />
               </Link>
             </div>
             {favoriteTools.length ? (
@@ -157,18 +163,18 @@ export default function Dashboard() {
               <div className="dashboard-empty">
                 <Star size={23} />
                 <div>
-                  <h3>Your go-to tools, one click away</h3>
-                  <p>Star a tool to pin it here and in your sidebar.</p>
+                  <h3>{t('discovery.favoritesTitle')}</h3>
+                  <p>{t('discovery.favoritesHelp')}</p>
                 </div>
                 <Link className="button button-secondary" to="/tools">
-                  Explore tools
+                  {t('discovery.explore')}
                 </Link>
               </div>
             )}
           </section>
-          <section className="dashboard-section" aria-label="Quick actions">
+          <section className="dashboard-section" aria-label={t('discovery.quickActions')}>
             <div className="section-heading">
-              <h2>Quick actions</h2>
+              <h2>{t('discovery.quickActions')}</h2>
             </div>
             <div className="quick-actions">
               {quickTools.map((tool) => {
@@ -176,25 +182,32 @@ export default function Dashboard() {
                 return (
                   <Link key={tool.id} to={tool.path}>
                     <Icon size={17} />
-                    <span>{tool.name}</span>
+                    <span>{getToolText(tool, language).name}</span>
                     <ArrowUpRight size={13} />
                   </Link>
                 )
               })}
               <Link to="/workspace">
                 <FolderOpen size={17} />
-                <span>Open Workspace</span>
+                <span>{t('discovery.openWorkspace')}</span>
                 <ArrowUpRight size={13} />
               </Link>
             </div>
           </section>
         </div>
         <div className="dashboard-secondary">
-          <section className="dashboard-section discovery-section" aria-label={discovery.title}>
+          <section
+            className="dashboard-section discovery-section"
+            aria-label={t(
+              discovery.title === 'Most used' ? 'discovery.mostUsed' : 'discovery.featured',
+            )}
+          >
             <div className="section-heading">
-              <h2>{discovery.title}</h2>
+              <h2>
+                {t(discovery.title === 'Most used' ? 'discovery.mostUsed' : 'discovery.featured')}
+              </h2>
               <span className="subtle-label">
-                {discovery.title === 'Most used' ? 'On this device' : 'Start here'}
+                {t(discovery.title === 'Most used' ? 'discovery.onDevice' : 'discovery.startHere')}
               </span>
             </div>
             <ol className="discovery-list">
@@ -205,7 +218,7 @@ export default function Dashboard() {
                     <Link to={tool.path}>
                       <span className="discovery-rank">{String(index + 1).padStart(2, '0')}</span>
                       <Icon size={17} />
-                      <span>{tool.name}</span>
+                      <span>{getToolText(tool, language).name}</span>
                     </Link>
                     <FavoriteButton tool={tool} />
                   </li>
@@ -213,43 +226,44 @@ export default function Dashboard() {
               })}
             </ol>
           </section>
-          <section className="dashboard-section workspace-summary" aria-label="Workspace summary">
+          <section
+            className="dashboard-section workspace-summary"
+            aria-label={t('discovery.workspaceSummary')}
+          >
             <div className="section-heading">
               <h2>
-                <FolderOpen size={17} /> Workspace
+                <FolderOpen size={17} /> {t('shell.workspace')}
               </h2>
               <Link to="/workspace">
-                Manage <ArrowRight size={14} />
+                {t('discovery.manage')} <ArrowRight size={14} />
               </Link>
             </div>
             <dl className="workspace-stats">
               <div>
-                <dt>Saved files</dt>
+                <dt>{t('discovery.savedFiles')}</dt>
                 <dd>{snapshot.error ? '—' : snapshot.loading ? '…' : snapshot.files.length}</dd>
               </div>
               <div>
-                <dt>File storage</dt>
+                <dt>{t('discovery.fileStorage')}</dt>
                 <dd>
                   {snapshot.error
-                    ? 'Unavailable'
+                    ? t('discovery.unavailableValue')
                     : formatBytes(snapshot.files.reduce((sum, file) => sum + file.size, 0))}
                 </dd>
               </div>
             </dl>
-            <p className="helper-text">
-              Stored in this browser. Download important files to keep a backup.
-            </p>
+            <p className="helper-text">{t('discovery.backupHelp')}</p>
             <Link className="button button-secondary" to="/workspace">
-              Import or manage files <ArrowRight size={14} />
+              {t('discovery.manageFiles')} <ArrowRight size={14} />
             </Link>
           </section>
         </div>
       </div>
-      <section className="dashboard-section" aria-label="Tool categories">
+      <section className="dashboard-section" aria-label={t('shell.categories')}>
         <div className="section-heading">
-          <h2>Browse by category</h2>
+          <h2>{t('discovery.browseCategory')}</h2>
           <Link to="/tools">
-            All {tools.length} tools <ArrowRight size={14} />
+            {t('discovery.allCount', { count: tools.length })} <ArrowRight size={14} />
           </Link>
         </div>
         <div className="category-grid">
@@ -261,8 +275,8 @@ export default function Dashboard() {
               return (
                 <Link key={category} to={`/category/${category.toLowerCase()}`}>
                   <Icon size={19} />
-                  <strong>{category}</strong>
-                  <span>{count} tools</span>
+                  <strong>{getCategoryLabel(category, language)}</strong>
+                  <span>{t('discovery.tools', { count })}</span>
                   <ArrowUpRight size={14} />
                 </Link>
               )

@@ -3,6 +3,8 @@ import { ArrowLeft, ChevronRight, ShieldCheck } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { ToolDefinition } from '../registry/tools'
 import { FavoriteButton } from './ToolCard'
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getToolText, getCategoryLabel } from '../i18n/toolLabels'
 
 export function PageHeader({
   title,
@@ -28,28 +30,32 @@ export function PageHeader({
 }
 
 export function ToolHeader({ tool }: { tool: ToolDefinition }) {
+  const { t } = useTranslation()
+  const text = getToolText(tool, currentLanguage())
   const Icon = tool.icon
   return (
     <>
-      <nav className="tool-breadcrumb" aria-label="Tool breadcrumb">
+      <nav className="tool-breadcrumb" aria-label={t('common.toolBreadcrumb')}>
         <Link to="/tools">
-          <ArrowLeft size={14} /> All tools
+          <ArrowLeft size={14} /> {t('common.allTools')}
         </Link>
         <ChevronRight size={13} />
-        <Link to={`/category/${tool.category.toLowerCase()}`}>{tool.category}</Link>
+        <Link to={`/category/${tool.category.toLowerCase()}`}>
+          {getCategoryLabel(tool.category, currentLanguage())}
+        </Link>
       </nav>
       <header className="tool-page-heading">
         <span className={`tool-icon large ${tool.color}`}>
           <Icon size={24} />
         </span>
         <div className="tool-heading-copy">
-          <h1>{tool.name}</h1>
-          <p className="page-description">{tool.description}</p>
+          <h1>{text.name}</h1>
+          <p className="page-description">{text.description}</p>
           <div className="tool-meta">
             <span>
-              <ShieldCheck size={13} /> Runs locally
+              <ShieldCheck size={13} /> {t('common.runsLocally')}
             </span>
-            {tool.workspaceCompatible && <span>Workspace compatible</span>}
+            {tool.workspaceCompatible && <span>{t('common.workspaceCompatible')}</span>}
           </div>
         </div>
         <FavoriteButton tool={tool} />
@@ -63,15 +69,10 @@ export function ToolToolbar({ children }: { children: ReactNode }) {
   return <div className="tool-toolbar">{children}</div>
 }
 
-export function ToolActions({
-  children,
-  label = 'Tool actions',
-}: {
-  children: ReactNode
-  label?: string
-}) {
+export function ToolActions({ children, label }: { children: ReactNode; label?: string }) {
+  const { t } = useTranslation()
   return (
-    <div className="tool-actions" role="group" aria-label={label}>
+    <div className="tool-actions" role="group" aria-label={label ?? t('common.toolActions')}>
       {children}
     </div>
   )

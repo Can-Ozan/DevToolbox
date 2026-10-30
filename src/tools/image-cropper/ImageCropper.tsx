@@ -1,3 +1,6 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { message } from '../../i18n/messages'
+import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState, type PointerEvent } from 'react'
 import { Button, Message } from '../../components/ui'
 import { centeredCrop, normalizeCrop, type CropRect } from '../../lib/crop'
@@ -16,10 +19,11 @@ import {
 } from '../../workspace/FileControls'
 import ProcessingStatus from '../../workspace/ProcessingStatus'
 import type { FileInput } from '../../workspace/workspaceTypes'
-import { fileError, IMAGE_TYPES, outputFilename } from '../../workspace/workspaceUtils'
+import { fileMessage, IMAGE_TYPES, outputFilename } from '../../workspace/workspaceUtils'
 
 const ratios = { Free: undefined, '1:1': 1, '4:3': 4 / 3, '16:9': 16 / 9, '3:2': 3 / 2 }
 export default function ImageCropper() {
+  const { t } = useTranslation()
   const [file, setFile] = useState<FileInput>()
   const [info, setInfo] = useState<ImageDimensions>()
   const [crop, setCrop] = useState<CropRect>({ x: 0, y: 0, width: 1, height: 1 })
@@ -28,7 +32,7 @@ export default function ImageCropper() {
   const defaults = usePreferences()
   const [quality, setQuality] = useState(defaults.jpegQuality)
   const [background, setBackground] = useState(defaults.jpegBackground)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const stage = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; rect: CropRect; resize: boolean } | null>(null)
   const job = useFileJob()
@@ -48,12 +52,12 @@ export default function ImageCropper() {
         }
       })
       .catch((reason) => {
-        if (active) setError(fileError(reason))
+        if (active) setError(fileMessage(reason))
       })
     return () => {
       active = false
     }
-  }, [file])
+  }, [file, setError])
   function change(rect: CropRect) {
     if (!info || job.busy) return
     job.reset()
@@ -90,29 +94,24 @@ export default function ImageCropper() {
           setFile(next)
         }}
       />
-      <p className="helper-text">
-        PNG, JPEG or still WebP · up to 50 MB, 16 megapixels and 8192 px per side. Cropping
-        re-encodes pixels; metadata and animation are not preserved.
-      </p>
+      <p className="helper-text">{t('fileUi.cropHelp')}</p>
       {(error || job.error) && <Message kind="error">{error || job.error}</Message>}
-      {file && !info && !error && <p role="status">Reading image…</p>}
+      {file && !info && !error && <p role="status">{t('fileUi.readingImage')}</p>}
       {file && info && (
         <>
           <section className="panel">
-            <h2>Crop selection</h2>
+            <h2>{t('fileUi.cropSelection')}</h2>
             <p className="file-name">{file.name}</p>
             <p className="helper-text" id="crop-help">
-              Drag the selection to move it, or drag its bottom-right handle to resize. Use the
-              labeled fields below, or focus the selection and use arrow keys to move; Shift +
-              arrows resize.
+              {t('fileUi.cropKeyboard')}
             </p>
             {preview && (
               <div className="crop-stage" ref={stage}>
-                <img src={preview} alt="Input preview" draggable={false} />
+                <img src={preview} alt={t('fileUi.preview')} draggable={false} />
                 <div
                   className="crop-selection"
                   role="group"
-                  aria-label="Selected crop region"
+                  aria-label={t('fileUi.cropRegion')}
                   aria-describedby="crop-help"
                   tabIndex={job.busy ? -1 : 0}
                   style={{
@@ -173,10 +172,10 @@ export default function ImageCropper() {
             )}
           </section>
           <fieldset className="file-options" disabled={job.busy}>
-            <legend>Crop and output options</legend>
+            <legend>{t('fileUi.cropOptions')}</legend>
             <div className="field-row">
               <label className="field">
-                Aspect ratio
+                {t('fileUi.ratio')}
                 <select
                   value={ratio}
                   onChange={(event) => {
@@ -187,13 +186,24 @@ export default function ImageCropper() {
                   }}
                 >
                   {Object.keys(ratios).map((value) => (
-                    <option key={value}>{value}</option>
+                    <option key={value} value={value}>
+                      {value === 'Free' ? t('fileUi.free') : value}
+                    </option>
                   ))}
                 </select>
               </label>
               {(['x', 'y', 'width', 'height'] as const).map((key) => (
                 <label className="field" key={key}>
-                  {`Crop ${key === 'x' || key === 'y' ? key.toUpperCase() : key}`}
+                  {t(
+                    (
+                      {
+                        x: 'fileUi.cropX',
+                        y: 'fileUi.cropY',
+                        width: 'fileUi.cropWidth',
+                        height: 'fileUi.cropHeight',
+                      } as const
+                    )[key],
+                  )}
                   <input
                     type="number"
                     step="1"
@@ -206,7 +216,7 @@ export default function ImageCropper() {
                 </label>
               ))}
               <label className="field">
-                Output format
+                {t('fileUi.format')}
                 <select
                   value={format}
                   onChange={(event) => {
@@ -221,9 +231,9 @@ export default function ImageCropper() {
               </label>
               {format !== 'image/png' && (
                 <label className="field">
-                  Quality ({quality}%)
+                  {t('fileUi.qualityValue', { value: quality })}
                   <input
-                    aria-label="Quality"
+                    aria-label={t('fileUi.quality')}
                     type="range"
                     min="10"
                     max="100"
@@ -237,7 +247,7 @@ export default function ImageCropper() {
               )}
               {format === 'image/jpeg' && (
                 <label className="field">
-                  JPEG background
+                  {t('fileUi.jpegBackground')}
                   <input
                     type="color"
                     value={background}
@@ -255,7 +265,7 @@ export default function ImageCropper() {
                 job.reset()
               }}
             >
-              Reset crop
+              {t('fileUi.resetCrop')}
             </Button>
           </fieldset>
           <div className="actions">
@@ -287,13 +297,21 @@ export default function ImageCropper() {
                   sourceTool: 'image-cropper',
                   originalName: file.originalName ?? file.name,
                   originalSize: file.blob.size,
-                  detail: `${info.width} × ${info.height} → ${crop.width} × ${crop.height} px · ${ratio} crop`,
+                  detail: message(
+                    'fileUi.cropDetail',
+                    '{{before}} → {{after}} px · {{ratio}} crop',
+                    {
+                      before: `${info.width} × ${info.height}`,
+                      after: `${crop.width} × ${crop.height}`,
+                      ratio: ratio === 'Free' ? message('fileUi.free', 'Free') : ratio,
+                    },
+                  ),
                 }))
               }
             >
-              Crop image
+              {t('fileUi.crop')}
             </Button>
-            {job.busy && <Button onClick={job.reset}>Cancel processing</Button>}
+            {job.busy && <Button onClick={job.reset}>{t('fileUi.cancel')}</Button>}
           </div>
         </>
       )}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar, ToolActions, ToolTabs } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
@@ -5,6 +6,7 @@ import { useFileJob } from '../../workspace/FileControls'
 import type { CodeLanguage } from '../../lib/codeFormat'
 import { runWorkerJob } from '../../lib/workerJob'
 export default function CodeFormatter() {
+  const { t } = useTranslation()
   const [input, setInput] = useState(''),
     [language, setLanguage] = useState<CodeLanguage>('html'),
     [indent, setIndent] = useState('2')
@@ -12,7 +14,7 @@ export default function CodeFormatter() {
   return (
     <>
       <ToolTabs<CodeLanguage>
-        label="Code language"
+        label={t('toolUi.codeLanguage')}
         value={language}
         options={[
           { value: 'html', label: 'HTML' },
@@ -38,10 +40,10 @@ export default function CodeFormatter() {
             )
           }
         >
-          Format code
+          {t('toolUi.formatCode')}
         </Button>
         <label className="toolbar-field">
-          Indentation
+          {t('toolUi.indentation')}
           <select
             value={indent}
             onChange={(e) => {
@@ -49,9 +51,9 @@ export default function CodeFormatter() {
               setIndent(e.target.value)
             }}
           >
-            <option value="2">2 spaces</option>
-            <option value="4">4 spaces</option>
-            <option value="tab">Tabs</option>
+            <option value="2">{t('toolUi.spaces2')}</option>
+            <option value="4">{t('toolUi.spaces4')}</option>
+            <option value="tab">{t('toolUi.tabs')}</option>
           </select>
         </label>
         <Button
@@ -60,31 +62,35 @@ export default function CodeFormatter() {
             setInput('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
-        {job.busy && <Button onClick={job.reset}>Cancel formatting</Button>}
+        {job.busy && <Button onClick={job.reset}>{t('toolUi.cancelFormat')}</Button>}
       </ToolToolbar>
-      {job.busy && <p role="status">Formatting locally…</p>}
+      {job.busy && <p role="status">{t('toolUi.formatting')}</p>}
       {job.error && <Message kind="error">{job.error}</Message>}
       <div className="editor-grid">
         <Editor
           minHeight={360}
-          label="Code input"
+          label={t('toolUi.codeInput')}
           value={input}
           onChange={(value) => {
             job.reset()
             setInput(value)
           }}
-          placeholder="Paste HTML, CSS or JavaScript…"
+          placeholder={t('toolUi.codeHint')}
         />
         <Editor
           minHeight={360}
-          label="Formatted code"
-          placeholder="Formatted code will appear here…"
+          label={t('toolUi.formattedCode')}
+          placeholder={t('toolUi.formattedHint')}
           value={job.output ?? ''}
           actions={
-            <ToolActions label="Output actions">
-              <CopyButton text={job.output ?? ''} label="Copy output" visibleLabel="Copy" />
+            <ToolActions label={t('toolUi.outputActions')}>
+              <CopyButton
+                text={job.output ?? ''}
+                label={t('toolUi.copyOutput')}
+                visibleLabel={t('common.copy')}
+              />
               <DownloadButton
                 text={job.output ?? ''}
                 filename={`formatted.${language === 'javascript' ? 'js' : language}`}
@@ -96,10 +102,7 @@ export default function CodeFormatter() {
         />
       </div>
 
-      <p className="helper-text">
-        Prettier runs in a local worker. Code is never executed or previewed. HTML text spacing is
-        preserved; embedded scripts/styles are left unchanged. Up to 200,000 characters.
-      </p>
+      <p className="helper-text">{t('toolUi.codeHelp')}</p>
     </>
   )
 }

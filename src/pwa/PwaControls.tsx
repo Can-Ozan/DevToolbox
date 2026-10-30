@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { renderMessage } from '../i18n/messages'
 import { Button, Modal } from '../components/ui'
 import { useFileActivity } from '../lib/fileActivity'
 import { installApp, updateApp, usePwa } from './pwaStore'
@@ -7,27 +9,23 @@ import { ReleaseNotesModal, ReleaseSections } from '../components/ReleaseNotes'
 import { releaseSections } from '../data/releases'
 
 export function PwaSettings() {
+  const { t } = useTranslation()
   const pwa = usePwa()
   return (
     <section className="settings-section">
-      <h2>Install &amp; offline</h2>
+      <h2>{t('pwa.installOffline')}</h2>
       <ConnectionStatus />
       <p>
-        {pwa.error ||
-          (pwa.ready
-            ? 'App shell ready for offline use.'
-            : 'Offline setup completes after a successful online visit in a supported browser.')}
+        {' '}
+        {pwa.error ? renderMessage(pwa.error, t) : pwa.ready ? t('pwa.ready') : t('pwa.setup')}
       </p>
-      <p>
-        Application assets are cached locally. Workspace files stay in IndexedDB. PDF rendering
-        assets are cached when used; browser storage may be cleared. Download important files as
-        backups.
-      </p>
-      {pwa.install && <Button onClick={() => void installApp()}>Install DevToolbox</Button>}
+      <p>{t('pwa.storageHelp')}</p>
+      {pwa.install && <Button onClick={() => void installApp()}>{t('pwa.install')}</Button>}
     </section>
   )
 }
 export function PwaUpdateNotice() {
+  const { t } = useTranslation()
   const pwa = usePwa()
   const busy = useFileActivity()
   const [dismissed, setDismissed] = useState(false)
@@ -39,23 +37,23 @@ export function PwaUpdateNotice() {
       <section className="pwa-update" aria-labelledby="pwa-update-heading">
         <h2 id="pwa-update-heading" aria-live="polite">
           {pwa.release
-            ? `DevToolbox v${pwa.release.version} is ready`
-            : 'A DevToolbox update is ready'}
+            ? t('pwa.updateReady', { version: pwa.release.version })
+            : t('pwa.updateAvailable')}
         </h2>
         {pwa.release ? (
           <div
             className="pwa-update-notes"
             role="region"
-            aria-label="Release highlights"
+            aria-label={t('pwa.highlights')}
             tabIndex={0}
           >
             <ReleaseSections release={pwa.release} limit={3} />
           </div>
         ) : (
-          <p>Release details are unavailable for this update. You can still update safely.</p>
+          <p>{t('pwa.detailsUnavailable')}</p>
         )}
-        {busy && <p role="status">Finish or cancel processing before updating.</p>}
-        {pwa.error && <p role="alert">{pwa.error}</p>}
+        {busy && <p role="status">{t('pwa.finishProcessing')}</p>}
+        {pwa.error && <p role="alert">{renderMessage(pwa.error, t)}</p>}
         <div className="actions">
           <Button
             disabled={busy}
@@ -64,10 +62,10 @@ export function PwaUpdateNotice() {
               setConfirm(true)
             }}
           >
-            Update now
+            {t('pwa.updateNow')}
           </Button>
           <Button variant="ghost" onClick={() => setDismissed(true)}>
-            Later
+            {t('pwa.later')}
           </Button>
           {pwa.release && releaseSections(pwa.release).some(({ items }) => items.length > 3) && (
             <Button
@@ -77,7 +75,7 @@ export function PwaUpdateNotice() {
                 setNotesOpen(true)
               }}
             >
-              View all changes
+              {t('pwa.viewAll')}
             </Button>
           )}
         </div>
@@ -89,15 +87,12 @@ export function PwaUpdateNotice() {
           entries={[pwa.release]}
         />
       )}
-      <Modal open={confirm} onClose={() => setConfirm(false)} title="Reload to update?">
-        <p className="confirmation-copy">
-          Reloading clears unsaved inputs and outputs. Download or save anything you want to keep.
-          Saved Workspace files and preferences are kept.
-        </p>
+      <Modal open={confirm} onClose={() => setConfirm(false)} title={t('pwa.reloadTitle')}>
+        <p className="confirmation-copy">{t('pwa.reloadHelp')}</p>
         <div className="actions">
-          <Button onClick={() => setConfirm(false)}>Cancel</Button>
+          <Button onClick={() => setConfirm(false)}>{t('common.cancel')}</Button>
           <Button variant="primary" disabled={busy} onClick={() => void updateApp()}>
-            Reload and update
+            {t('pwa.reload')}
           </Button>
         </div>
       </Modal>

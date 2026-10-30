@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next'
+import { useMessageState } from '../i18n/useMessageState'
 import { useState } from 'react'
 import { Button, Message, Modal } from '../components/ui'
 import { workspace } from './workspaceStore'
 import type { WorkspaceCollection, WorkspaceFileInfo } from './workspaceTypes'
-import { fileError } from './workspaceUtils'
+import { fileMessage } from './workspaceUtils'
 
 export default function WorkspaceCollections({
   collections,
@@ -17,9 +19,10 @@ export default function WorkspaceCollections({
   onChange: (id: string) => void
   disabled: boolean
 }) {
+  const { t } = useTranslation()
   const [mode, setMode] = useState<'create' | 'rename' | 'delete'>()
   const [name, setName] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [busy, setBusy] = useState(false)
   const current = collections.find((item) => item.id === active)
   const count = (id: string) => files.filter((file) => file.collectionId === id).length
@@ -44,33 +47,31 @@ export default function WorkspaceCollections({
       }
       setMode(undefined)
     } catch (reason) {
-      setError(fileError(reason))
+      setError(fileMessage(reason))
     } finally {
       setBusy(false)
     }
   }
   return (
-    <section aria-label="Workspace collections">
+    <section aria-label={t('workspace.collections')}>
       <div className="workspace-toolbar">
         <label className="field">
-          Collection
+          {t('workspace.collection')}
           <select
-            aria-label="Collection"
+            aria-label={t('workspace.collection')}
             value={active}
             disabled={disabled || busy}
             onChange={(event) => onChange(event.target.value)}
           >
-            <option value="">All Files ({files.length})</option>
+            <option value="">{t('workspace.allFiles', { count: files.length })}</option>
             <option value="unassigned">
-              Unassigned (
-              {
-                files.filter(
+              {t('workspace.unassignedCount', {
+                count: files.filter(
                   (file) =>
                     !file.collectionId ||
                     !collections.some((item) => item.id === file.collectionId),
-                ).length
-              }
-              )
+                ).length,
+              })}
             </option>
             {collections.map((item) => (
               <option key={item.id} value={item.id}>
@@ -81,23 +82,21 @@ export default function WorkspaceCollections({
         </label>
         <div className="actions">
           <Button disabled={disabled || busy} onClick={() => open('create')}>
-            New collection
+            {t('workspace.newCollection')}
           </Button>
           <Button disabled={disabled || busy || !current} onClick={() => open('rename')}>
-            Rename collection
+            {t('workspace.renameCollection')}
           </Button>
           <Button
             variant="danger"
             disabled={disabled || busy || !current}
             onClick={() => open('delete')}
           >
-            Delete collection
+            {t('workspace.deleteCollection')}
           </Button>
         </div>
       </div>
-      <p className="helper-text">
-        {collections.length} collections · Each file can belong to one collection.
-      </p>
+      <p className="helper-text">{t('workspace.collectionsHelp', { count: collections.length })}</p>
       <Modal
         open={!!mode}
         onClose={() => {
@@ -105,10 +104,10 @@ export default function WorkspaceCollections({
         }}
         title={
           mode === 'delete'
-            ? 'Delete collection?'
+            ? t('workspace.deleteCollectionTitle')
             : mode === 'rename'
-              ? 'Rename collection'
-              : 'Create collection'
+              ? t('workspace.renameCollection')
+              : t('workspace.createCollection')
         }
       >
         <form
@@ -118,13 +117,10 @@ export default function WorkspaceCollections({
           }}
         >
           {mode === 'delete' ? (
-            <p>
-              Delete “{current?.name}”? Its files will remain in Workspace, unassigned to a
-              collection.
-            </p>
+            <p>{t('workspace.deleteCollectionHelp', { name: current?.name ?? '' })}</p>
           ) : (
             <label className="field">
-              Collection name
+              {t('workspace.collectionName')}
               <input
                 autoFocus
                 value={name}
@@ -137,7 +133,7 @@ export default function WorkspaceCollections({
           {error && <Message kind="error">{error}</Message>}
           <div className="actions">
             <Button disabled={busy} onClick={() => setMode(undefined)}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               type="submit"
@@ -147,10 +143,10 @@ export default function WorkspaceCollections({
               }
             >
               {busy
-                ? 'Saving…'
+                ? t('workspace.saving')
                 : mode === 'delete'
-                  ? 'Confirm delete collection'
-                  : 'Save collection'}
+                  ? t('workspace.confirmDeleteCollection')
+                  : t('workspace.saveCollection')}
             </Button>
           </div>
         </form>
@@ -168,27 +164,28 @@ export function MoveCollectionModal({
   collections: WorkspaceCollection[]
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [target, setTarget] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   return (
     <Modal
       open
       onClose={() => {
         if (!busy) onClose()
       }}
-      title="Move files to collection"
+      title={t('workspace.moveFiles')}
     >
-      <p>{ids.length} selected file(s). Removing a collection assignment keeps the files.</p>
+      <p>{t('workspace.moveHelp', { count: ids.length })}</p>
       <label className="field">
-        Destination collection
+        {t('workspace.destination')}
         <select
-          aria-label="Destination collection"
+          aria-label={t('workspace.destination')}
           value={target}
           disabled={busy}
           onChange={(event) => setTarget(event.target.value)}
         >
-          <option value="">Unassigned (remove from collection)</option>
+          <option value="">{t('workspace.removeAssignment')}</option>
           {collections.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
@@ -199,7 +196,7 @@ export function MoveCollectionModal({
       {error && <Message kind="error">{error}</Message>}
       <div className="actions">
         <Button disabled={busy} onClick={onClose}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button
           variant="primary"
@@ -211,13 +208,13 @@ export function MoveCollectionModal({
               await workspace.moveFiles(ids, target || undefined)
               onClose()
             } catch (reason) {
-              setError(fileError(reason))
+              setError(fileMessage(reason))
             } finally {
               setBusy(false)
             }
           }}
         >
-          {busy ? 'Moving…' : 'Apply collection'}
+          {busy ? t('workspace.moving') : t('workspace.applyCollection')}
         </Button>
       </div>
     </Modal>

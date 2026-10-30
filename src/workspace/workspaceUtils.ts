@@ -1,4 +1,11 @@
 import type { FileInput } from './workspaceTypes'
+import {
+  message,
+  messageError,
+  MessageError,
+  type AppMessage,
+  type DisplayMessage,
+} from '../i18n/messages'
 
 export const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 export const PDF_TYPES = ['application/pdf']
@@ -51,21 +58,33 @@ export function acceptsFile(mimeType: string, accepted?: readonly string[]) {
 }
 
 export function validateFile(file: FileInput, accepted?: readonly string[]) {
-  if (!(file.blob instanceof Blob) || !file.blob.size) throw new Error('Choose a non-empty file.')
+  if (!(file.blob instanceof Blob) || !file.blob.size)
+    throw messageError('workspace.errors.nonEmpty', 'Choose a non-empty file.')
   if (!acceptsFile(file.blob.type, accepted))
-    throw new Error(`Unsupported file type. Choose ${accepted?.join(', ')}.`)
+    throw messageError('workspace.errors.unsupported', 'Unsupported file type. Choose {{types}}.', {
+      types: accepted?.join(', ') ?? '',
+    })
   const limit = file.blob.type.startsWith('image/') ? FILE_LIMITS.imageBytes : FILE_LIMITS.fileBytes
   if (file.blob.size > limit)
-    throw new Error(`${file.name}: limit is ${formatBytes(limit)} per file.`)
+    throw messageError('workspace.errors.fileLimit', '{{name}}: limit is {{limit}} per file.', {
+      name: file.name,
+      limit: formatBytes(limit),
+    })
 }
 
 export function validateBatch(files: FileInput[], accepted?: readonly string[]) {
-  if (!files.length) throw new Error('Choose at least one file.')
+  if (!files.length) throw messageError('workspace.errors.atLeastOne', 'Choose at least one file.')
   if (files.length > FILE_LIMITS.batchCount)
-    throw new Error(`Choose up to ${FILE_LIMITS.batchCount} files at a time.`)
+    throw messageError('workspace.errors.batchCount', 'Choose up to {{count}} files at a time.', {
+      count: FILE_LIMITS.batchCount,
+    })
   files.forEach((file) => validateFile(file, accepted))
   if (files.reduce((sum, file) => sum + file.blob.size, 0) > FILE_LIMITS.batchBytes)
-    throw new Error(`Combined inputs must be at most ${formatBytes(FILE_LIMITS.batchBytes)}.`)
+    throw messageError(
+      'workspace.errors.batchBytes',
+      'Combined inputs must be at most {{limit}}.',
+      { limit: formatBytes(FILE_LIMITS.batchBytes) },
+    )
 }
 
 export function fromDevice(file: File): FileInput {
@@ -98,6 +117,32 @@ export function fileError(error: unknown) {
     return error.message
   }
   return 'The file operation failed. Your input has not been changed. Please retry.'
+}
+
+export function fileMessage(error: unknown): DisplayMessage {
+  if (error instanceof MessageError) return error.descriptor
+  if (error && typeof error === 'object' && 'descriptor' in error && isAppMessage(error.descriptor))
+    return error.descriptor
+  if (isAppMessage(error)) return error
+  if (error instanceof Error) {
+    if (error.name === 'QuotaExceededError')
+      return message('workspace.errors.quota', fileError(error))
+    if (['SecurityError', 'InvalidStateError', 'UnknownError'].includes(error.name))
+      return message('workspace.errors.unavailable', fileError(error))
+    return error.message
+  }
+  return message('workspace.errors.failed', fileError(error))
+}
+
+function isAppMessage(value: unknown): value is AppMessage {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Record<string, unknown>
+  return (
+    typeof candidate.key === 'string' &&
+    typeof candidate.fallback === 'string' &&
+    !!candidate.params &&
+    typeof candidate.params === 'object'
+  )
 }
 
 export function downloadFile(file: FileInput) {

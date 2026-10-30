@@ -5,6 +5,13 @@ export interface Release {
   features: readonly string[]
   improvements: readonly string[]
   fixes: readonly string[]
+  localizations?: Partial<Record<'tr' | 'de' | 'es', ReleaseLocalization>>
+}
+export interface ReleaseLocalization {
+  title: string
+  features: readonly string[]
+  improvements: readonly string[]
+  fixes: readonly string[]
 }
 
 // Newest first. Keep an entry matching package.json for each published version.
@@ -25,6 +32,61 @@ export const releases: readonly Release[] = [
       'Normalized route metadata for trailing-slash URLs',
       'Fixed search and Workspace keyboard-navigation regressions',
     ],
+    localizations: {
+      tr: {
+        title: 'Çalışma Alanı Zekâsı',
+        features: [
+          'Çalışma Alanı Koleksiyonları',
+          'Akıllı Dosya İnceleyici',
+          'Package.json Analizcisi',
+        ],
+        improvements: [
+          'Geliştirilmiş Çalışma Alanı düzeni',
+          'Daha iyi yerel dosya aktarımları',
+          'Genişletilmiş SEO ve keşfedilebilirlik meta verileri',
+          'Site haritası ve robots desteği',
+        ],
+        fixes: [
+          'Package.json Analizcisi uzun değer taşması düzeltildi',
+          'Sondaki eğik çizgili URL’ler için rota meta verileri normalleştirildi',
+          'Arama ve Çalışma Alanı klavye gezinimi gerilemeleri düzeltildi',
+        ],
+      },
+      de: {
+        title: 'Workspace-Intelligenz',
+        features: ['Workspace-Sammlungen', 'Intelligente Dateiprüfung', 'Package.json-Analysator'],
+        improvements: [
+          'Verbesserte Workspace-Organisation',
+          'Bessere lokale Dateiübergaben',
+          'Erweiterte SEO- und Auffindbarkeits-Metadaten',
+          'Unterstützung für Sitemap und robots',
+        ],
+        fixes: [
+          'Überlauf langer Werte im Package.json-Analysator behoben',
+          'Routenmetadaten für URLs mit abschließendem Schrägstrich normalisiert',
+          'Fehler bei der Tastaturnavigation in Suche und Workspace behoben',
+        ],
+      },
+      es: {
+        title: 'Inteligencia del espacio de trabajo',
+        features: [
+          'Colecciones del espacio de trabajo',
+          'Inspector de archivos inteligente',
+          'Analizador de Package.json',
+        ],
+        improvements: [
+          'Organización mejorada del espacio de trabajo',
+          'Mejores transferencias de archivos locales',
+          'Metadatos SEO y de descubrimiento ampliados',
+          'Compatibilidad con sitemap y robots',
+        ],
+        fixes: [
+          'Corregido el desbordamiento de valores largos en el analizador de Package.json',
+          'Metadatos de ruta normalizados para URL con barra final',
+          'Corregidas regresiones de búsqueda y navegación por teclado del espacio de trabajo',
+        ],
+      },
+    },
   },
 ]
 

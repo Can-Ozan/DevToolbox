@@ -6,6 +6,8 @@ import {
   importBackup,
 } from '../../lib/archive'
 import type { ArchiveRequest } from '../../lib/archiveTypes'
+import { errorDescriptor } from '../../lib/encoding'
+import { message, type DisplayMessage } from '../../i18n/messages'
 self.onmessage = async (event: MessageEvent<ArchiveRequest>) => {
   const request = event.data
   try {
@@ -21,8 +23,12 @@ self.onmessage = async (event: MessageEvent<ArchiveRequest>) => {
               : await importBackup(request.file)
     self.postMessage({ result })
   } catch (error) {
+    const descriptor: DisplayMessage = errorDescriptor(error)
     self.postMessage({
-      error: error instanceof Error ? error.message : 'Archive processing failed.',
+      error:
+        typeof descriptor === 'object' && descriptor.key === 'toolErrors.archiveInvalid'
+          ? message('toolErrors.generic', 'Something went wrong. Check your input and try again.')
+          : descriptor,
     })
   }
 }

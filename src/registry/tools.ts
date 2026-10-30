@@ -1,4 +1,6 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
+import type { Language } from '../i18n/language'
+import { getCategoryLabel, getToolText } from '../i18n/toolLabels'
 import {
   Braces,
   CodeXml,
@@ -531,14 +533,14 @@ export const tools: ToolDefinition[] = definitions.map((tool) => ({
   path: `/tools/${tool.id}`,
 }))
 
-export function searchTools(query: string, category?: string) {
-  const terms = query.toLocaleLowerCase().trim().split(/\s+/)
+export function searchTools(query: string, category?: string, language: Language = 'en') {
+  const terms = query.toLocaleLowerCase(language).trim().split(/\s+/)
   return tools.filter(
     (tool) =>
       (!category || category === tool.category) &&
       terms.every((term) =>
-        `${tool.name} ${tool.category} ${tool.description} ${tool.keywords.join(' ')}`
-          .toLocaleLowerCase()
+        `${tool.id} ${tool.name} ${tool.category} ${tool.description} ${tool.keywords.join(' ')} ${getToolText(tool, language).name} ${getToolText(tool, language).description} ${getToolText(tool, language).keywords.join(' ')} ${getCategoryLabel(tool.category, language)}`
+          .toLocaleLowerCase(language)
           .includes(term),
       ),
   )

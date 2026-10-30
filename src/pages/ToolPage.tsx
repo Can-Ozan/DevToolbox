@@ -6,8 +6,11 @@ import { preferences } from '../storage/preferences'
 import { ToolHeader } from '../components/ToolLayout'
 import NotFound from './NotFound'
 import { relatedTools } from '../registry/discovery'
+import { useTranslation } from 'react-i18next'
+import { currentLanguage, getToolText } from '../i18n/toolLabels'
 
 export default function ToolPage() {
+  const { t } = useTranslation()
   const { id } = useParams()
   const tool = tools.find((item) => item.id === id)
   const { key } = useLocation()
@@ -27,7 +30,7 @@ export default function ToolPage() {
         <Suspense
           fallback={
             <div className="loading-state" role="status">
-              Opening your tool…
+              {t('discovery.opening')}
             </div>
           }
         >
@@ -36,14 +39,14 @@ export default function ToolPage() {
       </div>
       <div className="tool-privacy">
         <ShieldCheck size={15} />
-        Processed locally in your browser. Your inputs are never uploaded.
+        {t('discovery.privateProcessing')}
       </div>
-      <section className="related-tools" aria-label="Related tools">
-        <h2>Related tools</h2>
+      <section className="related-tools" aria-label={t('discovery.related')}>
+        <h2>{t('discovery.related')}</h2>
         <div className="related-links">
           {relatedTools(tool).map((item) => (
             <Link key={item.id} to={item.path}>
-              {item.name}
+              {getToolText(item, currentLanguage()).name}
               <ArrowUpRight size={14} />
             </Link>
           ))}

@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 import type { ReportStage } from './processing'
 import { FILE_LIMITS, IMAGE_TYPES, validateFile } from '../workspace/workspaceUtils'
 
@@ -18,14 +19,16 @@ export interface ImageOptions extends ImageDimensions {
 
 export function validateDimensions(width: number, height: number) {
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1)
-    throw new Error('Width and height must be positive whole numbers.')
+    throw messageError('fileErrors.dimensions', 'Width and height must be positive whole numbers.')
   if (
     width > FILE_LIMITS.imageDimension ||
     height > FILE_LIMITS.imageDimension ||
     width * height > FILE_LIMITS.imagePixels
   )
-    throw new Error(
-      `Images are limited to ${FILE_LIMITS.imageDimension} px per side and 16 megapixels.`,
+    throw messageError(
+      'fileErrors.imageLimit',
+      'Images are limited to {{max}} px per side and 16 megapixels.',
+      { max: FILE_LIMITS.imageDimension },
     )
   return { width, height }
 }
@@ -44,7 +47,10 @@ export function imageHeader(bytes: Uint8Array, mime: string): ImageDimensions {
   const ascii = (start: number, length: number) =>
     String.fromCharCode(...bytes.slice(start, start + length))
   const invalid = () => {
-    throw new Error('This image is damaged, unsupported, or does not match its file type.')
+    throw messageError(
+      'fileErrors.damagedImage',
+      'This image is damaged, unsupported, or does not match its file type.',
+    )
   }
   if (
     mime === 'image/png' &&
@@ -77,7 +83,11 @@ export function imageHeader(bytes: Uint8Array, mime: string): ImageDimensions {
   ) {
     const chunk = ascii(12, 4)
     if (chunk === 'VP8X') {
-      if (bytes[20] & 2) throw new Error('Animated WebP is not supported. Choose a still image.')
+      if (bytes[20] & 2)
+        throw messageError(
+          'fileErrors.animatedWebp',
+          'Animated WebP is not supported. Choose a still image.',
+        )
       const uint24 = (offset: number) =>
         bytes[offset] + (bytes[offset + 1] << 8) + (bytes[offset + 2] << 16)
       return validateDimensions(uint24(24) + 1, uint24(27) + 1)
@@ -99,7 +109,8 @@ export async function decodeImage(blob: Blob) {
   try {
     bitmap = await createImageBitmap(blob)
   } catch {
-    throw new Error(
+    throw messageError(
+      'fileErrors.decodeImage',
       'The browser could not decode this image. Try a different PNG, JPEG, or WebP file.',
     )
   }
@@ -137,7 +148,7 @@ export async function processImage(
     ![0, 90, 180, 270].includes(options.rotation) ||
     !/^#[\da-f]{6}$/i.test(options.background)
   )
-    throw new Error('Invalid image output options.')
+    throw messageError('fileErrors.imageOptions', 'Invalid image output options.')
   report?.('reading')
   const bitmap = await decodeImage(blob)
   const canvas = document.createElement('canvas')
@@ -153,13 +164,14 @@ export async function processImage(
       crop.x + crop.width > bitmap.width ||
       crop.y + crop.height > bitmap.height
     )
-      throw new Error('Crop bounds must stay inside the image.')
+      throw messageError('fileErrors.cropBounds', 'Crop bounds must stay inside the image.')
     report?.('generating')
     const swap = options.rotation === 90 || options.rotation === 270
     canvas.width = swap ? options.height : options.width
     canvas.height = swap ? options.width : options.height
     const context = canvas.getContext('2d')
-    if (!context) throw new Error('Canvas processing is unavailable in this browser.')
+    if (!context)
+      throw messageError('fileErrors.canvas', 'Canvas processing is unavailable in this browser.')
     if (options.format === 'image/jpeg') {
       context.fillStyle = options.background
       context.fillRect(0, 0, canvas.width, canvas.height)
@@ -183,7 +195,12 @@ export async function processImage(
       canvas.toBlob(
         (output) => {
           if (!output || output.type !== options.format)
-            reject(new Error('This browser cannot encode the selected format. Choose PNG or JPEG.'))
+            reject(
+              messageError(
+                'fileErrors.encodeImage',
+                'This browser cannot encode the selected format. Choose PNG or JPEG.',
+              ),
+            )
           else resolve(output)
         },
         options.format,

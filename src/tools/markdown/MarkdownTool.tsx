@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar } from '../../components/ToolLayout'
 import { useState } from 'react'
 import Markdown, { defaultUrlTransform } from 'react-markdown'
@@ -10,14 +11,15 @@ const localImage = /^data:image\/(?:png|jpeg|gif|webp);base64,[a-z\d+/=\s]+$/i
 const sample =
   '# Hello, DevToolbox\n\nWrite **Markdown**, see the result instantly.\n\n- [x] Private by default\n- [ ] Build something useful\n\n| Tool | Runs |\n| --- | --- |\n| Markdown | Locally |\n\n> Small tools, less friction.\n\n```js\nconst hello = "world";\n```'
 export default function MarkdownTool() {
+  const { t } = useTranslation()
   const [input, setInput] = useState('')
   const tooLarge = input.length > 100000
   return (
     <>
       <ToolToolbar>
-        <Button onClick={() => setInput(sample)}>Load sample</Button>
-        <Button onClick={() => setInput('')}>Clear</Button>
-        <CopyButton text={input} label="Copy Markdown" />
+        <Button onClick={() => setInput(sample)}>{t('toolUi.loadSample')}</Button>
+        <Button onClick={() => setInput('')}>{t('toolUi.clear')}</Button>
+        <CopyButton text={input} label={t('toolUi.copyMarkdown')} />
         <DownloadButton
           text={input}
           filename="document.md"
@@ -26,19 +28,17 @@ export default function MarkdownTool() {
       </ToolToolbar>
       <div className="editor-grid">
         <Editor
-          label="Markdown input"
+          label={t('toolUi.markdownInput')}
           value={input}
           onChange={setInput}
           minHeight={360}
-          placeholder="# Write something useful…"
+          placeholder={t('toolUi.markdownHint')}
         />
         <section className="editor">
-          <div className="editor-heading">Live preview</div>
+          <div className="editor-heading">{t('toolUi.livePreview')}</div>
           <div className="markdown-preview">
             {tooLarge ? (
-              <Message kind="error">
-                Preview is limited to 100,000 characters. Shorten the input to continue.
-              </Message>
+              <Message kind="error">{t('toolUi.markdownLimit')}</Message>
             ) : (
               <Markdown
                 skipHtml
@@ -63,22 +63,18 @@ export default function MarkdownTool() {
                       <img src={src} alt={alt ?? ''} />
                     ) : (
                       <span className="helper-text">
-                        [Image blocked: {alt || 'remote source'}. Use an embedded PNG, JPEG, GIF, or
-                        WebP data URL.]
+                        {t('toolUi.blockedImage', { name: alt || t('toolUi.remoteSource') })}
                       </span>
                     ),
                 }}
               >
-                {input || '*Your preview will appear here.*'}
+                {input || t('toolUi.markdownEmpty')}
               </Markdown>
             )}
           </div>
         </section>
       </div>
-      <p className="helper-text">
-        Raw HTML is ignored. Remote images are blocked to keep previewing private; embedded raster
-        images are supported. Links open only when clicked.
-      </p>
+      <p className="helper-text">{t('toolUi.markdownHelp')}</p>
     </>
   )
 }

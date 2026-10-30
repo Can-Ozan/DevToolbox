@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from 'vitest'
 import { getDocument } from 'pdfjs-dist'
 import { inspectPdf, renderPdfImages } from './pdfRenderer'
+import { englishMessage, type DisplayMessage } from '../../i18n/messages'
 
 vi.mock('pdfjs-dist', () => ({ getDocument: vi.fn(), GlobalWorkerOptions: {} }))
 afterEach(() => {
@@ -124,7 +125,10 @@ it.each(
     const result = await outcome
     if (mode === 'success') {
       expect(result).toHaveProperty('value.0.blob.type', format)
-      expect(result).toHaveProperty('value.0.detail', '80 × 60 px · page 1')
+      expect(result).toHaveProperty('value.0.detail.key', 'fileUi.pageDetail')
+      expect(
+        englishMessage((result as { value: { detail: DisplayMessage }[] }).value[0].detail),
+      ).toBe('80 × 60 px · page 1')
     } else expect(result).toHaveProperty('error')
     expect(loading.destroy).toHaveBeenCalled()
     expect(page.cleanup).toHaveBeenCalledOnce()

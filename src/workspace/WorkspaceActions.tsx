@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
+import { message as appMessage, messageError } from '../i18n/messages'
+import { useMessageState } from '../i18n/useMessageState'
 import { useEffect, useState } from 'react'
 import { Button, Message, Modal } from '../components/ui'
 import { FileOutputPanel, useFileJob } from './FileControls'
 import { workspace } from './workspaceStore'
 import type { FileOutput, WorkspaceFileInfo, WorkspaceCollection } from './workspaceTypes'
-import { downloadFile, fileError, fromDevice } from './workspaceUtils'
+import { downloadFile, fileMessage, fromDevice } from './workspaceUtils'
 import { runArchive } from '../tools/zip/archiveClient'
 import { ZIP_LIMITS, type WorkspaceBackup } from '../lib/archiveTypes'
 import { MoveCollectionModal } from './WorkspaceCollections'
@@ -29,14 +32,15 @@ export default function WorkspaceActions({
   disabled: boolean
   onBusy: (value: boolean) => void
 }) {
+  const { t } = useTranslation()
   const selectedFiles = files.filter((file) => selected.includes(file.id))
   const exportJob = useFileJob<FileOutput>(),
     importJob = useFileJob<WorkspaceBackup>()
   const [move, setMove] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false),
     [acting, setActing] = useState(false),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('')
+    [error, setError] = useMessageState(),
+    [message, setMessage] = useMessageState()
   const [chooseBackup, setChooseBackup] = useState(false)
   const busy = acting || exportJob.busy || importJob.busy
   useEffect(() => {
@@ -49,18 +53,18 @@ export default function WorkspaceActions({
     try {
       await operation()
     } catch (reason) {
-      setError(fileError(reason))
+      setError(fileMessage(reason))
     } finally {
       setActing(false)
     }
   }
   async function load(items: WorkspaceFileInfo[]) {
     if (items.reduce((sum, file) => sum + file.size, 0) > ZIP_LIMITS.bytes)
-      throw new Error('Combined files are limited to 150 MB.')
+      throw messageError('workspace.errors.downloadBytes', 'Combined files are limited to 150 MB.')
     return Promise.all(items.map((file) => workspace.get(file.id)))
   }
   return (
-    <section className="workspace-bulk" aria-label="Workspace actions">
+    <section className="workspace-bulk" aria-label={t('workspace.actions')}>
       <div className="actions">
         <Button
           disabled={disabled || busy || !files.length}
@@ -70,7 +74,7 @@ export default function WorkspaceActions({
             setSelected([])
           }}
         >
-          {selectionMode ? 'Exit selection' : 'Select files'}
+          {selectionMode ? t('workspace.exitSelection') : t('workspace.selectFiles')}
         </Button>
         <Button
           disabled={disabled || busy || (!files.length && !collections.length)}
@@ -80,24 +84,21 @@ export default function WorkspaceActions({
             )
           }
         >
-          Export Workspace
+          {t('workspace.export')}
         </Button>
         <Button disabled={disabled || busy} onClick={() => setChooseBackup(true)}>
-          Import Workspace backup
+          {t('workspace.importBackup')}
         </Button>
       </div>
       <Modal
         open={chooseBackup}
         onClose={() => setChooseBackup(false)}
-        title="Choose Workspace backup"
+        title={t('workspace.chooseBackup')}
       >
-        <p>
-          Select a DevToolbox Workspace ZIP backup. Files are validated locally before you confirm
-          import.
-        </p>
+        <p>{t('workspace.backupHelp')}</p>
         {chooseBackup && (
           <label className="field">
-            Workspace backup file
+            {t('workspace.backupFile')}
             <input
               type="file"
               accept=".zip,application/zip"
@@ -118,15 +119,13 @@ export default function WorkspaceActions({
       </Modal>
       {selectionMode && (
         <div className="workspace-selection-bar">
-          <p role="status">
-            {selectedFiles.length} files selected. Selection includes files hidden by filters.
-          </p>
+          <p role="status">{t('workspace.selected', { count: selectedFiles.length })}</p>
           <div className="actions">
             <Button
               disabled={busy || disabled || !selectedFiles.length}
               onClick={() => setMove(true)}
             >
-              Move selected to collection
+              {t('workspace.moveSelected')}
             </Button>
             <Button
               disabled={busy || disabled || !matching.length}
@@ -134,21 +133,26 @@ export default function WorkspaceActions({
                 setSelected([...new Set([...selected, ...matching.map((file) => file.id)])])
               }
             >
-              Select all visible
+              {t('workspace.selectVisible')}
             </Button>
             <Button disabled={busy || disabled} onClick={() => setSelected([])}>
-              Clear selection
+              {t('workspace.clearSelection')}
             </Button>
             <Button
               disabled={busy || disabled || !selectedFiles.length}
               onClick={() =>
                 void act(async () => {
                   for (const file of await load(selectedFiles)) downloadFile(file)
-                  setMessage('Downloads started. Your browser may ask to allow multiple downloads.')
+                  setMessage(
+                    appMessage(
+                      'workspace.downloadsStarted',
+                      'Downloads started. Your browser may ask to allow multiple downloads.',
+                    ),
+                  )
                 })
               }
             >
-              Download selected
+              {t('workspace.downloadSelected')}
             </Button>
             <Button
               disabled={busy || disabled || !selectedFiles.length}
@@ -165,7 +169,7 @@ export default function WorkspaceActions({
                 )
               }
             >
-              ZIP selected
+              {t('workspace.zipSelected')}
             </Button>
             <Button
               variant="danger"
@@ -175,13 +179,13 @@ export default function WorkspaceActions({
                 setConfirmDelete(true)
               }}
             >
-              Delete selected
+              {t('workspace.deleteSelected')}
             </Button>
           </div>
         </div>
       )}
       {busy && (
-        <p role="status">{acting ? 'Updating Workspace…' : 'Processing archive locally…'}</p>
+        <p role="status">{acting ? t('workspace.updating') : t('workspace.archiveProcessing')}</p>
       )}
       {(exportJob.busy || importJob.busy) && (
         <Button
@@ -190,7 +194,7 @@ export default function WorkspaceActions({
             importJob.reset()
           }}
         >
-          Cancel archive processing
+          {t('workspace.cancelArchive')}
         </Button>
       )}
       {(error || exportJob.error || importJob.error) && (
@@ -207,7 +211,7 @@ export default function WorkspaceActions({
       {exportJob.output && (
         <>
           <FileOutputPanel output={exportJob.output} />
-          <Button onClick={exportJob.reset}>Clear archive result</Button>
+          <Button onClick={exportJob.reset}>{t('workspace.clearArchive')}</Button>
         </>
       )}
       <Modal
@@ -215,16 +219,13 @@ export default function WorkspaceActions({
         onClose={() => {
           if (!acting) setConfirmDelete(false)
         }}
-        title={`Delete ${selectedFiles.length} selected files?`}
+        title={t('workspace.deleteSelectedTitle', { count: selectedFiles.length })}
       >
-        <p>
-          Both file content and metadata will be removed from this browser. Download anything you
-          want to keep first.
-        </p>
+        <p>{t('workspace.deleteHelp')}</p>
         {error && <Message kind="error">{error}</Message>}
         <div className="actions">
           <Button disabled={acting} onClick={() => setConfirmDelete(false)}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="danger"
@@ -234,11 +235,11 @@ export default function WorkspaceActions({
                 await workspace.deleteMany(selectedFiles.map((file) => file.id))
                 setSelected([])
                 setConfirmDelete(false)
-                setMessage('Selected files deleted.')
+                setMessage(appMessage('workspace.selectedDeleted', 'Selected files deleted.'))
               })
             }
           >
-            Confirm delete selected
+            {t('workspace.confirmDeleteSelected')}
           </Button>
         </div>
       </Modal>
@@ -247,18 +248,18 @@ export default function WorkspaceActions({
         onClose={() => {
           if (!acting) importJob.reset()
         }}
-        title="Import Workspace backup?"
+        title={t('workspace.importTitle')}
       >
         <p>
-          {importJob.output?.files.length} validated files and{' '}
-          {importJob.output?.collections.length} collections. Existing files and collections will be
-          kept; duplicate names receive a suffix. Pins, creation dates and collection membership are
-          restored. Preferences are not imported.
+          {t('workspace.importHelp', {
+            files: importJob.output?.files.length ?? 0,
+            collections: importJob.output?.collections.length ?? 0,
+          })}
         </p>
         {error && <Message kind="error">{error}</Message>}
         <div className="actions">
           <Button disabled={acting} onClick={importJob.reset}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -268,11 +269,17 @@ export default function WorkspaceActions({
                 const { files, collections } = importJob.output!
                 await workspace.add(files, { bulk: true, restore: true, collections })
                 importJob.reset()
-                setMessage(`${files.length} files imported. Existing files were preserved.`)
+                setMessage(
+                  appMessage(
+                    'workspace.imported',
+                    '{{count}} files imported. Existing files were preserved.',
+                    { count: files.length },
+                  ),
+                )
               })
             }
           >
-            Confirm import
+            {t('workspace.confirmImport')}
           </Button>
         </div>
       </Modal>

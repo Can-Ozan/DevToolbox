@@ -1,5 +1,6 @@
 import { ToolTabs, ToolToolbar } from '../../components/ToolLayout'
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { Button, Message } from '../../components/ui'
 import { FileOutputPanel, useFileJob, WorkspaceFilePicker } from '../../workspace/FileControls'
@@ -8,8 +9,11 @@ import { formatBytes, fileError } from '../../workspace/workspaceUtils'
 import { workspace } from '../../workspace/workspaceStore'
 import { ZIP_TYPES, type ArchiveEntry } from '../../lib/archiveTypes'
 import { runArchive } from './archiveClient'
+import { errorDescriptor } from '../../lib/encoding'
+import { renderMessage } from '../../i18n/messages'
 
 export default function ZipTool() {
+  const { t } = useTranslation()
   const [params] = useSearchParams()
   const [mode, setMode] = useState<'create' | 'extract'>(params.has('file') ? 'extract' : 'create')
   const [files, setFiles] = useState<FileInput[]>([]),
@@ -35,23 +39,19 @@ export default function ZipTool() {
   return (
     <>
       <ToolTabs
-        label="ZIP operation"
+        label={t('inspection.zip.operation')}
         value={mode}
         disabled={busy}
         options={[
-          { value: 'create', label: 'Create ZIP' },
-          { value: 'extract', label: 'Extract ZIP' },
+          { value: 'create', label: t('inspection.zip.create') },
+          { value: 'extract', label: t('inspection.zip.extract') },
         ]}
         onChange={(value) => {
           clear()
           setMode(value)
         }}
       />
-      <p className="helper-text">
-        Local ZIP processing. Up to 500 files / 1,000 entries, 150 MB expanded, 100 MB per
-        archive/file and 200:1 expansion. Device batches accept 30 files. Encrypted, ZIP64 and
-        multi-disk archives are unsupported. Extracted paths become safe flat filenames.
-      </p>
+      <p className="helper-text">{t('inspection.zip.help')}</p>
       {mode === 'create' ? (
         <>
           <WorkspaceFilePicker
@@ -63,7 +63,7 @@ export default function ZipTool() {
             }}
           />
           <label className="field">
-            ZIP filename
+            {t('inspection.zip.filename')}
             <input
               value={name}
               disabled={busy}
@@ -82,13 +82,13 @@ export default function ZipTool() {
                 </span>
                 <Button
                   disabled={busy}
-                  aria-label={`Remove ${file.name}`}
+                  aria-label={`${t('inspection.zip.remove')} ${file.name}`}
                   onClick={() => {
                     create.reset()
                     setFiles(files.filter((_, i) => i !== index))
                   }}
                 >
-                  Remove
+                  {t('inspection.zip.remove')}
                 </Button>
               </li>
             ))}
@@ -107,7 +107,7 @@ export default function ZipTool() {
           {archive && <p className="file-name">{archive.name}</p>}
           {inspect.output && (
             <section aria-label="ZIP entries" className="panel">
-              <h2>{inspect.output.length} archive entries</h2>
+              <h2>{t('inspection.zip.entries', { count: inspect.output.length })}</h2>
               <div className="actions">
                 <Button
                   disabled={busy || !available.length}
@@ -116,7 +116,7 @@ export default function ZipTool() {
                     setSelected(available.map((entry) => entry.id))
                   }}
                 >
-                  Select all entries
+                  {t('inspection.zip.selectAll')}
                 </Button>
                 <Button
                   disabled={busy}
@@ -125,7 +125,7 @@ export default function ZipTool() {
                     setSelected([])
                   }}
                 >
-                  Clear entry selection
+                  {t('inspection.zip.clearSelection')}
                 </Button>
               </div>
               <div className="archive-entry-list">
@@ -133,7 +133,7 @@ export default function ZipTool() {
                   <label key={entry.id} className="archive-entry">
                     <input
                       type="checkbox"
-                      aria-label={'Extract ' + entry.path}
+                      aria-label={`${t('inspection.zip.extractEntry')} ${entry.path}`}
                       disabled={busy || entry.directory}
                       checked={selected.includes(entry.id)}
                       onChange={(e) => {
@@ -148,9 +148,9 @@ export default function ZipTool() {
                     <span className="file-name">
                       {entry.path}
                       <small>
-                        {entry.directory ? 'Directory' : 'File'} ·{' '}
-                        {formatBytes(entry.compressedSize)} compressed · {formatBytes(entry.size)}{' '}
-                        expanded
+                        {entry.directory ? t('inspection.zip.directory') : t('inspection.zip.file')}{' '}
+                        · {formatBytes(entry.compressedSize)} {t('inspection.zip.compressed')} ·{' '}
+                        {formatBytes(entry.size)} {t('inspection.zip.expanded')}
                       </small>
                     </span>
                   </label>
@@ -167,7 +167,7 @@ export default function ZipTool() {
                   )
                 }}
               >
-                Extract selected ({selected.length})
+                {t('inspection.zip.extractSelected', { count: selected.length })}
               </Button>
             </section>
           )}
@@ -184,7 +184,7 @@ export default function ZipTool() {
               )
             }
           >
-            Generate ZIP
+            {t('inspection.zip.generate')}
           </Button>
         ) : (
           <Button
@@ -195,7 +195,7 @@ export default function ZipTool() {
               void inspect.run((signal) => runArchive({ action: 'list', file: archive! }, signal))
             }}
           >
-            Inspect ZIP
+            {t('inspection.zip.inspect')}
           </Button>
         )}
         <Button
@@ -206,17 +206,22 @@ export default function ZipTool() {
             setArchive(undefined)
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
         {(create.busy || inspect.busy || extract.busy) && (
-          <Button onClick={clear}>Cancel processing</Button>
+          <Button onClick={clear}>{t('inspection.zip.cancel')}</Button>
         )}
       </ToolToolbar>
       {busy && (
-        <p role="status">{saving ? 'Saving files to Workspace…' : 'Processing ZIP locally…'}</p>
+        <p role="status">{saving ? t('inspection.zip.saving') : t('inspection.zip.processing')}</p>
       )}
       {(create.error || inspect.error || extract.error || error) && (
-        <Message kind="error">{create.error || inspect.error || extract.error || error}</Message>
+        <Message kind="error">
+          {renderMessage(
+            errorDescriptor(create.error || inspect.error || extract.error || error),
+            t,
+          )}
+        </Message>
       )}
       {message && <Message kind="success">{message}</Message>}
       {create.output && <FileOutputPanel output={create.output} />}
@@ -230,7 +235,7 @@ export default function ZipTool() {
                 setError('')
                 try {
                   await workspace.add(extract.output!, { bulk: true })
-                  setMessage(`${extract.output!.length} files saved to Workspace.`)
+                  setMessage(t('inspection.zip.saved', { count: extract.output!.length }))
                 } catch (reason) {
                   setError(fileError(reason))
                 } finally {
@@ -238,13 +243,10 @@ export default function ZipTool() {
                 }
               }}
             >
-              Save extracted files to Workspace
+              {t('inspection.zip.save')}
             </Button>
           </div>
-          <p className="helper-text">
-            Nothing is saved automatically. Empty files can be downloaded but Workspace requires
-            non-empty files.
-          </p>
+          <p className="helper-text">{t('inspection.zip.nothingSaved')}</p>
           {extract.output.map((file, index) => (
             <FileOutputPanel key={index} output={file} />
           ))}

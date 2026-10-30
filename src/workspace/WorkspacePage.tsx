@@ -1,3 +1,7 @@
+import { useTranslation } from 'react-i18next'
+import { message } from '../i18n/messages'
+import { currentLanguage, getToolText } from '../i18n/toolLabels'
+import { useMessageState } from '../i18n/useMessageState'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
@@ -23,12 +27,18 @@ import { imageDimensions } from '../lib/imageFiles'
 import { compatibleTools, useObjectURL, WorkspaceFilePicker } from './FileControls'
 import { refreshWorkspace, useWorkspace, workspace } from './workspaceStore'
 import type { WorkspaceFile, WorkspaceFileInfo } from './workspaceTypes'
-import { downloadFile, fileError, formatBytes, IMAGE_TYPES } from './workspaceUtils'
+import { downloadFile, fileMessage, formatBytes, IMAGE_TYPES } from './workspaceUtils'
+
+function sourceLabel(source: string | undefined, importedLabel: string) {
+  const tool = tools.find((item) => item.id === source)
+  return tool ? getToolText(tool, currentLanguage()).name : (source ?? importedLabel)
+}
 
 function Preview({ file }: { file: WorkspaceFile }) {
+  const { t } = useTranslation()
   const [image, setImage] = useState<Blob>()
   const [text, setText] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const url = useObjectURL(image)
   useEffect(() => {
     let active = true
@@ -38,7 +48,7 @@ function Preview({ file }: { file: WorkspaceFile }) {
           if (active) setImage(file.blob)
         })
         .catch((reason) => {
-          if (active) setError(fileError(reason))
+          if (active) setError(fileMessage(reason))
         })
     } else if (
       file.mimeType.startsWith('text/') ||
@@ -51,53 +61,54 @@ function Preview({ file }: { file: WorkspaceFile }) {
           if (active) setText(value)
         })
         .catch(() => {
-          if (active) setError('Text preview is unavailable.')
+          if (active) setError(message('workspace.errors.preview', 'Text preview is unavailable.'))
         })
     }
     return () => {
       active = false
     }
-  }, [file])
+  }, [file, setError])
   return (
     <>
-      {url && <img className="file-preview" alt={`Preview of ${file.name}`} src={url} />}
+      {url && (
+        <img
+          className="file-preview"
+          alt={t('workspace.previewAlt', { name: file.name })}
+          src={url}
+        />
+      )}
       {text && (
         <>
           <pre className="file-text-preview">{text}</pre>
-          {file.size > 65536 && <p className="helper-text">Showing the first 64 KB.</p>}
+          {file.size > 65536 && <p className="helper-text">{t('workspace.previewLimit')}</p>}
         </>
       )}
       {error && <Message kind="error">{error}</Message>}
       {!IMAGE_TYPES.includes(file.mimeType) && !text && (
-        <p className="helper-text">
-          Visual preview is unavailable for this format. Download it or open a compatible tool.
-        </p>
+        <p className="helper-text">{t('workspace.noPreview')}</p>
       )}
       <dl className="file-metadata">
-        <dt>Filename</dt>
+        <dt>{t('workspace.filename')}</dt>
         <dd>{file.name}</dd>
-        <dt>Original filename</dt>
+        <dt>{t('workspace.originalFilename')}</dt>
         <dd>{file.originalName ?? file.name}</dd>
-        <dt>MIME type</dt>
+        <dt>{t('workspace.mime')}</dt>
         <dd>{file.mimeType}</dd>
-        <dt>Size</dt>
+        <dt>{t('workspace.size')}</dt>
         <dd>{formatBytes(file.size)}</dd>
-        <dt>Created</dt>
-        <dd>{new Date(file.createdAt).toLocaleString()}</dd>
-        <dt>Source</dt>
-        <dd>
-          {tools.find((tool) => tool.id === file.sourceTool)?.name ??
-            file.sourceTool ??
-            'Imported from device'}
-        </dd>
+        <dt>{t('workspace.created')}</dt>
+        <dd>{new Date(file.createdAt).toLocaleString(currentLanguage())}</dd>
+        <dt>{t('workspace.source')}</dt>
+        <dd>{sourceLabel(file.sourceTool, t('workspace.importedDevice'))}</dd>
       </dl>
     </>
   )
 }
 
 export default function WorkspacePage() {
+  const { t } = useTranslation()
   const snapshot = useWorkspace()
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [busy, setBusy] = useState(false)
   const [archiveBusy, setArchiveBusy] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
@@ -123,10 +134,10 @@ export default function WorkspacePage() {
             ['application/json', 'application/yaml'].includes(file.mimeType)
           ? 'Text'
           : 'Other'
-  const filters = ['All', 'Images', 'PDFs', 'Text', 'Other'].filter(
+  const filters = (['All', 'Images', 'PDFs', 'Text', 'Other'] as const).filter(
     (type) => type === 'All' || snapshot.files.some((file) => fileType(file) === type),
   )
-  const activeFilter = filters.includes(filter) ? filter : 'All'
+  const activeFilter = filters.find((item) => item === filter) ?? 'All'
   const activeCollection =
     collection === 'unassigned' || snapshot.collections.some((item) => item.id === collection)
       ? collection
@@ -163,7 +174,7 @@ export default function WorkspacePage() {
     try {
       await operation()
     } catch (reason) {
-      setError(fileError(reason))
+      setError(fileMessage(reason))
     } finally {
       setBusy(false)
     }
@@ -171,27 +182,28 @@ export default function WorkspacePage() {
   return (
     <div className="page-enter workspace-page">
       <PageHeader
-        eyebrow="LOCAL FILE VAULT"
-        title="Workspace"
-        description="Your files, connected. Save, organize, and continue in another tool."
+        eyebrow={t('workspace.eyebrow')}
+        title={t('shell.workspace')}
+        description={t('workspace.description')}
         actions={
           <span className="count-pill">
             <FolderOpen size={14} />
-            {snapshot.loading ? 'Loading…' : `${snapshot.files.length} files`}
+            {snapshot.loading
+              ? t('common.loading')
+              : t('workspace.files', { count: snapshot.files.length })}
           </span>
         }
       />
       <p className="workspace-note">
         <ShieldCheck size={15} />
-        Browser data can be cleared by you or your browser. Download important files to keep your
-        own copy.
+        {t('workspace.backupNote')}
       </p>
       <div className="workspace-manager">
         <WorkspaceFilePicker
           includeWorkspace={false}
           multiple
           disabled={busy || archiveBusy}
-          deviceLabel="Import files"
+          deviceLabel={t('workspace.importFiles')}
           onSelect={(files) => {
             void act(async () => {
               await workspace.add(files)
@@ -220,12 +232,12 @@ export default function WorkspacePage() {
         />
         <div className="workspace-toolbar">
           <label className="field">
-            Search files
+            {t('workspace.search')}
             <input
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filename or type…"
+              placeholder={t('workspace.searchPlaceholder')}
             />
           </label>
           <div className="actions">
@@ -236,14 +248,14 @@ export default function WorkspacePage() {
               }}
             >
               <RefreshCw size={14} />
-              Refresh files
+              {t('workspace.refresh')}
             </Button>
             <ClearWorkspaceButton disabled={busy} />
           </div>
         </div>
 
         <div className="workspace-view-controls">
-          <div className="filter-tabs" aria-label="Filter files by type">
+          <div className="filter-tabs" aria-label={t('workspace.filter')}>
             {filters.map((type) => (
               <button
                 key={type}
@@ -251,11 +263,11 @@ export default function WorkspacePage() {
                 className={activeFilter === type ? 'active' : ''}
                 onClick={() => setFilter(type)}
               >
-                {type}
+                {t(`workspace.${type}`)}
               </button>
             ))}
           </div>
-          <div className="view-toggle" role="group" aria-label="Workspace view">
+          <div className="view-toggle" role="group" aria-label={t('workspace.view')}>
             {(['grid', 'list'] as const).map((view) => (
               <Button
                 key={view}
@@ -263,32 +275,32 @@ export default function WorkspacePage() {
                 onClick={() => preferences.setOptions({ workspaceView: view })}
               >
                 {view === 'grid' ? <LayoutGrid size={15} /> : <List size={15} />}
-                {view === 'grid' ? 'Grid' : 'List'}
+                {view === 'grid' ? t('workspace.grid') : t('workspace.list')}
               </Button>
             ))}
           </div>
         </div>
-        {snapshot.loading && <p role="status">Loading Workspace…</p>}
+        {snapshot.loading && <p role="status">{t('common.loadingWorkspace')}</p>}
         {!snapshot.loading && !snapshot.error && !snapshot.files.length && (
           <section className="empty-state workspace-empty">
             <span className="empty-icon">
               <FolderOpen size={24} />
             </span>
-            <h2>Your Workspace is empty.</h2>
-            <p>Save outputs from DevToolbox or import files to reuse them across tools.</p>
+            <h2>{t('workspace.empty')}</h2>
+            <p>{t('workspace.emptyHelp')}</p>
             <Link className="button button-secondary" to="/category/image">
-              Explore file tools
+              {t('workspace.explore')}
             </Link>
-            <p className="helper-text">Image → Convert → Compress · Images → PDF → Split</p>
+            <p className="helper-text">{t('workspace.example')}</p>
           </section>
         )}
         {!!snapshot.files.length && !matching.length && (
-          <p role="status">No matching files. Try another filter or filename.</p>
+          <p role="status">{t('workspace.noMatching')}</p>
         )}
         {focusedFile &&
           !snapshot.loading &&
           !snapshot.files.some((file) => file.id === focusedFile) && (
-            <Message kind="warning">This file is no longer in Workspace.</Message>
+            <Message kind="warning">{t('workspace.missing')}</Message>
           )}
         <div
           className={'workspace-files workspace-' + workspaceView}
@@ -307,7 +319,7 @@ export default function WorkspacePage() {
                 <label className="checkbox-label workspace-select">
                   <input
                     type="checkbox"
-                    aria-label={`Select ${file.name}`}
+                    aria-label={t('workspace.selectName', { name: file.name })}
                     checked={selected.includes(file.id)}
                     disabled={busy || archiveBusy}
                     onChange={(event) =>
@@ -318,45 +330,52 @@ export default function WorkspacePage() {
                       )
                     }
                   />
-                  Select file
+                  {t('workspace.selectFile')}
                 </label>
               )}
               <div className="workspace-file-heading">
                 <h2 className="file-name">
-                  {file.pinned && <span aria-label="Pinned">★ </span>}
+                  {file.pinned && <span aria-label={t('workspace.pinned')}>★ </span>}
                   {file.name}
                 </h2>
                 <OverflowMenu
-                  label={'More actions for ' + file.name}
+                  label={t('workspace.moreName', { name: file.name })}
                   disabled={busy}
                   items={[
                     {
-                      label: 'Download',
-                      name: 'Download ' + file.name,
+                      label: t('common.download'),
+                      id: 'download',
+                      name: t('workspace.downloadName', { name: file.name }),
                       action: () => act(async () => downloadFile(await workspace.get(file.id))),
                     },
                     {
-                      label: file.pinned ? 'Unpin' : 'Pin',
-                      name: (file.pinned ? 'Unpin ' : 'Pin ') + file.name,
+                      label: file.pinned ? t('workspace.unpin') : t('workspace.pin'),
+                      id: 'pin',
+                      name: t(file.pinned ? 'workspace.unpinName' : 'workspace.pinName', {
+                        name: file.name,
+                      }),
                       action: () => act(() => workspace.pin(file.id, !file.pinned)),
                     },
                     {
-                      label: 'Copy filename',
-                      name: 'Copy filename ' + file.name,
+                      label: t('workspace.copyFilename'),
+                      id: 'copy',
+                      name: t('workspace.copyFilenameName', { name: file.name }),
                       action: () =>
                         act(async () => {
                           await copyText(file.name)
-                          toast('Copied to clipboard')
+                          toast(t('common.copied'))
                         }),
                     },
                     {
-                      label: 'Move to collection',
-                      name: 'Move ' + file.name + ' to collection',
+                      label: t('workspace.moveCollection'),
+                      id: 'move',
+                      name: t('workspace.moveName', { name: file.name }),
                       action: () => setMoveIds([file.id]),
                     },
                     {
-                      label: 'Delete',
-                      name: 'Delete ' + file.name,
+                      label: t('workspace.delete'),
+                      id: 'delete',
+                      name: t('workspace.deleteName', { name: file.name }),
                       danger: true,
                       action: () => act(() => workspace.delete(file.id)),
                     },
@@ -365,25 +384,23 @@ export default function WorkspacePage() {
               </div>
               <p className="helper-text workspace-file-details">
                 {file.mimeType} · {formatBytes(file.size)} ·{' '}
-                {new Date(file.createdAt).toLocaleString()}
+                {new Date(file.createdAt).toLocaleString(currentLanguage())}
               </p>
               <p className="helper-text workspace-file-source">
-                Source:{' '}
-                {tools.find((tool) => tool.id === file.sourceTool)?.name ??
-                  file.sourceTool ??
-                  'Imported from device'}
+                {t('workspace.source')}:{' '}
+                {sourceLabel(file.sourceTool, t('workspace.importedDevice'))}
                 {file.collectionId && (
                   <span>
                     <br />
-                    Collection:{' '}
+                    {t('workspace.collection')}:{' '}
                     {snapshot.collections.find((item) => item.id === file.collectionId)?.name ??
-                      'Unassigned'}
+                      t('workspace.unassigned')}
                   </span>
                 )}
               </p>
               <div className="actions">
                 <Button
-                  aria-label={'Preview ' + file.name}
+                  aria-label={t('workspace.previewName', { name: file.name })}
                   disabled={busy}
                   onClick={(event) => {
                     previewTrigger.current = event.currentTarget
@@ -391,13 +408,13 @@ export default function WorkspacePage() {
                   }}
                 >
                   <Eye size={15} />
-                  Preview
+                  {t('workspace.preview')}
                 </Button>
                 <Button
                   disabled={busy || !compatibleTools(file.mimeType).length}
                   onClick={() => setUseFile(file)}
                 >
-                  Use in another tool
+                  {t('workspace.useTool')}
                   <ArrowUpRight size={14} />
                 </Button>
               </div>
@@ -421,11 +438,11 @@ export default function WorkspacePage() {
             if (previewTrigger.current?.isConnected) previewTrigger.current.focus()
           })
         }}
-        title="File preview"
+        title={t('workspace.filePreview')}
       >
         {preview && <Preview key={preview.id} file={preview} />}
       </Modal>
-      <Modal open={!!useFile} onClose={() => setUseFile(undefined)} title="Use in another tool">
+      <Modal open={!!useFile} onClose={() => setUseFile(undefined)} title={t('workspace.useTool')}>
         <p className="file-name">{useFile?.name}</p>
         <div className="actions">
           {useFile &&
@@ -435,7 +452,7 @@ export default function WorkspacePage() {
                 key={tool.id}
                 to={`${tool.path}?file=${encodeURIComponent(useFile.id)}`}
               >
-                {tool.name}
+                {getToolText(tool, currentLanguage()).name}
               </Link>
             ))}
         </div>

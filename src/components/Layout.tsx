@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { PwaUpdateNotice } from '../pwa/PwaControls'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
@@ -22,13 +23,15 @@ import { categories, categoryIcons, tools } from '../registry/tools'
 import { preferences, usePreferences, useStorageAvailable } from '../storage/preferences'
 import { Button, Message, Modal } from './ui'
 import CommandPalette from '../features/CommandPalette'
+import { currentLanguage, getToolText, getCategoryLabel } from '../i18n/toolLabels'
 
 function Navigation({ close }: { close?: () => void }) {
+  const { t } = useTranslation()
   const { favorites, collapsed } = usePreferences()
   return (
     <>
       <div className="navigation-header">
-        <NavLink to="/" className="brand" aria-label="DevToolbox dashboard" onClick={close}>
+        <NavLink to="/" className="brand" aria-label={t('shell.brandDashboard')} onClick={close}>
           <span className="brand-icon">
             <CodeXml size={24} />
           </span>
@@ -40,7 +43,7 @@ function Navigation({ close }: { close?: () => void }) {
           <Button
             variant="ghost"
             className="drawer-close"
-            aria-label="Close navigation"
+            aria-label={t('shell.closeNavigation')}
             onClick={close}
           >
             <X size={20} />
@@ -49,54 +52,61 @@ function Navigation({ close }: { close?: () => void }) {
       </div>
       <div className="navigation-content">
         <div className="sidebar-scroll">
-          <div className="nav-section-label sidebar-label">OVERVIEW</div>
-          <nav aria-label="Workspace">
-            <NavLink end to="/" title="Dashboard" onClick={close}>
+          <div className="nav-section-label sidebar-label">{t('shell.overview')}</div>
+          <nav aria-label={t('shell.workspace')}>
+            <NavLink end to="/" title={t('shell.dashboard')} onClick={close}>
               <House size={18} />
-              <span className="sidebar-label">Dashboard</span>
+              <span className="sidebar-label">{t('shell.dashboard')}</span>
             </NavLink>
-            <NavLink end to="/tools" title="All Tools" onClick={close}>
+            <NavLink end to="/tools" title={t('shell.allTools')} onClick={close}>
               <Grid2X2 size={18} />
-              <span className="sidebar-label">All Tools</span>
+              <span className="sidebar-label">{t('shell.allTools')}</span>
               <span className="nav-count sidebar-label">{tools.length}</span>
             </NavLink>
-            <NavLink to="/workspace" title="Workspace" onClick={close}>
+            <NavLink to="/workspace" title={t('shell.workspace')} onClick={close}>
               <FolderOpen size={18} />
-              <span className="sidebar-label">Workspace</span>
+              <span className="sidebar-label">{t('shell.workspace')}</span>
             </NavLink>
-            <NavLink to="/favorites" title="Favorites" onClick={close}>
+            <NavLink to="/favorites" title={t('shell.favorites')} onClick={close}>
               <Star size={18} />
-              <span className="sidebar-label">Favorites</span>
+              <span className="sidebar-label">{t('shell.favorites')}</span>
               {favorites.length > 0 && (
                 <span className="nav-count sidebar-label">{favorites.length}</span>
               )}
             </NavLink>
-            <NavLink to="/recent" title="Recent Tools" onClick={close}>
+            <NavLink to="/recent" title={t('shell.recent')} onClick={close}>
               <History size={18} />
-              <span className="sidebar-label">Recent Tools</span>
+              <span className="sidebar-label">{t('shell.recent')}</span>
             </NavLink>
           </nav>
           {favorites.some((id) => tools.some((tool) => tool.id === id)) && (
             <>
-              <div className="nav-section-label sidebar-label">PINNED</div>
-              <nav aria-label="Pinned tools">
+              <div className="nav-section-label sidebar-label">{t('shell.pinned')}</div>
+              <nav aria-label={t('shell.pinnedTools')}>
                 {favorites
                   .flatMap((id) => tools.filter((tool) => tool.id === id))
                   .slice(0, 4)
                   .map((tool) => {
                     const Icon = tool.icon
                     return (
-                      <NavLink key={tool.id} to={tool.path} title={tool.name} onClick={close}>
+                      <NavLink
+                        key={tool.id}
+                        to={tool.path}
+                        title={getToolText(tool, currentLanguage()).name}
+                        onClick={close}
+                      >
                         <Icon size={18} />
-                        <span className="sidebar-label">{tool.name}</span>
+                        <span className="sidebar-label">
+                          {getToolText(tool, currentLanguage()).name}
+                        </span>
                       </NavLink>
                     )
                   })}
               </nav>
             </>
           )}
-          <div className="nav-section-label sidebar-label">TOOL CATEGORIES</div>
-          <nav aria-label="Tool categories">
+          <div className="nav-section-label sidebar-label">{t('shell.categoriesHeading')}</div>
+          <nav aria-label={t('shell.categories')}>
             {categories
               .filter((category) => tools.some((tool) => tool.category === category))
               .map((category) => {
@@ -105,11 +115,13 @@ function Navigation({ close }: { close?: () => void }) {
                   <NavLink
                     key={category}
                     to={`/category/${category.toLowerCase()}`}
-                    title={category}
+                    title={getCategoryLabel(category, currentLanguage())}
                     onClick={close}
                   >
                     <Icon size={18} />
-                    <span className="sidebar-label">{category}</span>
+                    <span className="sidebar-label">
+                      {getCategoryLabel(category, currentLanguage())}
+                    </span>
                     <span className="category-count sidebar-label">
                       {tools.filter((tool) => tool.category === category).length}
                     </span>
@@ -123,27 +135,27 @@ function Navigation({ close }: { close?: () => void }) {
             <span className="local-symbol">
               <ShieldCheck size={18} />
             </span>
-            <strong>Private by design</strong>
-            <p>Your inputs stay on this device.</p>
+            <strong>{t('shell.private')}</strong>
+            <p>{t('shell.inputsLocal')}</p>
             <span className="local-indicator">
               <i />
-              All tools run locally
+              {t('shell.allLocal')}
             </span>
           </div>
-          <nav aria-label="Preferences">
-            <NavLink to="/settings" title="Settings" onClick={close}>
+          <nav aria-label={t('shell.preferences')}>
+            <NavLink to="/settings" title={t('shell.settings')} onClick={close}>
               <Settings2 size={18} />
-              <span className="sidebar-label">Settings</span>
+              <span className="sidebar-label">{t('shell.settings')}</span>
             </NavLink>
           </nav>
           <button
             className="collapse-button"
             onClick={preferences.toggleSidebar}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={t(collapsed ? 'shell.expandSidebar' : 'shell.collapseSidebar')}
+            title={t(collapsed ? 'shell.expandSidebar' : 'shell.collapseSidebar')}
           >
             <PanelLeftClose size={17} />
-            <span className="sidebar-label">Collapse sidebar</span>
+            <span className="sidebar-label">{t('shell.collapseSidebar')}</span>
             <ChevronLeft size={15} className="sidebar-label ml-auto" />
           </button>
         </div>
@@ -152,6 +164,7 @@ function Navigation({ close }: { close?: () => void }) {
   )
 }
 export default function Layout() {
+  const { t } = useTranslation()
   const [searchOpen, setSearchOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const { collapsed, theme } = usePreferences()
@@ -170,6 +183,18 @@ export default function Layout() {
   }
   const category = categories.find((value) => pathname === `/category/${value.toLowerCase()}`)
   const pageName = activeTool?.name ?? names[pathname] ?? category ?? 'Page not found'
+  const displayNames: Record<string, string> = {
+    '/': t('shell.dashboard'),
+    '/tools': t('shell.allTools'),
+    '/workspace': t('shell.workspace'),
+    '/favorites': t('shell.favorites'),
+    '/recent': t('shell.recent'),
+    '/settings': t('shell.settings'),
+  }
+  const displayName = activeTool
+    ? getToolText(activeTool, currentLanguage()).name
+    : (displayNames[pathname] ??
+      (category ? getCategoryLabel(category, currentLanguage()) : t('shell.notFound')))
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     function apply() {
@@ -221,10 +246,11 @@ export default function Layout() {
       document.head.appendChild(canonical)
     }
     canonical.href = canonicalUrl
-
+  }, [activeTool, pageName, pathname])
+  useEffect(() => {
     window.scrollTo(0, 0)
     setMobileOpen(false)
-  }, [activeTool, pageName, location.pathname, pathname])
+  }, [location.pathname])
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
@@ -239,7 +265,7 @@ export default function Layout() {
   return (
     <div className={`app-shell ${collapsed ? 'sidebar-collapsed' : ''}`}>
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {t('shell.skip')}
       </a>
       <aside className="sidebar">
         <Navigation />
@@ -250,7 +276,7 @@ export default function Layout() {
             <Button
               variant="ghost"
               className="mobile-menu"
-              aria-label="Open navigation"
+              aria-label={t('shell.openNavigation')}
               onClick={() => setMobileOpen(true)}
             >
               <Menu size={21} />
@@ -259,30 +285,30 @@ export default function Layout() {
               DevToolbox
             </NavLink>
             <span className="breadcrumb-slash">/</span>
-            <span className="breadcrumb-current">{pageName}</span>
+            <span className="breadcrumb-current">{displayName}</span>
           </div>
           <div className="topbar-actions">
             <button
               className="topbar-search"
               onClick={() => setSearchOpen(true)}
-              aria-label="Open search"
+              aria-label={t('shell.openSearch')}
             >
               <Search size={15} />
-              <span>Search tools, files, actions…</span>
+              <span>{t('shell.searchPlaceholder')}</span>
               <kbd>{shortcut} K</kbd>
             </button>
             <NavLink
               to="/workspace"
               className="topbar-workspace"
-              aria-label="Go to Workspace"
-              title="Workspace"
+              aria-label={t('shell.goWorkspace')}
+              title={t('shell.workspace')}
             >
               <FolderOpen size={17} />
-              <span>Workspace</span>
+              <span>{t('shell.workspace')}</span>
             </NavLink>
             <Button
               variant="ghost"
-              aria-label="Toggle light and dark theme"
+              aria-label={t('shell.toggleTheme')}
               onClick={() =>
                 preferences.setTheme(
                   document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark',
@@ -296,27 +322,24 @@ export default function Layout() {
         </header>
         <PwaUpdateNotice />
         <main id="main-content" className="main-content" tabIndex={-1}>
-          {!storageAvailable && (
-            <Message kind="warning">
-              Browser storage is unavailable. Preferences will last only for this session.
-            </Message>
-          )}
+          {!storageAvailable && <Message kind="warning">{t('shell.storageUnavailable')}</Message>}
           <Outlet context={{ openSearch: () => setSearchOpen(true), shortcut }} />
         </main>
         <footer className="app-footer">
           <span>
             <ShieldCheck size={14} />
-            Your data stays on your device.
+            {t('shell.dataLocal')}
           </span>
           <span>
-            DevToolbox v4.1 <span aria-hidden="true">·</span> {tools.length} local tools
+            DevToolbox v4.1 <span aria-hidden="true">·</span>{' '}
+            {t('shell.localTools', { count: tools.length })}
           </span>
         </footer>
       </div>
       <Modal
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        title="Navigation"
+        title={t('shell.navigation')}
         className="mobile-drawer"
       >
         <Navigation close={() => setMobileOpen(false)} />

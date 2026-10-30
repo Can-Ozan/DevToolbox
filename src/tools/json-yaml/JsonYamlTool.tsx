@@ -1,16 +1,19 @@
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { ToolToolbar, ToolActions } from '../../components/ToolLayout'
 import { useState } from 'react'
 import { ArrowLeftRight } from 'lucide-react'
 import { Button, CopyButton, DownloadButton, Editor, Message } from '../../components/ui'
 import { convertJsonYaml } from '../../lib/jsonYaml'
-import { errorMessage } from '../../lib/encoding'
+import { errorDescriptor } from '../../lib/encoding'
 import { JsonFileInput } from '../../workspace/JsonFileInput'
 
 export default function JsonYamlTool() {
+  const { t } = useTranslation()
   const [direction, setDirection] = useState<'json-yaml' | 'yaml-json'>('json-yaml')
   const [input, setInput] = useState('')
   const [output, setOutput] = useState('')
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const toYaml = direction === 'json-yaml'
   return (
     <>
@@ -31,11 +34,11 @@ export default function JsonYamlTool() {
               setError('')
             } catch (error) {
               setOutput('')
-              setError(errorMessage(error))
+              setError(errorDescriptor(error))
             }
           }}
         >
-          Convert {toYaml ? 'JSON to YAML' : 'YAML to JSON'}
+          {t(toYaml ? 'toolUi.toYaml' : 'toolUi.toJsonYaml')}
         </Button>
         <Button
           onClick={() => {
@@ -46,7 +49,7 @@ export default function JsonYamlTool() {
           }}
         >
           <ArrowLeftRight size={15} />
-          Swap direction
+          {t('toolUi.swapDirection')}
         </Button>
         <Button
           onClick={() => {
@@ -55,13 +58,13 @@ export default function JsonYamlTool() {
             setError('')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
       </ToolToolbar>
       {error && <Message kind="error">{error}</Message>}
       <div className="editor-grid">
         <Editor
-          label={toYaml ? 'JSON input' : 'YAML input'}
+          label={toYaml ? t('toolUi.jsonInput') : t('toolUi.yamlInput')}
           value={input}
           onChange={(value) => {
             setInput(value)
@@ -75,11 +78,15 @@ export default function JsonYamlTool() {
           }
         />
         <Editor
-          label={toYaml ? 'YAML output' : 'JSON output'}
+          label={toYaml ? t('toolUi.yamlOutput') : t('toolUi.jsonOutput')}
           value={output}
           actions={
-            <ToolActions label="Output actions">
-              <CopyButton text={output} label="Copy output" visibleLabel="Copy" />
+            <ToolActions label={t('toolUi.outputActions')}>
+              <CopyButton
+                text={output}
+                label={t('toolUi.copyOutput')}
+                visibleLabel={t('common.copy')}
+              />
               <DownloadButton
                 text={output}
                 filename={toYaml ? 'converted.yaml' : 'converted.json'}
@@ -90,14 +97,11 @@ export default function JsonYamlTool() {
             </ToolActions>
           }
           readOnly
-          placeholder="Your converted document will appear here…"
+          placeholder={t('toolUi.convertedHint')}
         />
       </div>
 
-      <p className="helper-text">
-        Uses YAML 1.2 core types. JSON requires string keys and finite numbers. Comments and
-        YAML-specific formatting are not preserved.
-      </p>
+      <p className="helper-text">{t('toolUi.yamlHelp')}</p>
     </>
   )
 }

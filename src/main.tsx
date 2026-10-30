@@ -5,13 +5,16 @@ import App from './App'
 import './styles/index.css'
 import './styles/conversion.css'
 import { startPwa } from './pwa/pwaStore'
+import { initializeI18n } from './i18n'
 
 startPwa()
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter basename={import.meta.env.BASE_URL}>
-      <App />
-    </BrowserRouter>
-  </StrictMode>,
+void initializeI18n().then(() =>
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <App />
+      </BrowserRouter>
+    </StrictMode>,
+  ),
 )

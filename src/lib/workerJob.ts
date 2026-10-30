@@ -1,3 +1,4 @@
+import { MessageError, messageError, type AppMessage, type DisplayMessage } from '../i18n/messages'
 // Each invocation owns one bundled same-origin worker, abort listener and timeout.
 export function runWorkerJob<T>(
   create: () => Worker,
@@ -19,20 +20,61 @@ export function runWorkerJob<T>(
     }
     const abort = () => finish(undefined, new DOMException('Processing cancelled.', 'AbortError'))
     const timer = setTimeout(
-      () => finish(undefined, new Error('Processing exceeded 30 seconds. Try smaller inputs.')),
+      () =>
+        finish(
+          undefined,
+          messageError(
+            'toolErrors.workerTimeout',
+            'Processing exceeded 30 seconds. Try smaller inputs.',
+          ),
+        ),
       30_000,
     )
     signal.addEventListener('abort', abort, { once: true })
-    worker.onmessage = (event: MessageEvent<{ result?: T; error?: string }>) =>
-      finish(event.data.result, event.data.error ? new Error(event.data.error) : undefined)
+    worker.onmessage = (event: MessageEvent<{ result?: T; error?: DisplayMessage }>) => {
+      const error = event.data.error
+      finish(
+        event.data.result,
+        error
+          ? typeof error === 'string'
+            ? new Error(error)
+            : new MessageError(normalizeMessage(error))
+          : undefined,
+      )
+    }
     worker.onerror = (event) => {
       event.preventDefault()
-      finish(undefined, new Error('The local worker could not run. Reload and retry.'))
+      finish(
+        undefined,
+        messageError(
+          'toolErrors.workerFailed',
+          'The local worker could not run. Reload and retry.',
+        ),
+      )
     }
     try {
       worker.postMessage(request)
     } catch {
-      finish(undefined, new Error('Unable to send the input to the local worker.'))
+      finish(
+        undefined,
+        messageError('toolErrors.workerSend', 'Unable to send the input to the local worker.'),
+      )
     }
   })
+}
+
+function normalizeMessage(value: DisplayMessage): AppMessage {
+  if (
+    typeof value === 'object' &&
+    typeof value.key === 'string' &&
+    typeof value.fallback === 'string' &&
+    value.params &&
+    typeof value.params === 'object'
+  )
+    return value
+  return {
+    key: 'toolErrors.generic',
+    fallback: 'Something went wrong. Check your input and try again.',
+    params: {},
+  }
 }

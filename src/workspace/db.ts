@@ -1,3 +1,4 @@
+import { messageError } from '../i18n/messages'
 import type {
   FileInput,
   WorkspaceFile,
@@ -22,14 +23,24 @@ export const WORKSPACE_DB_VERSION = 2
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') {
-      reject(new Error('IndexedDB storage is unavailable. Device input and downloads still work.'))
+      reject(
+        messageError(
+          'workspace.errors.dbUnavailable',
+          'IndexedDB storage is unavailable. Device input and downloads still work.',
+        ),
+      )
       return
     }
     const request = indexedDB.open(WORKSPACE_DB, WORKSPACE_DB_VERSION)
     let expired = false
     const timeout = setTimeout(() => {
       expired = true
-      reject(new Error('Workspace storage did not respond. Close other DevToolbox tabs and retry.'))
+      reject(
+        messageError(
+          'workspace.errors.dbTimeout',
+          'Workspace storage did not respond. Close other DevToolbox tabs and retry.',
+        ),
+      )
     }, 5000)
     request.onupgradeneeded = (event) => {
       if (event.oldVersion < 1) {
@@ -59,7 +70,12 @@ function openDatabase(): Promise<IDBDatabase> {
     request.onblocked = () => {
       expired = true
       clearTimeout(timeout)
-      reject(new Error('Workspace storage is blocked by another tab. Close it and retry.'))
+      reject(
+        messageError(
+          'workspace.errors.dbBlocked',
+          'Workspace storage is blocked by another tab. Close it and retry.',
+        ),
+      )
     }
   })
 }
@@ -78,14 +94,21 @@ async function transaction<T>(
       tx.oncomplete = () => resolve(value)
       tx.onabort = () =>
         reject(
-          failure ?? tx.error ?? new Error('Workspace operation was interrupted. Please retry.'),
+          failure ??
+            tx.error ??
+            messageError(
+              'workspace.errors.interrupted',
+              'Workspace operation was interrupted. Please retry.',
+            ),
         )
       tx.onerror = (event) => {
         // WebKit may leave other requests pending after a Blob preparation error.
         // Abort the whole write, but do not wait for its stalled abort event to
         // report the error. Successful writes still resolve only on commit.
         if (!failure) {
-          failure = (event.target as IDBRequest).error ?? new Error('Workspace operation failed.')
+          failure =
+            (event.target as IDBRequest).error ??
+            messageError('workspace.errors.operationFailed', 'Workspace operation failed.')
           tx.abort()
           reject(failure)
         }
@@ -102,7 +125,10 @@ async function transaction<T>(
           },
         )
       } catch (error) {
-        failure = error instanceof Error ? error : new Error('Workspace operation failed.')
+        failure =
+          error instanceof Error
+            ? error
+            : messageError('workspace.errors.operationFailed', 'Workspace operation failed.')
         tx.abort()
       }
     })
@@ -173,7 +199,8 @@ export const workspaceDB = {
           blob.type !== info.mimeType
         ) {
           fail(
-            new Error(
+            messageError(
+              'workspace.errors.damagedFile',
               'This file is missing or damaged in browser storage. Re-import the original file.',
             ),
           )
@@ -187,15 +214,18 @@ export const workspaceDB = {
     const importedCollections = options.collections ?? []
     validateCollections(importedCollections)
     if (importedCollections.length && !options.restore)
-      throw new Error('Collections can only be imported with a backup.')
+      throw messageError(
+        'workspace.errors.backupOnly',
+        'Collections can only be imported with a backup.',
+      )
     if (options.bulk) {
       if (
         (!inputs.length && !importedCollections.length) ||
         inputs.length > FILE_LIMITS.workspaceCount
       )
-        throw new Error('Choose 1–500 files.')
+        throw messageError('workspace.errors.bulkCount', 'Choose 1–500 files.')
       if (inputs.reduce((total, file) => total + file.blob.size, 0) > FILE_LIMITS.batchBytes)
-        throw new Error('Combined files must be at most 150 MB.')
+        throw messageError('workspace.errors.bulkBytes', 'Combined files must be at most 150 MB.')
       inputs.forEach((file) => validateBatch([file]))
     } else validateBatch(inputs)
     if (options.restore)
@@ -208,7 +238,7 @@ export const workspaceDB = {
           metadata.createdAt <= 0 ||
           metadata.createdAt >= 8.64e15
         )
-          throw new Error('Invalid imported file metadata.')
+          throw messageError('workspace.errors.invalidMetadata', 'Invalid imported file metadata.')
       })
     return transaction<WorkspaceFileInfo[]>('readwrite', (tx, done, fail) => {
       const metadata = tx.objectStore(META)
@@ -218,7 +248,8 @@ export const workspaceDB = {
       collectionsRequest.onsuccess = () => {
         try {
           if (collectionsRequest.result.length + importedCollections.length > COLLECTION_LIMIT)
-            throw new Error(
+            throw messageError(
+              'workspace.errors.importCollectionLimit',
               'Workspace holds up to 100 collections. Remove unused collections before importing.',
             )
           const collectionIds = new Map<string, string>()
@@ -234,8 +265,10 @@ export const workspaceDB = {
           }
           if (namesRequest.result.length + inputs.length > FILE_LIMITS.workspaceCount) {
             fail(
-              new Error(
-                `Workspace holds up to ${FILE_LIMITS.workspaceCount} files. Remove files before adding more.`,
+              messageError(
+                'workspace.errors.workspaceLimit',
+                'Workspace holds up to {{count}} files. Remove files before adding more.',
+                { count: FILE_LIMITS.workspaceCount },
               ),
             )
             return
@@ -252,7 +285,10 @@ export const workspaceDB = {
               restored.collectionId !== undefined &&
               !collectionIds.has(restored.collectionId)
             )
-              throw new Error('Imported file references a missing collection.')
+              throw messageError(
+                'workspace.errors.missingImportedCollection',
+                'Imported file references a missing collection.',
+              )
             const entry: WorkspaceFileInfo = {
               id: crypto.randomUUID(),
               name: uniqueFilename(input.name, names),
@@ -282,7 +318,14 @@ export const workspaceDB = {
           })
           done(entries)
         } catch (error) {
-          fail(error instanceof Error ? error : new Error('File could not be saved. Please retry.'))
+          fail(
+            error instanceof Error
+              ? error
+              : messageError(
+                  'workspace.errors.saveFailed',
+                  'File could not be saved. Please retry.',
+                ),
+          )
         }
       }
     })
@@ -314,7 +357,12 @@ export const workspaceDB = {
       const request = store.get(id)
       request.onsuccess = () => {
         if (!validMetadata(request.result)) {
-          fail(new Error('File no longer exists. Refresh the Workspace.'))
+          fail(
+            messageError(
+              'workspace.errors.missingFile',
+              'File no longer exists. Refresh the Workspace.',
+            ),
+          )
           return
         }
         store.put({ ...request.result, pinned })
@@ -329,15 +377,31 @@ export const workspaceDB = {
       request.onsuccess = () => {
         const existing = request.result.filter(validCollection)
         const old = existing.find((item) => item.id === id)
-        if (id && !old) return fail(new Error('Collection no longer exists. Refresh Workspace.'))
+        if (id && !old)
+          return fail(
+            messageError(
+              'workspace.errors.missingCollection',
+              'Collection no longer exists. Refresh Workspace.',
+            ),
+          )
         if (!id && request.result.length >= COLLECTION_LIMIT)
-          return fail(new Error('Workspace holds up to 100 collections.'))
+          return fail(
+            messageError(
+              'workspace.errors.collectionLimit',
+              'Workspace holds up to 100 collections.',
+            ),
+          )
         if (
           existing.some(
             (item) => item.id !== id && item.name.toLowerCase() === normalized.toLowerCase(),
           )
         )
-          return fail(new Error('A collection with this name already exists.'))
+          return fail(
+            messageError(
+              'workspace.errors.duplicateCollection',
+              'A collection with this name already exists.',
+            ),
+          )
         const collection = {
           id: id ?? crypto.randomUUID(),
           name: normalized,
@@ -367,13 +431,18 @@ export const workspaceDB = {
   moveFiles: (ids: string[], collectionId?: string) =>
     transaction<void>('readwrite', (tx, done, fail) => {
       if (!ids.length || ids.length > FILE_LIMITS.workspaceCount)
-        return fail(new Error('Choose 1–500 files.'))
+        return fail(messageError('workspace.errors.bulkCount', 'Choose 1–500 files.'))
       const move = () => {
         for (const id of new Set(ids)) {
           const request = tx.objectStore(META).get(id)
           request.onsuccess = () => {
             if (!validMetadata(request.result))
-              return fail(new Error('A selected file no longer exists. Refresh Workspace.'))
+              return fail(
+                messageError(
+                  'workspace.errors.missingSelected',
+                  'A selected file no longer exists. Refresh Workspace.',
+                ),
+              )
             const file = { ...request.result }
             if (collectionId) file.collectionId = collectionId
             else delete file.collectionId
@@ -387,7 +456,12 @@ export const workspaceDB = {
         request.onsuccess = () =>
           validCollection(request.result)
             ? move()
-            : fail(new Error('Collection no longer exists. Refresh Workspace.'))
+            : fail(
+                messageError(
+                  'workspace.errors.missingCollection',
+                  'Collection no longer exists. Refresh Workspace.',
+                ),
+              )
       } else move()
     }),
 }

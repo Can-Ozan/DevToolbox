@@ -1,9 +1,12 @@
+import { useTranslation } from 'react-i18next'
 import { ToolSection, ToolToolbar } from '../../components/ToolLayout'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Button, Editor, Message } from '../../components/ui'
 import type { RegexResult } from '../../lib/regex'
+import { message, renderMessage } from '../../i18n/messages'
 
 export default function RegexTool() {
+  const { t } = useTranslation()
   const [pattern, setPattern] = useState('')
   const [flags, setFlags] = useState('g')
   const [text, setText] = useState('')
@@ -24,8 +27,10 @@ export default function RegexTool() {
           setResult({
             matches: [],
             limited: false,
-            error:
+            error: message(
+              'toolErrors.regexTimeout',
               'This pattern took too long. Testing stopped after 1 second; try a simpler expression or shorter text.',
+            ),
           })
           setBusy(false)
         }, 1000)
@@ -40,7 +45,10 @@ export default function RegexTool() {
           setResult({
             matches: [],
             limited: false,
-            error: 'The regex worker could not run. Reload the page and try again.',
+            error: message(
+              'toolErrors.regexWorker',
+              'The regex worker could not run. Reload the page and try again.',
+            ),
           })
           setBusy(false)
           worker?.terminate()
@@ -52,7 +60,10 @@ export default function RegexTool() {
         setResult({
           matches: [],
           limited: false,
-          error: 'This browser could not start a worker for safe pattern testing.',
+          error: message(
+            'toolErrors.regexStart',
+            'This browser could not start a worker for safe pattern testing.',
+          ),
         })
         setBusy(false)
       }
@@ -68,7 +79,7 @@ export default function RegexTool() {
   result.matches.forEach((match, i) => {
     highlighted.push(text.slice(lastIndex, match.index))
     highlighted.push(
-      <mark key={i} title={`Match ${i + 1}, index ${match.index}`}>
+      <mark key={i} title={t('toolUi.matchTitle', { count: i + 1, index: match.index })}>
         {match.value || '▏'}
       </mark>,
     )
@@ -79,17 +90,17 @@ export default function RegexTool() {
     <>
       <div className="field-row">
         <label className="field" style={{ flex: 4 }}>
-          Regular expression
+          {t('toolUi.regexPattern')}
           <input
             className="regex-pattern"
             type="text"
             value={pattern}
             onChange={(event) => setPattern(event.target.value)}
-            placeholder="e.g. (\w+)@(\w+\.\w+)"
+            placeholder={t('toolUi.regexExample')}
           />
         </label>
         <label className="field">
-          Flags
+          {t('toolUi.flags')}
           <input
             className="regex-pattern"
             type="text"
@@ -99,10 +110,7 @@ export default function RegexTool() {
           />
         </label>
       </div>
-      <p className="helper-text">
-        g: all matches · i: ignore case · m: multiline · s: dot matches newlines · u: Unicode · y:
-        sticky. Enter a pattern without surrounding slashes.
-      </p>
+      <p className="helper-text">{t('toolUi.regexFlagsHelp')}</p>
       <ToolToolbar>
         <Button
           onClick={() => {
@@ -111,7 +119,7 @@ export default function RegexTool() {
             setText('Reach us at hello@example.com or support@devtoolbox.local.')
           }}
         >
-          Load sample
+          {t('toolUi.loadSample')}
         </Button>
         <Button
           variant="ghost"
@@ -121,38 +129,35 @@ export default function RegexTool() {
             setFlags('g')
           }}
         >
-          Clear
+          {t('toolUi.clear')}
         </Button>
       </ToolToolbar>
-      {result.error && <Message kind="error">{result.error}</Message>}
-      {result.limited && (
-        <Message kind="warning">
-          Showing the first 1,000 matches. Narrow your pattern to inspect fewer results.
-        </Message>
-      )}
+      {result.error && <Message kind="error">{renderMessage(result.error, t)}</Message>}
+      {result.limited && <Message kind="warning">{t('toolUi.regexLimit')}</Message>}
       <div className="editor-grid">
         <Editor
-          label="Test text"
+          label={t('toolUi.testText')}
           minHeight={260}
           value={text}
           onChange={setText}
-          placeholder="Paste text to test your regular expression…"
+          placeholder={t('toolUi.regexHint')}
         />
 
         <ToolSection
-          title="Match preview"
+          title={t('toolUi.matchPreview')}
           actions={
             <span className="count-pill" role="status">
-              {busy ? 'Testing…' : `${result.matches.length}${result.limited ? '+' : ''} matches`}
+              {busy
+                ? t('toolUi.testing')
+                : t('toolUi.matches', {
+                    count: result.matches.length,
+                    suffix: result.limited ? '+' : '',
+                  })}
             </span>
           }
         >
           <div className="match-preview">
-            {text ? (
-              highlighted
-            ) : (
-              <span className="helper-text">Matches will be highlighted here.</span>
-            )}
+            {text ? highlighted : <span className="helper-text">{t('toolUi.matchEmpty')}</span>}
           </div>
         </ToolSection>
       </div>
@@ -160,10 +165,10 @@ export default function RegexTool() {
         <table className="matches-table">
           <thead>
             <tr>
-              <th>Match</th>
-              <th>Value</th>
-              <th>Index</th>
-              <th>Capture groups</th>
+              <th>{t('toolUi.match')}</th>
+              <th>{t('toolUi.value')}</th>
+              <th>{t('toolUi.index')}</th>
+              <th>{t('toolUi.captureGroups')}</th>
             </tr>
           </thead>
           <tbody>
@@ -171,11 +176,11 @@ export default function RegexTool() {
               <tr key={index}>
                 <td>{index + 1}</td>
                 <td>
-                  <code>{match.value || '(empty match)'}</code>
+                  <code>{match.value || t('toolUi.emptyMatch')}</code>
                 </td>
                 <td>{match.index}</td>
                 <td>
-                  {match.groups.length ? JSON.stringify(match.groups) : 'None'}
+                  {match.groups.length ? JSON.stringify(match.groups) : t('toolUi.none')}
                   {match.namedGroups && <div>{JSON.stringify(match.namedGroups)}</div>}
                 </td>
               </tr>

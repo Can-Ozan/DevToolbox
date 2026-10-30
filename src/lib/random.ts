@@ -1,13 +1,15 @@
+import { messageError } from '../i18n/messages'
 function requireCrypto() {
   if (!globalThis.crypto?.getRandomValues)
-    throw new Error(
+    throw messageError(
+      'toolErrors.randomCrypto',
       'Secure randomness is unavailable. Open this app on HTTPS or localhost in a modern browser.',
     )
   return globalThis.crypto
 }
 export function randomInt(max: number) {
   if (!Number.isInteger(max) || max < 1 || max > 0x100000000)
-    throw new Error('Invalid random range.')
+    throw messageError('toolErrors.randomRange', 'Invalid random range.')
   const crypto = requireCrypto()
   const limit = Math.floor(0x100000000 / max) * max
   const values = new Uint32Array(1)
@@ -52,9 +54,10 @@ export function passwordPools(options: PasswordOptions) {
 }
 export function generatePassword(length: number, options: PasswordOptions) {
   if (!Number.isInteger(length) || length < 8 || length > 128)
-    throw new Error('Choose a password length between 8 and 128.')
+    throw messageError('toolErrors.passwordLength', 'Choose a password length between 8 and 128.')
   const pools = passwordPools(options)
-  if (!pools.length) throw new Error('Select at least one character type.')
+  if (!pools.length)
+    throw messageError('toolErrors.passwordType', 'Select at least one character type.')
   const all = pools.join('')
   // Condition uniform random candidates on containing every selected character type.
   for (;;) {

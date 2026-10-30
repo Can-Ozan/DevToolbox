@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { useTranslation } from 'react-i18next'
 function subscribe(listener: () => void) {
   window.addEventListener('online', listener)
   window.addEventListener('offline', listener)
@@ -8,6 +9,7 @@ function subscribe(listener: () => void) {
   }
 }
 export default function ConnectionStatus() {
+  const { t } = useTranslation()
   const online = useSyncExternalStore(
     subscribe,
     () => navigator.onLine,
@@ -15,8 +17,7 @@ export default function ConnectionStatus() {
   )
   return (
     <p className="connection-status" role="status">
-      <strong>{online ? 'Online' : 'Offline'}</strong> · Local tools and saved Workspace files can
-      still work offline. Uncached assets need a connection.
+      <strong>{online ? t('pwa.online') : t('pwa.offline')}</strong> · {t('pwa.connectionHelp')}
     </p>
   )
 }

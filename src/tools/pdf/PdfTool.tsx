@@ -1,10 +1,13 @@
+import { message, messageError } from '../../i18n/messages'
+import { useMessageState } from '../../i18n/useMessageState'
+import { useTranslation } from 'react-i18next'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Message } from '../../components/ui'
 import ProcessingStatus from '../../workspace/ProcessingStatus'
 import { FileOutputPanel, useFileJob, WorkspaceFilePicker } from '../../workspace/FileControls'
 import type { FileInput } from '../../workspace/workspaceTypes'
 import {
-  fileError,
+  fileMessage,
   formatBytes,
   IMAGE_TYPES,
   outputFilename,
@@ -15,12 +18,6 @@ import { imageDimensions, processImage } from '../../lib/imageFiles'
 import { runPdf } from './pdfClient'
 
 type Mode = 'merge' | 'extract' | 'reorder' | 'images'
-const labels: Record<Mode, string> = {
-  merge: 'Merge PDFs',
-  extract: 'Extract pages',
-  reorder: 'Reorder pages',
-  images: 'Create PDF',
-}
 const ids: Record<Mode, string> = {
   merge: 'pdf-merger',
   extract: 'pdf-splitter',
@@ -29,11 +26,19 @@ const ids: Record<Mode, string> = {
 }
 
 function PdfTool({ mode }: { mode: Mode }) {
+  const { t } = useTranslation()
+  const labels: Record<Mode, string> = {
+    merge: t('fileUi.merge'),
+    extract: t('fileUi.extract'),
+    reorder: t('fileUi.reorder'),
+    images: t('fileUi.createPdf'),
+  }
+
   const [files, setFiles] = useState<FileInput[]>([])
   const [pages, setPages] = useState('')
   const [pageCount, setPageCount] = useState<number>()
   const [reading, setReading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useMessageState()
   const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait')
   const [fit, setFit] = useState<'contain' | 'cover'>('contain')
   const [margin, setMargin] = useState(24)
@@ -58,13 +63,13 @@ function PdfTool({ mode }: { mode: Mode }) {
         }
       })
       .catch((reason) => {
-        if (!controller.signal.aborted) setError(fileError(reason))
+        if (!controller.signal.aborted) setError(fileMessage(reason))
       })
       .finally(() => {
         if (!controller.signal.aborted) setReading(false)
       })
     return () => controller.abort()
-  }, [files, multiple, mode])
+  }, [files, multiple, mode, setError])
 
   function move(from: number, to: number) {
     if (to < 0 || to >= files.length || from === to) return
@@ -87,23 +92,14 @@ function PdfTool({ mode }: { mode: Mode }) {
             setError('')
             job.reset()
           } catch (reason) {
-            setError(fileError(reason))
+            setError(fileMessage(reason))
           }
         }}
       />
       <p className="helper-text">
-        {mode === 'images'
-          ? 'PNG, JPEG or still WebP, up to 50 MB and 16 megapixels per image.'
-          : 'Unencrypted PDFs up to 100 MB each; maximum 500 output pages.'}{' '}
-        Up to 30 files and 150 MB combined. Processing stays local and stops after 30 seconds per
-        PDF job.
+        {mode === 'images' ? t('fileUi.pdfImageHelp') : t('fileUi.pdfHelp')} {t('fileUi.batchHelp')}
       </p>
-      {mode !== 'images' && (
-        <p className="helper-text">
-          Creates a new PDF from page content. Interactive forms, bookmarks, signatures and
-          document-level features may not be preserved. Keep your originals.
-        </p>
-      )}
+      {mode !== 'images' && <p className="helper-text">{t('fileUi.pdfLoss')}</p>}
       {(error || job.error) && <Message kind="error">{error || job.error}</Message>}
       <ol className="file-order-list">
         {files.map((file, index) => (
@@ -134,23 +130,23 @@ function PdfTool({ mode }: { mode: Mode }) {
                 <>
                   <Button
                     disabled={job.busy || index === 0}
-                    aria-label={`Move ${file.name} up`}
+                    aria-label={t('fileUi.moveUpName', { name: file.name })}
                     onClick={() => move(index, index - 1)}
                   >
-                    Move up
+                    {t('fileUi.moveUp')}
                   </Button>
                   <Button
                     disabled={job.busy || index === files.length - 1}
-                    aria-label={`Move ${file.name} down`}
+                    aria-label={t('fileUi.moveDownName', { name: file.name })}
                     onClick={() => move(index, index + 1)}
                   >
-                    Move down
+                    {t('fileUi.moveDown')}
                   </Button>
                 </>
               )}
               <Button
                 disabled={job.busy}
-                aria-label={`Remove ${file.name}`}
+                aria-label={t('fileUi.removeName', { name: file.name })}
                 onClick={() => {
                   setFiles(files.filter((_, i) => i !== index))
                   setError('')
@@ -158,24 +154,24 @@ function PdfTool({ mode }: { mode: Mode }) {
                   job.reset()
                 }}
               >
-                Remove
+                {t('fileUi.remove')}
               </Button>
             </div>
           </li>
         ))}
       </ol>
-      {multiple && !!files.length && (
-        <p className="helper-text">Drag to reorder, or use the Move up / Move down buttons.</p>
+      {multiple && !!files.length && <p className="helper-text">{t('fileUi.reorderHelp')}</p>}
+      {reading && <p role="status">{t('fileUi.readingPdf')}</p>}
+      {pageCount && (
+        <p className="helper-text">{t('fileUi.pdfInputPages', { count: pageCount })}</p>
       )}
-      {reading && <p role="status">Reading PDF page count…</p>}
-      {pageCount && <p className="helper-text">{pageCount} pages in input PDF.</p>}
       {!!files.length && (
         <>
           <fieldset className="file-options" disabled={job.busy || reading}>
-            <legend>PDF options</legend>
+            <legend>{t('fileUi.pdfOptions')}</legend>
             {!multiple && (
               <label className="field">
-                {mode === 'extract' ? 'Page range' : 'Page order'}
+                {mode === 'extract' ? t('fileUi.pageRange') : t('fileUi.pageOrder')}
                 <input
                   type="text"
                   value={pages}
@@ -185,17 +181,13 @@ function PdfTool({ mode }: { mode: Mode }) {
                   }}
                   placeholder={mode === 'extract' ? '1-3,5,8-10' : '1,3,2,4,5'}
                 />
-                <span>
-                  {mode === 'extract'
-                    ? 'Extract these pages into one new PDF.'
-                    : 'List pages in the desired order. Omit pages to remove them.'}
-                </span>
+                <span>{mode === 'extract' ? t('fileUi.extractHelp') : t('fileUi.orderHelp')}</span>
               </label>
             )}
             {mode === 'images' && (
               <div className="field-row">
                 <label className="field">
-                  Page orientation
+                  {t('fileUi.pageOrientation')}
                   <select
                     value={orientation}
                     onChange={(event) => {
@@ -203,12 +195,12 @@ function PdfTool({ mode }: { mode: Mode }) {
                       job.reset()
                     }}
                   >
-                    <option value="portrait">A4 portrait</option>
-                    <option value="landscape">A4 landscape</option>
+                    <option value="portrait">{t('fileUi.portrait')}</option>
+                    <option value="landscape">{t('fileUi.landscape')}</option>
                   </select>
                 </label>
                 <label className="field">
-                  Fit mode
+                  {t('fileUi.fitMode')}
                   <select
                     value={fit}
                     onChange={(event) => {
@@ -216,12 +208,12 @@ function PdfTool({ mode }: { mode: Mode }) {
                       job.reset()
                     }}
                   >
-                    <option value="contain">Fit entire image</option>
-                    <option value="cover">Fill page (crop edges)</option>
+                    <option value="contain">{t('fileUi.contain')}</option>
+                    <option value="cover">{t('fileUi.cover')}</option>
                   </select>
                 </label>
                 <label className="field">
-                  Margins (points)
+                  {t('fileUi.margins')}
                   <input
                     type="number"
                     min="0"
@@ -235,7 +227,7 @@ function PdfTool({ mode }: { mode: Mode }) {
                 </label>
               </div>
             )}
-            {mode === 'merge' && <p className="helper-text">Pages follow the file order above.</p>}
+            {mode === 'merge' && <p className="helper-text">{t('fileUi.mergeHelp')}</p>}
           </fieldset>
           <div className="actions">
             <Button
@@ -274,7 +266,8 @@ function PdfTool({ mode }: { mode: Mode }) {
                     signal,
                     report,
                   )
-                  if (!result.blob) throw new Error('No PDF output was produced.')
+                  if (!result.blob)
+                    throw messageError('fileErrors.noPdf', 'No PDF output was produced.')
                   return {
                     name:
                       mode === 'merge'
@@ -289,14 +282,14 @@ function PdfTool({ mode }: { mode: Mode }) {
                     blob: result.blob,
                     sourceTool: ids[mode],
                     originalName: files[0].originalName ?? files[0].name,
-                    detail: `${result.pageCount} pages`,
+                    detail: message('fileUi.pages', '{{count}} pages', { count: result.pageCount }),
                   }
                 })
               }}
             >
-              {job.busy ? 'Processing…' : labels[mode]}
+              {job.busy ? t('fileUi.processing') : labels[mode]}
             </Button>
-            {job.busy && <Button onClick={job.reset}>Cancel processing</Button>}
+            {job.busy && <Button onClick={job.reset}>{t('fileUi.cancel')}</Button>}
           </div>
         </>
       )}
